@@ -1,6 +1,6 @@
-# ndmc (NeuroData Mouse Cloud)
+# MBAC (Mouse Brain Atlas in the Cloud )
 
-NDMC is a cloud-enabled pipeline for scalable registration, built for mouse light-sheet microscopy
+MBAC is a cloud-enabled pipeline for scalable registration, built for mouse light-sheet microscopy
 
 - [Data management](#data)
 - [Preprocessing](#peprocessing)
