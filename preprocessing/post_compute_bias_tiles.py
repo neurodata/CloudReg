@@ -87,6 +87,32 @@ def send_message_batch(messages):
     for i in chunks(messages,10):
         queue.send_messages(Entries=i)
 
+def create_cloudwatch_alarm():
+    # Create CloudWatch client
+    cloudwatch = boto3.client('cloudwatch')
+    
+    # Create alarm
+    cloudwatch.put_metric_alarm(
+        AlarmName=f'Bias_computed_{queue_name}',
+        ComparisonOperator='LessThanThreshold',
+        EvaluationPeriods=1,
+        MetricName='ApproximateNumberOfMessagesVisible',
+        Namespace='AWS/SQS',
+        Period=60,
+        Statistic='Average',
+        Threshold=1.0,
+        AlarmDescription='Alarm when compute bias queue is empty.',
+        AlarmActions=[
+            'arn:aws:sns:us-west-2:082194479755:COLM_bias_computation'
+        ],
+        Dimensions=[
+            {
+              'Name': 'QueueName',
+              'Value': queue_name
+            },
+        ]
+    )
+
 
 def main():
     parser = argparse.ArgumentParser()
