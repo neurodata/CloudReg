@@ -1,4 +1,5 @@
 import time
+import os
 from io import BytesIO
 import argparse
 
@@ -10,7 +11,42 @@ from joblib import Parallel, delayed
 import joblib
 import math
 
+import tifffile as tf
 import SimpleITK as sitk
+
+
+total_n_jobs = joblib.cpu_count()
+
+# taken from: https://stackoverflow.com/questions/24983493/tracking-progress-of-joblib-parallel-execution
+# to track a multiprocessing job with a progress bar
+class BatchCompletionCallBack(object):
+    # Added code - start
+    global total_n_jobs
+    # Added code - end
+    def __init__(self, dispatch_timestamp, batch_size, parallel):
+        self.dispatch_timestamp = dispatch_timestamp
+        self.batch_size = batch_size
+        self.parallel = parallel
+
+    def __call__(self, out):
+        self.parallel.n_completed_tasks += self.batch_size
+        this_batch_duration = time.time() - self.dispatch_timestamp
+
+        self.parallel._backend.batch_completed(self.batch_size,
+                                           this_batch_duration)
+        self.parallel.print_progress()
+        # Added code - start
+        progress = self.parallel.n_completed_tasks / total_n_jobs
+        time_remaining = (this_batch_duration / self.batch_size) * (total_n_jobs - self.parallel.n_completed_tasks)
+        print( "\rProgress: [{0:50s}] {1:.1f}% est {2:1f}mins left".format('#' * int(progress * 50), progress*100, time_remaining/60) , end="", flush=True)
+
+        if self.parallel.n_completed_tasks == total_n_jobs:
+            print('\n')
+        # Added code - end
+        if self.parallel._original_iterator is not None:
+            self.parallel.dispatch_next()
+
+Parallel.BatchCompletionCallBack = BatchCompletionCallBack
 
 def get_list_of_files_to_process(in_bucket_name, prefix, channel):
     session = boto3.Session()
@@ -158,6 +194,39 @@ def sum_tiles(files, raw_tile_bucket):
         )
     return running_sum
 
+def correct_tile(s3,raw_tile_bucket, raw_tile_path, out_path, bias, out_bucket):
+    raw_tile_obj = s3.Object(raw_tile_bucket, raw_tile_path)
+    raw_tile = np.asarray(Image.open(BytesIO(raw_tile_obj.get()["Body"].read())))
+    # print(f'PULL - time: {time.time() - start_time}, path: {raw_tile_path}')
+    fp = BytesIO()
+    tf.imwrite(fp, data=(raw_tile * bias), compress=1)
+#    np.save(fp,tile)
+    # reset pointer to beginning  of file
+    fp.seek(0)
+    s3.Object(out_bucket, out_path).upload_fileobj(fp)
+    # print(f'SAVE - time: {time.time() - start_time} s path: {out_path}')
+
+def correct_tiles(tiles, raw_tile_bucket, bias, out_bucket):
+    # global pbar_correct_tiles
+    session = boto3.Session()
+    s3 = session.resource('s3')
+    
+    for tile in tiles:
+        head,fname = os.path.split(tile)
+        idx = fname.find('.')
+        fname_new = fname[:idx] + '_corrected.tiff'
+        out_path = f'{head}/{fname_new}'
+        correct_tile(
+            s3,
+            raw_tile_bucket,
+            tile,
+            out_path,
+            bias,
+            out_bucket
+        )
+        # pbar_correct_tiles.update()
+
+
 
 
 def get_all_s3_objects(s3, **base_kwargs):
@@ -176,6 +245,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--in_bucket_name', help='Name of input S3 bucket where raw tiles live.', type=str)
     parser.add_argument('--bias_bucket_name', help='Name of S3 bucket where bias correction tile lives.', type=str)
+    parser.add_argument('--out_bucket_name', help='Name of S3 bucket to store the corrected tiles.', type=str)
     parser.add_argument('--in_path', help='Full path  to VW0 directory on S3 bucket.', type=str)
     parser.add_argument('--bias_path', help='Full path  to bias file for given channel.', type=str)
     parser.add_argument('--channel', help='Channel number to process. accepted values are 0, 1, or 2', type=str)
@@ -187,31 +257,50 @@ def main():
     s = time.time()
     # get list of all tiles to correct for  given channel
     all_files = get_list_of_files_to_process(args.in_bucket_name,args.in_path,args.channel)
-    # subsample tiles
-    all_files = all_files[::args.subsample_factor]
-    num_files  = len(all_files)
-    print(f'num files: {num_files}')
+    total_files = len(all_files)
+    # # subsample tiles
+    # files_cb = all_files[::args.subsample_factor]
+    # num_files  = len(files_cb)
+    # print(f'num files: {num_files}')
 
-    cpu_count = joblib.cpu_count()
-    start_time = time.time()
-    sums = Parallel(cpu_count)(delayed(sum_tiles)(f, args.in_bucket_name) for f in chunks(all_files,num_files//(cpu_count)))
-    print(f"SUMMING {num_files} tiles took {time.time() - start_time} s")
-    sums = [i[:,:,None] for i in sums]
-    sum_tile = np.squeeze(np.sum(np.concatenate(sums,axis=2),axis=2))/num_files
-    print(f'max value in sumtile: {sum_tile.max()}')
-    sum_tile = sitk.GetImageFromArray(sum_tile)
+    # start_time = time.time()
+    # sums = Parallel(total_n_jobs, verbose=10)(delayed(sum_tiles)(f, args.in_bucket_name) for f in chunks(files_cb,num_files//(total_n_jobs)))
+    # print(f"SUMMING {num_files} tiles took {time.time() - start_time} s")
+    # sums = [i[:,:,None] for i in sums]
+    # sum_tile = np.squeeze(np.sum(np.concatenate(sums,axis=2),axis=2))/num_files
+    # print(f'max value in sumtile: {sum_tile.max()}')
+    # sum_tile = sitk.GetImageFromArray(sum_tile)
 
-    bias = sitk.GetArrayFromImage(correct_bias_field(sum_tile,scale=0.25)[-1])
+    # bias = sitk.GetArrayFromImage(correct_bias_field(sum_tile,scale=1.0)[-1])
 
     # print(f"FINAL TILE -- number_of_tiles: {num_files}")
+    # s3 = boto3.resource('s3')
+    # img = Image.fromarray(bias)
+    # fp = BytesIO()
+    # img.save(fp,format='TIFF')
+    # # reset pointer to beginning  of file
+    # fp.seek(0)
+    # s3.Object(args.bias_bucket_name, args.bias_path).upload_fileobj(fp)
+    # print(f"total time taken for creating bias tile: {time.time() - s} s")
+
     s3 = boto3.resource('s3')
-    img = Image.fromarray(bias)
-    fp = BytesIO()
-    img.save(fp,format='TIFF')
-    # reset pointer to beginning  of file
-    fp.seek(0)
-    s3.Object(args.bias_bucket_name, args.bias_path).upload_fileobj(fp)
-    print(f"total time taken: {time.time() - s} s")
+    bias_obj = s3.Object(
+        args.bias_bucket_name, args.bias_path
+    )
+    bias = np.asarray(Image.open(BytesIO(bias_obj.get()["Body"].read())))
+
+
+    # correct all the files and post them to S3
+    # global pbar_correct_tiles
+    # pbar_correct_tiles = tqdm(total=total_files,desc='correcting tiles...')
+    Parallel(total_n_jobs,verbose=10)(delayed(correct_tiles)(f, args.in_bucket_name, bias, args.out_bucket_name) for f in chunks(all_files,round(total_files//total_n_jobs)))
+    # pbar_correct_tiles.close()
+    print(f"total time taken for creating bias tile AND correcting all tiles: {time.time() - s} s")
+
+
+
+    # OR 
+    #  correct all the files and save them locally
 
     # now delete the files
     # for f in tqdm(all_files, desc='Deleting summed tiles...'):
