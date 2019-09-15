@@ -195,7 +195,8 @@ def sum_tiles(files, raw_tile_bucket):
         )
     return running_sum
 
-def correct_tile(s3,raw_tile_bucket, raw_tile_path, out_path, bias, out_bucket):
+def correct_tile(raw_tile_bucket, raw_tile_path, out_path, bias):
+    s3 = boto3.Session().resource('s3')
     raw_tile_obj = s3.Object(raw_tile_bucket, raw_tile_path)
     raw_tile = np.asarray(Image.open(BytesIO(raw_tile_obj.get()["Body"].read())))
     # print(f'PULL - time: {time.time() - start_time}, path: {raw_tile_path}')
@@ -208,35 +209,15 @@ def correct_tile(s3,raw_tile_bucket, raw_tile_path, out_path, bias, out_bucket):
     # s3.Object(out_bucket, out_path).upload_fileobj(fp)
     # print(f'SAVE - time: {time.time() - start_time} s path: {out_path}')
 
-def correct_tiles(tiles, raw_tile_bucket, bias, out_bucket):
-    # global pbar_correct_tiles
-    session = boto3.Session()
-    s3 = session.resource('s3')
-
-    
-    for tile in tiles:
-        head,fname = os.path.split(tile)
-        head_tmp = head.split('/')
-        head = './' + '/'.join(head_tmp[-2:])
-        idx = fname.find('.')
-        fname_new = fname[:idx] + '_corrected.tiff'
-        out_path = f'{head}/{fname_new}'
-        # print(f"output_path: {out_path}")
-        # make the directories if they don't exist
-        # pathlib.Path(head).mkdir(parents=True, exist_ok=True) 
-        os.makedirs(head, exist_ok=True)  # succeeds even if directory exists.
-        correct_tile(
-            s3,
-            raw_tile_bucket,
-            tile,
-            out_path,
-            bias,
-            out_bucket
-        )
-        # pbar_correct_tiles.update()
-
-
-
+def get_out_path(in_path):
+    head,fname = os.path.split(in_path)
+    head_tmp = head.split('/')
+    head = './' + '/'.join(head_tmp[-2:])
+    idx = fname.find('.')
+    fname_new = fname[:idx] + '_corrected.tiff'
+    out_path = f'{head}/{fname_new}'
+    os.makedirs(head, exist_ok=True)  # succeeds even if directory exists.
+    return out_path
 
 def get_all_s3_objects(s3, **base_kwargs):
     continuation_token = None
@@ -267,22 +248,18 @@ def main():
     # get list of all tiles to correct for  given channel
     all_files = get_list_of_files_to_process(args.in_bucket_name,args.in_path,args.channel)
     total_files = len(all_files)
-    # # subsample tiles
+    # subsample tiles
     # files_cb = all_files[::args.subsample_factor]
     # num_files  = len(files_cb)
-    # print(f'num files: {num_files}')
 
-    # start_time = time.time()
-    # sums = Parallel(total_n_jobs, verbose=10)(delayed(sum_tiles)(f, args.in_bucket_name) for f in chunks(files_cb,num_files//(total_n_jobs)))
-    # print(f"SUMMING {num_files} tiles took {time.time() - start_time} s")
+    # sums = Parallel(total_n_jobs, verbose=10, prefer='threads')(delayed(sum_tiles)(f, args.in_bucket_name) for f in chunks(files_cb,num_files//(total_n_jobs)))
     # sums = [i[:,:,None] for i in sums]
     # sum_tile = np.squeeze(np.sum(np.concatenate(sums,axis=2),axis=2))/num_files
-    # print(f'max value in sumtile: {sum_tile.max()}')
     # sum_tile = sitk.GetImageFromArray(sum_tile)
 
     # bias = sitk.GetArrayFromImage(correct_bias_field(sum_tile,scale=1.0)[-1])
 
-    # print(f"FINAL TILE -- number_of_tiles: {num_files}")
+    # # save bias tile to S3
     # s3 = boto3.resource('s3')
     # img = Image.fromarray(bias)
     # fp = BytesIO()
@@ -292,20 +269,20 @@ def main():
     # s3.Object(args.bias_bucket_name, args.bias_path).upload_fileobj(fp)
     # print(f"total time taken for creating bias tile: {time.time() - s} s")
 
+    # get bias tile from S3
     s3 = boto3.resource('s3')
     bias_obj = s3.Object(
         args.bias_bucket_name, args.bias_path
     )
     bias = np.asarray(Image.open(BytesIO(bias_obj.get()["Body"].read())))
 
-
     # correct all the files and post them to S3
     # global pbar_correct_tiles
     # pbar_correct_tiles = tqdm(total=total_files,desc='correcting tiles...')
-    Parallel(total_n_jobs,verbose=10)(delayed(correct_tiles)(f, args.in_bucket_name, bias, args.out_bucket_name) for f in chunks(all_files,round(total_files//total_n_jobs)))
+    out_paths = [get_out_path(i) for i in tqdm(all_files,desc='getting output paths')]
+    Parallel(n_jobs=-1,prefer='threads')(delayed(correct_tile)(args.in_bucket_name, in_path, out_path, bias) for in_path,out_path in tqdm(zip(all_files,out_paths),total=total_files))
     # pbar_correct_tiles.close()
     print(f"total time taken for creating bias tile AND correcting all tiles: {time.time() - s} s")
-
 
 
     # OR 
