@@ -30,7 +30,7 @@ def main():
     # img is F order
     img = vol[:,:,:]
     # save out as C order
-    tf.imsave(args.outfile,img.T,compress=3)
+    tf.imsave(args.outfile,img,compress=3)
 
 
 
