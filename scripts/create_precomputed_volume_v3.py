@@ -42,7 +42,7 @@ def create_cloud_volume(precomputed_path,img_size,voxel_size,num_hierarchy_level
         voxel_offset    = [0, 0, 0], # x,y,z offset in voxels from the origin
         # Pick a convenient size for your underlying chunk representation
         # Powers of two are recommended, doesn't need to cover image exactly
-        chunk_size      = [ CHUNK_SIZE*8, CHUNK_SIZE*8, CHUNK_SIZE ], # units are voxels
+        chunk_size      = [ 1024, 1024, 1 ], # units are voxels
         volume_size     = img_size, # e.g. a cubic millimeter dataset
     )
     vol = CloudVolume(precomputed_path,info=info,parallel=parallel)
@@ -124,16 +124,10 @@ def get_voxel_dims(path_to_xml):
 def parallel_assign_image(array,idx,image):
     array[:,:,idx] = image
 
-progress_dir = mkdir('progress/') # unlike os.mkdir doesn't crash on prexisting 
-done_files = set([ int(z) for z in os.listdir(progress_dir) ])
-all_files = set(range(vol.bounds.minpt.z, vol.bounds.maxpt.z + 1))
 
-to_upload = [ int(z) for z in list(all_files.difference(done_files)) ]
-to_upload.sort()
-
-def process(z):
-    img_name = 'brain_%06d.tif' % z
-    print('Processing ', img_name)
+def process(z,file_path):
+#    img_name = 'brain_%06d.tif' % z
+#    print('Processing ', img_name)
     image = Image.open(os.path.join(direct, img_name))
     width, height = image.size
     array = np.array(list( image.getdata() ), dtype=np.uint16, order='F')
@@ -142,8 +136,6 @@ def process(z):
     image.close()
     touch(os.path.join(progress_dir, str(z)))
 
-with ProcessPoolExecutor(max_workers=8) as executor:
-    executor.map(process, to_upload)
 
 def main():
     parser = argparse.ArgumentParser(description='Convert local volume into precomputed volume on S3.')
@@ -154,16 +146,27 @@ def main():
     args = parser.parse_args()
 
 
-    
-    files = np.sort(glob(f'{args.input_path}/*.{args.extension}')).tolist()
+    files_slices = list(enumerate(np.sort(glob(f'{args.input_path}/*.{args.extension}')).tolist()))
+    zs = [i[0] for i in files_slices]
+    files = [i[1] for i in files_slices]
     print(f'input path: {args.input_path}')
     img_size = get_image_dims(files)
     voxel_size = get_voxel_dims(args.input_xml)
     print(f'image size is: {img_size}')
     print(f'voxel size is: {voxel_size}')
-    vol = create_cloud_volume(args.precomputed_path,img_size,voxel_size)
+    global vol
+    vol = create_cloud_volume(args.precomputed_path,img_size,voxel_size,parallel=False)
+    progress_dir = mkdir('progress/') # unlike os.mkdir doesn't crash on prexisting 
+    done_files = set([ int(z) for z in os.listdir(progress_dir) ])
+    all_files = set(range(vol.bounds.minpt.z, vol.bounds.maxpt.z + 1))
+    
+    to_upload = [ int(z) for z in list(all_files.difference(done_files)) ]
+    to_upload.sort()
+    remaining_files = files[to_upload]
+    with ProcessPoolExecutor(max_workers=joblib.cpu_count()) as executor:
+        executor.map(process, to_upload, remaining_files)
     # create list of CloudVolume objects at each mip
-    upload_image_to_volume(vol,files)
+#    upload_image_to_volume(vol,zs,files)
 
 if __name__ == "__main__":
     main()
