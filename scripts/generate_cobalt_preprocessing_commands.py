@@ -4,6 +4,7 @@ import math
 # from bs4 import BeautifulSoup
 import argparse
 from psutil import virtual_memory
+import  joblib
 
 
 def write_import_xml(fname_importxml,scanned_matrix,metadata):
@@ -53,13 +54,15 @@ def write_terastitcher_commands(fname_ts,metadata,channel,stitched_dir):
     #subvoldim = max(metadata['num_slices']//num_processes,20)
     mem = virtual_memory()
     num_processes = math.floor(mem.total/((metadata['num_pix']**2) * 4 * (min(metadata['grid_size_X'],metadata['grid_size_Y'])+1)*subvoldim))+1
+    depth = 5
+    num_proc_merge = math.floor(mem.total/(metadata['height']*metadata['width']*2*depth))
     print(f"num processes to use for stitching is: {num_processes}")
     step1 = f"terastitcher --test --projin={metadata['stack_dir']}/xml_import.xml --imout_depth=16 --sparse_data{eofl}"
     step2 = f"mpirun -n {num_processes} python3 ~/Parastitcher_for_py37.py -2 --projin=\"xml_import.xml\" --projout=\"xml_displcomp.xml\" --sV={metadata['sV']} --sH={metadata['sH']} --sD={metadata['sD']} --subvoldim={subvoldim} --sparse_data --exectimes --exectimesfile=\"t_displcomp\"{eofl}"
     step3 = f'terastitcher --displproj --projin="xml_displcomp.xml" --projout="xml_displproj.xml" --sparse_data{eofl}'
     step4 = f'terastitcher --displthres --projin="xml_displproj.xml" --projout="xml_displthres.xml" --threshold=0.3 --sparse_data{eofl}'
     step5 = f'terastitcher --placetiles --projin="xml_displthres.xml"{eofl}'
-    step6 = f"mpirun -n `nproc` python3 ~/paraconverter2_3_2_py37.py -s=\"xml_merging.xml\" -d=\"{stitched_dir}\" --sfmt=\"TIFF (unstitched, 3D)\" --dfmt=\"TIFF (series, 2D)\" --height={metadata['height']} --width={metadata['width']} --depth=15{eofl}"
+    step6 = f"mpirun -n {num_proc_merge} python3 ~/paraconverter2_3_2_py37.py -s=\"xml_merging.xml\" -d=\"{stitched_dir}\" --sfmt=\"TIFF (unstitched, 3D)\" --dfmt=\"TIFF (series, 2D)\" --height={metadata['height']} --width={metadata['width']} --depth={depth}{eofl}"
     ts_commands = [f"set -e{eofl}"]
     if channel == 0:
         ts_commands.extend([step1,step2,step3,step4,step5,step6])

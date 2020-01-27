@@ -1,14 +1,17 @@
+import math
 from cloudvolume import CloudVolume
 import numpy as np
 from PIL import Image
 from tqdm import tqdm
 from joblib import Parallel, delayed
+import joblib
 from glob import glob
 import argparse
 import bs4
 import time
 import tifffile as tf
 import PIL
+from psutil import virtual_memory
 
 from skimage import transform
 import tinybrain
@@ -125,16 +128,21 @@ def parallel_assign_image(array,idx,image):
     array[:,:,idx] = image
 
 
-def process(z,file_path):
+def process(z,file_path,layer_cloudpath):
 #    img_name = 'brain_%06d.tif' % z
-#    print('Processing ', img_name)
-    image = Image.open(os.path.join(direct, img_name))
+    start = time.time()
+    print(f"starting {z}")
+#    global vol
+    vol = CloudVolume(layer_cloudpath)
+    image = Image.open(file_path)
     width, height = image.size
-    array = np.array(list( image.getdata() ), dtype=np.uint16, order='F')
+    array = np.asarray(image, dtype=np.uint16, order='F')
     array = array.reshape((1, height, width)).T
+    print("{z} image loaded")
     vol[:,:, z] = array
-    image.close()
+    #image.close()
     touch(os.path.join(progress_dir, str(z)))
+    print(f'Processing {z} took {time.time() - start}')
 
 
 def main():
@@ -146,27 +154,31 @@ def main():
     args = parser.parse_args()
 
 
+    start_time = time.time()
     files_slices = list(enumerate(np.sort(glob(f'{args.input_path}/*.{args.extension}')).tolist()))
     zs = [i[0] for i in files_slices]
-    files = [i[1] for i in files_slices]
+    files = np.array([i[1] for i in files_slices])
     print(f'input path: {args.input_path}')
     img_size = get_image_dims(files)
     voxel_size = get_voxel_dims(args.input_xml)
     print(f'image size is: {img_size}')
     print(f'voxel size is: {voxel_size}')
-    global vol
+#    global vol
     vol = create_cloud_volume(args.precomputed_path,img_size,voxel_size,parallel=False)
     progress_dir = mkdir('progress/') # unlike os.mkdir doesn't crash on prexisting 
     done_files = set([ int(z) for z in os.listdir(progress_dir) ])
-    all_files = set(range(vol.bounds.minpt.z, vol.bounds.maxpt.z + 1))
+    all_files = set(range(vol.bounds.minpt.z, vol.bounds.maxpt.z))
     
     to_upload = [ int(z) for z in list(all_files.difference(done_files)) ]
     to_upload.sort()
     remaining_files = files[to_upload]
-    with ProcessPoolExecutor(max_workers=joblib.cpu_count()) as executor:
-        executor.map(process, to_upload, remaining_files)
-    # create list of CloudVolume objects at each mip
-#    upload_image_to_volume(vol,zs,files)
+#    vols = [CloudVolume(vol.layer_cloudpath,parallel=False) for i in range(len(remaining_files))]
+    mem = virtual_memory() 
+    num_procs = min(math.floor(mem.total/(img_size[0]*img_size[1]*32)),joblib.cpu_count())
+    print(f"num processes: {num_procs}")
+    with ProcessPoolExecutor(max_workers=num_procs) as executor:
+        executor.map(process, to_upload, remaining_files, [vol.layer_cloudpath]*len(remaining_files))
+    print(f"took {time.time() - start_time} seconds to upload to S3")
 
 if __name__ == "__main__":
     main()
