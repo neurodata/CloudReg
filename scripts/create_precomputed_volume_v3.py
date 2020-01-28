@@ -36,6 +36,7 @@ def chunks(l,n):
 
 
 def create_cloud_volume(precomputed_path,img_size,voxel_size,num_hierarchy_levels=6,parallel=True):
+    chunk_size = [ 1024, 1024, 1 ]
     info = CloudVolume.create_new_info(
         num_channels    = 1,
         layer_type      = 'image',
@@ -45,12 +46,13 @@ def create_cloud_volume(precomputed_path,img_size,voxel_size,num_hierarchy_level
         voxel_offset    = [0, 0, 0], # x,y,z offset in voxels from the origin
         # Pick a convenient size for your underlying chunk representation
         # Powers of two are recommended, doesn't need to cover image exactly
-        chunk_size      = [ 1024, 1024, 1 ], # units are voxels
+        chunk_size      = chunk_size, # units are voxels
         volume_size     = img_size, # e.g. a cubic millimeter dataset
     )
     vol = CloudVolume(precomputed_path,info=info,parallel=parallel)
     # add mip 1
-    [vol.add_scale((2**i,2**i,1)) for i in range(num_hierarchy_levels)]
+    [vol.add_scale((2**i,2**i,1),chunk_size=chunk_size) for i in range(num_hierarchy_levels)]
+
     vol.commit_info()
     return vol
 
@@ -128,22 +130,23 @@ def parallel_assign_image(array,idx,image):
     array[:,:,idx] = image
 
 
-def process(z,file_path,layer_cloudpath):
+def process(z,file_path):
 #    img_name = 'brain_%06d.tif' % z
     start = time.time()
-    print(f"starting {z}")
+   # print(f"starting {z}")
 #    global vol
-    vol = CloudVolume(layer_cloudpath)
+    global layer_path, progress_dir
+    vol = CloudVolume(layer_path,parallel=False)
     image = Image.open(file_path)
     width, height = image.size
     array = np.asarray(image, dtype=np.uint16, order='F')
     array = array.reshape((1, height, width)).T
-    print("{z} image loaded")
+   # print(f"{z} image loaded")
     vol[:,:, z] = array
-    #image.close()
+   # print("image uploaded")
+    image.close()
     touch(os.path.join(progress_dir, str(z)))
     print(f'Processing {z} took {time.time() - start}')
-
 
 def main():
     parser = argparse.ArgumentParser(description='Convert local volume into precomputed volume on S3.')
@@ -163,8 +166,9 @@ def main():
     voxel_size = get_voxel_dims(args.input_xml)
     print(f'image size is: {img_size}')
     print(f'voxel size is: {voxel_size}')
-#    global vol
+    global vol
     vol = create_cloud_volume(args.precomputed_path,img_size,voxel_size,parallel=False)
+    global progress_dir
     progress_dir = mkdir('progress/') # unlike os.mkdir doesn't crash on prexisting 
     done_files = set([ int(z) for z in os.listdir(progress_dir) ])
     all_files = set(range(vol.bounds.minpt.z, vol.bounds.maxpt.z))
@@ -174,10 +178,15 @@ def main():
     remaining_files = files[to_upload]
 #    vols = [CloudVolume(vol.layer_cloudpath,parallel=False) for i in range(len(remaining_files))]
     mem = virtual_memory() 
-    num_procs = min(math.floor(mem.total/(img_size[0]*img_size[1]*32)),joblib.cpu_count())
+    num_procs = min(math.floor(mem.total/(img_size[0]*img_size[1]*8)),joblib.cpu_count())
     print(f"num processes: {num_procs}")
+    print(f"layer path: {vol.layer_cloudpath}")
+    global layer_path
+    layer_path = vol.layer_cloudpath
+
     with ProcessPoolExecutor(max_workers=num_procs) as executor:
-        executor.map(process, to_upload, remaining_files, [vol.layer_cloudpath]*len(remaining_files))
+        executor.map(process, to_upload, remaining_files)
+
     print(f"took {time.time() - start_time} seconds to upload to S3")
 
 if __name__ == "__main__":

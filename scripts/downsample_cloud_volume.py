@@ -7,7 +7,7 @@ import argparse
 
 def downsample(precomputed_path, num_mips, starting_mip):
     
-    with LocalTaskQueue(parallel=32) as tq:
+    with LocalTaskQueue(parallel=True) as tq:
         tasks = tc.create_downsampling_tasks(
             precomputed_path,
             mip=starting_mip,  # Start downsampling from this mip level (writes to next level up)
@@ -15,7 +15,7 @@ def downsample(precomputed_path, num_mips, starting_mip):
             axis="z",
             num_mips=num_mips,  # number of downsamples to produce. Downloaded shape is chunk_size * 2^num_mip
             chunk_size=None,  # manually set chunk size of next scales, overrides preserve_chunk_size
-            preserve_chunk_size=False,  # use existing chunk size, don't halve to get more downsamples
+            preserve_chunk_size=True,  # use existing chunk size, don't halve to get more downsamples
             sparse=False,  # for sparse segmentation, allow inflation of pixels against background
             bounds=None,  # mip 0 bounding box to downsample
             encoding=None,  # e.g. 'raw', 'compressed_segmentation', etc
