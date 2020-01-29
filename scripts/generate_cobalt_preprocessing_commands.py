@@ -53,9 +53,9 @@ def write_terastitcher_commands(fname_ts,metadata,channel,stitched_dir):
     subvoldim = 60
     #subvoldim = max(metadata['num_slices']//num_processes,20)
     mem = virtual_memory()
-    num_processes = math.floor(mem.total/((metadata['num_pix']**2) * 4 * (min(metadata['grid_size_X'],metadata['grid_size_Y'])+1)*subvoldim))+1
+    num_processes = min(math.floor(mem.total/((metadata['num_pix']**2) * 4 * (min(metadata['grid_size_X'],metadata['grid_size_Y'])+1)*subvoldim))+1,joblib.num_cpus())
     depth = 5
-    num_proc_merge = math.floor(mem.total/(metadata['height']*metadata['width']*2*depth))
+    num_proc_merge = min(math.floor(mem.total/(metadata['height']*metadata['width']*2*depth)),joblib.num_cpus())
     print(f"num processes to use for stitching is: {num_processes}")
     step1 = f"terastitcher --test --projin={metadata['stack_dir']}/xml_import.xml --imout_depth=16 --sparse_data{eofl}"
     step2 = f"mpirun -n {num_processes} python3 ~/Parastitcher_for_py37.py -2 --projin=\"xml_import.xml\" --projout=\"xml_displcomp.xml\" --sV={metadata['sV']} --sH={metadata['sH']} --sD={metadata['sD']} --subvoldim={subvoldim} --sparse_data --exectimes --exectimesfile=\"t_displcomp\"{eofl}"
