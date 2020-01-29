@@ -18,7 +18,7 @@ OUTDIR=${SSD1}
 
 #sudo ./mount_ssds.sh
 
-## enter virtualenv
+# enter virtualenv
 #. /home/ubuntu/bias_correction/bin/activate
 #
 ## compute and apply bias
@@ -28,7 +28,7 @@ OUTDIR=${SSD1}
 #pkill -f python
 #
 ## go into VW0 directory
-#cd ${OUTDIR}/VW0
+cd ${OUTDIR}/VW0
 #
 ## make directory for stitched data
 #mkdir -p ${SSD2}/stitched_data
@@ -49,7 +49,7 @@ OUTDIR=${SSD1}
 #mkdir  -p ~/xml_files/${EXP}
 #cp *.xml ~/xml_files/${EXP}/
 #pkill -f python3
-#
+
 # enter virtualenv
 . /home/ubuntu/bias_correction/bin/activate
 

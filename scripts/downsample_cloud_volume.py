@@ -4,10 +4,12 @@
 from taskqueue import LocalTaskQueue
 import igneous.task_creation as tc
 import argparse
+import joblib
 
 def downsample(precomputed_path, num_mips, starting_mip):
     
-    with LocalTaskQueue(parallel=True) as tq:
+    num_cpus = joblib.cpu_count()
+    with LocalTaskQueue(parallel=num_cpus-1) as tq:
         tasks = tc.create_downsampling_tasks(
             precomputed_path,
             mip=starting_mip,  # Start downsampling from this mip level (writes to next level up)

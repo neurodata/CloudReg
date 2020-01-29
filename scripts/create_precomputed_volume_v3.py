@@ -94,7 +94,6 @@ def upload_image_to_volume(vol,files):
         #with tf.TiffSequence(f) as imseq:
         #    imseq.asarray(ioworkers=len(f), out=tmp_chunk.T)
         #print(f"took {time.time() - s} seconds to load {CHUNK_SIZE} slices into memory")
-        img_pyramid = tinybrain.accelerated.average_pooling_2x2(tmp_chunk, num_mips)
         start = i*CHUNK_SIZE
         end = start + len(f)
         # time upload at  res 0
@@ -129,21 +128,22 @@ def get_voxel_dims(path_to_xml):
 def parallel_assign_image(array,idx,image):
     array[:,:,idx] = image
 
-
 def process(z,file_path):
 #    img_name = 'brain_%06d.tif' % z
     start = time.time()
    # print(f"starting {z}")
 #    global vol
-    global layer_path, progress_dir
-    vol = CloudVolume(layer_path,parallel=False)
+    global layer_path, progress_dir, num_mips
+    vols = [get_vol_at_mip(layer_path,i,parallel=False) for i in range(num_mips)]
     image = Image.open(file_path)
     width, height = image.size
-    array = np.asarray(image, dtype=np.uint16, order='F')
-    array = array.reshape((1, height, width)).T
-   # print(f"{z} image loaded")
-    vol[:,:, z] = array
-   # print("image uploaded")
+    array = np.array(image).T
+    array = array.reshape((width,height,1))
+#    print(f"arrayshape: {array.shape}\nF_CONTIGUOUS:{array.flags['F_CONTIGUOUS']}")
+    img_pyramid = tinybrain.accelerated.average_pooling_2x2(array, num_mips)
+    vols[0][:,:, z] = array
+    for i in range(num_mips-1):
+        vols[i+1][:,:,z] = img_pyramid[i]
     image.close()
     touch(os.path.join(progress_dir, str(z)))
     print(f'Processing {z} took {time.time() - start}')
@@ -166,11 +166,11 @@ def main():
     voxel_size = get_voxel_dims(args.input_xml)
     print(f'image size is: {img_size}')
     print(f'voxel size is: {voxel_size}')
-    global vol
+    global vol,num_mips,progress_dir
     vol = create_cloud_volume(args.precomputed_path,img_size,voxel_size,parallel=False)
-    global progress_dir
     progress_dir = mkdir('progress/') # unlike os.mkdir doesn't crash on prexisting 
     done_files = set([ int(z) for z in os.listdir(progress_dir) ])
+    num_mips = 6
     all_files = set(range(vol.bounds.minpt.z, vol.bounds.maxpt.z))
     
     to_upload = [ int(z) for z in list(all_files.difference(done_files)) ]
