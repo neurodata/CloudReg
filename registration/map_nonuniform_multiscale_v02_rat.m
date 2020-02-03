@@ -3,13 +3,13 @@ close all;
 fclose all;
 
 
-addpath /data/vikram/registration_daniel_matlab/Functions/plotting/
-addpath /data/vikram/registration_daniel_matlab/Functions/nrrd/
-addpath /data/vikram/registration_daniel_matlab/Functions/avwQuiet/
-addpath /data/vikram/registration_daniel_matlab/Functions/downsample/
-addpath /data/vikram/registration_daniel_matlab/Functions/spatially_varying_polynomial/
-addpath /data/vikram/registration_daniel_matlab/Functions/textprogressbar
-%addpath /data/vikram/registration_daniel_matlab/frame2Gif.m
+addpath ./Functions/
+addpath ./Functions/plotting/
+addpath ./Functions/nrrd/
+addpath ./Functions/avwQuiet/
+addpath ./Functions/downsample/
+addpath ./Functions/spatially_varying_polynomial/
+addpath ./Functions/textprogressbar/
 
 %%
 % note that this code should be run twice
@@ -22,24 +22,32 @@ addpath /data/vikram/registration_daniel_matlab/Functions/textprogressbar
 
 %indir = '/data/vikram/registration_daniel_matlab/Gad2_VGat_Brain12_20190308_downsampled/';
 
-for downloop = 1 : 2
+downloop_start = 1
+for downloop = downloop_start : 4
     % input this output prefix
-    prefix = 'SertCre_Brain11_20190307_registration_sigmaR_2500/';
+    prefix = '/home/ubuntu/gad2_7267_registration/';
+    in_prefix = '/home/ubuntu/MBAC/registration/atlases/';
     
+    target_name = '/home/ubuntu/Gad2_7267_ch1.tif';
+
+    % pixel size is required here as the tif data structure does not store it
+    dxJ0 = [37.44 37.44  5.0];
+
     if downloop == 1
-        template_name = '/data/vikram/registration_daniel_matlab/average_template_100.nrrd';
-        label_name = '/data/vikram/registration_daniel_matlab/annotation_100.nrrd';
-        target_name = '/data/vikram/registration_for_all_data/.tif';
-        % pixel size is required here as the tif data structure does not store it
-        dxJ0 = [9.36 9.36 5];
+        template_name = strcat(in_prefix,'/WHS_SD_rat_T2star_v1.01_skullstrip_res3_iso.nii.gz');
+        label_name = strcat(in_prefix, '/WHS_SD_rat_atlas_v3_res3.nii.gz');
         
+    elseif downloop == 2
+        template_name = strcat(in_prefix,'/WHS_SD_rat_T2star_v1.01_skullstrip_res2_iso.nii.gz');
+        label_name = strcat(in_prefix, '/WHS_SD_rat_atlas_v3_res2.nii.gz');
+
+    elseif downloop == 3
+        template_name = strcat(in_prefix, '/WHS_SD_rat_T2star_v1.01_skullstrip_res1_iso.nii.gz');
+        label_name = strcat(in_prefix, '/WHS_SD_rat_atlas_v3_res1.nii.gz');
+
     else
-        % input arguments in this cell
-        template_name = '/data/vikram/registration_daniel_matlab/average_template_50.nrrd';
-        label_name = '/data/vikram/registration_daniel_matlab/annotation_50.nrrd';
-        target_name = '/data/vikram/registration_daniel_matlab/SertCre_Brain11_20190307_downsampled/SertCre_Brain11_20190307_936_936_5_ch1.tif';
-        % pixel size is required here as the tif data structure does not store it
-        dxJ0 = [9.36 9.36 5];
+        template_name = strcat(in_prefix,'/WHS_SD_rat_T2star_v1.01_skullstrip.nii.gz');
+        label_name = strcat(in_prefix, '/data/vikram/registration_for_all_data/WHS_SD_rat_atlas_v3.nii.gz');
         
     end
     
@@ -49,10 +57,19 @@ for downloop = 1 : 2
     if downloop == 1
         vname = ''; % input mat file to restore v, empty string if not restoring
         Aname = ''; % input mat file to restore A, empty string if not restoring
-    elseif downloop == 2
+    else
         [a,b,c] = fileparts(prefix);
-        vname = [a,filesep, b,['downloop_1_'], c , 'v.mat'];
-        Aname = [a,filesep, b,['downloop_1_'], c , 'A.mat'];
+        vname = [a,filesep, b,['downloop_' num2str(downloop-1) '_'], c , 'v.mat'];
+        Aname = [a,filesep, b,['downloop_' num2str(downloop-1) '_'], c , 'A.mat'];
+
+%    elseif downloop == 2
+%        [a,b,c] = fileparts(prefix);
+%        vname = [a,filesep, b,['downloop_1_'], c , 'v.mat'];
+%        Aname = [a,filesep, b,['downloop_1_'], c , 'A.mat'];
+%    elseif downloop == 3
+%        [a,b,c] = fileparts(prefix);
+%        vname = [a,filesep, b,['downloop_2_'], c , 'v.mat'];
+%        Aname = [a,filesep, b,['downloop_2_'], c , 'A.mat'];
     end
     % add down loop to prefix
     [a,b,c] = fileparts(prefix);
@@ -67,9 +84,13 @@ for downloop = 1 : 2
     
     %%
     % allen atlas
-    [I,meta] = nrrdread(template_name);
+%    [I,meta] = nrrdread(template_name);
+    I = niftiread(template_name);
+    meta = niftiinfo(template_name);
     I = double(I);
-    dxI = diag(sscanf(meta.spacedirections,'(%d,%d,%d) (%d,%d,%d) (%d,%d,%d)',[3,3]))';
+    %  convert pixel dimensions from  mm to um
+    dxI = meta.PixelDimensions * 1000.0
+    % dxI = diag(sscanf(meta.spacedirections,'(%d,%d,%d) (%d,%d,%d) (%d,%d,%d)',[3,3]))';
     
     
     
@@ -98,18 +119,21 @@ for downloop = 1 : 2
     fzI = (0:nxI(3)-1)/nxI(3)/dxI(3);
     [FXI,FYI,FZI] = meshgrid(fxI,fyI,fzI);
     
-    [L,meta] = nrrdread(label_name);
+    L = niftiread(label_name);
+    meta_L = niftiinfo(label_name)
+    %  convert pixel dimensions from  mm to um
+    dxL = meta.PixelDimensions * 1000.0
     L = padarray(L,[1,1,1]*npad,0,'both');
     
     
     %%
     % vikram mouse
-    info = imfinfo(target_name);
+    info = imfinfo(target_name)
     %%
     % downsample to about same res as atlas
     down = round(dxI./dxJ0);
     textprogressbar('reading target: ');
-    num_slices = length(info);
+    num_slices = length(info)
     for f = 1 : num_slices
         textprogressbar((f/num_slices)*100);
         %disp(['File ' num2str(f) ' of ' num2str(length(info))])
@@ -141,6 +165,7 @@ for downloop = 1 : 2
         end
     end
     textprogressbar('done reading target.');
+    display(size(J))
     dxJ = dxJ0.*down;
     xJ = (0:nxJ(1)-1)*dxJ(1);
     yJ = (0:nxJ(2)-1)*dxJ(2);
@@ -151,11 +176,15 @@ for downloop = 1 : 2
     zJ = zJ - mean(zJ);
 
 
-    if downloop == 1
-        xJ_downloop1 = xJ;
-        yJ_downloop1 = yJ;
-        zJ_downloop1 = zJ;
-    end
+    % this isn't used anymore
+    % because we  want to initialize high res
+    %  coeffs  with low res coeffs
+    %  10/2/19 -- VC
+%    if downloop == 1
+%        xJ_downloop1 = xJ;
+%        yJ_downloop1 = yJ;
+%        zJ_downloop1 = zJ;
+%    end
 
 
     
@@ -176,7 +205,10 @@ for downloop = 1 : 2
     % grid correction
     Jsum = sum(J0_orig,3);
     % blur
-    grid_correction_blur_width = 200;
+    % 2x for rat
+    % actually 2x introduces a lot of artifacts
+    % going to try .25x
+    grid_correction_blur_width = 50;
     [XJgrid,YJgrid] = meshgrid(xJ,yJ);
     
     K = exp(-(XJgrid.^2 + YJgrid.^2)/2/(grid_correction_blur_width)^2);
@@ -261,7 +293,7 @@ for downloop = 1 : 2
     
     
     % iterate
-    niterhom = 20;
+    niterhom = 10;
 
     textprogressbar('correcting inhomogeneity: ');
     for it = 1 : niterhom
@@ -372,17 +404,17 @@ for downloop = 1 : 2
     nplot = 5;
     order = 4;
     %naffine = 100;
-    naffine = 25;
+    naffine = 15;
     nM = 1;
     nMaffine = 1; % number of m steps per e step durring affine only
     
     
-    niter = 1500;
+    niter = 100/downloop;
 %    niter_a5 = 1000;
 %    niter_a4 = 500;
-    if dxI < 100
-        niter = 100; % if high resolution do fewer iterations
-    end
+    %if dxI < 50
+    %    niter = 500; % if high resolution do fewer iterations
+    %end
     
     % % test!
     % niter = 10;
@@ -392,9 +424,10 @@ for downloop = 1 : 2
     
     
     % above sigma was too small, need more deformation
-    sigmaR = 5e3;
+    % sigmaR = 5e3;
     
-    a = 500;
+    % twice as big for rat brain
+    a = 500*2;
     % try different smoothness scale for
     % higher resolution to account for serious
     % local deformation
@@ -403,11 +436,16 @@ for downloop = 1 : 2
 %        a = 250
 %    end
     p = 2;
-    apre = 1000;
+    % apre = 1000;
+    % make this a function of voxel size
+    % to speed up optimization
+    % 10/2/19 -- VC
+    apre = 10*dxI(1);
     ppre = 2;
-    aC = 2000; % I think this should be bigger, about 20 voxels, I think 2000 is too big
-    aC = 1000;
+    %aC = 2000; % I think this should be bigger, about 20 voxels, I think 2000 is too big
+    %aC = 1000;
     aC = 750; % try a little smaller
+    aC = 750*2; % try bigger for rat, maybe 2x
     pC = 2;
     
     LL = (1 - 2 * a^2 * ( (cos(2*pi*dxI(1)*FXI) - 1)/dxI(1)^2 + (cos(2*pi*dxI(2)*FYI) - 1)/dxI(2)^2 + (cos(2*pi*dxI(3)*FZI) - 1)/dxI(3)^2 )).^(2*p);
@@ -424,13 +462,12 @@ for downloop = 1 : 2
     
     
     
-    %eV = 2e5;
     eT = 2e-6;
-    eL = 1e-12; % okay seems fine
+    eL = 1e-13; % okay seems fine
     post_affine_reduce = 0.1;
     
     %eV = 1e6;
-    eV = 10e6;
+    eV = 5e6;
     
     
     sigmaR = 1e4;
@@ -447,20 +484,27 @@ for downloop = 1 : 2
     % %%
     % initialize
     A = eye(4);
-    A = [0,-1,0,0;
-        1,0,0,0;
-        0,0,1,0
-        0,0,0,1]*A;
-    A = [0,0,1,0;
-        0,1,0,0;
-        1,0,0,0;
-        0,0,0,1]*A;
-    % note this has det -1!
-    A = diag([-1,1,1,1])*A;
+    % translation down in axis 2
+    A(3,4)=-1100;
+    % translation in axis 1 direction
+    A(2,4)=1000;
+    % translation in axis 0
+    A(1,4)=-1500;
+    %  30 degree  rotation
+    A = [0.8660254,-0.5,0,0;
+         0.5,0.8660254,0,0;
+         0,0,1,0
+         0,0,0,1]*A;
+    % A = [0,0,1,0;
+    %     0,1,0,0;
+    %     1,0,0,0;
+    %     0,0,0,1]*A;
+    % % note this has det -1!
+    % A = diag([-1,1,1,1])*A;
     
     % shrink atlas to make affine estimate more accurate
     % comment out below for SertCre
-    A = diag([0.95,0.95,0.95,1])*A;
+    A = diag([1.05,1.05,1.05,1])*A;
     
     % 30 degree rotation for gad2cre sample
     %A = [  0.8660254, -0.5,0.0,0;
@@ -471,7 +515,8 @@ for downloop = 1 : 2
     %
     % add some translation to move the brain
     % in it's anterior direction
-    A(2,4)=-1100
+
+    % A(2,4)=-1100
     
     % % after 25 iters
     % A = [0.0017   -0.0272    0.8835 -0.0674*1e3
@@ -803,7 +848,7 @@ for downloop = 1 : 2
             basis(:,:,:,1,o) = AphiI.^(o-1);
         end
         if it == 1
-            nitercoeffs = 20;
+            nitercoeffs = 10;
         else
             nitercoeffs = 5;
             % vikram testing fewer because maybe better to update slower in the beginning
@@ -897,12 +942,12 @@ for downloop = 1 : 2
         
         save([prefix 'A.mat'],'A')
         if ~mod(it-1,100)
-            save([prefix 'v.mat'],'vtx','vty','vtz')
+            save([prefix 'v.mat'],'vtx','vty','vtz','-v7.3')
         end
         
         
     end
-    save([prefix 'v.mat'],'vtx','vty','vtz')
+    save([prefix 'v.mat'],'vtx','vty','vtz','-v7.3')
     toc
     
     
@@ -1000,119 +1045,119 @@ for downloop = 1 : 2
     %nxI10 = [size(L10,2),size(L10,1),size(L10,3)];
     % hard coding the voxel size and image shape
     % for the 10um Allen Reference Atlas
-    dxI10 = [10 10 10]
-    nxI10 = [1320 800 1140]
-    xI10 = (0:nxI10(1)-1)*dxI10(1);
-    yI10 = (0:nxI10(2)-1)*dxI10(2);
-    zI10 = (0:nxI10(3)-1)*dxI10(3);
-    xI10 = xI10 - mean(xI10);
-    yI10 = yI10 - mean(yI10);
-    zI10 = zI10 - mean(zI10);
-    
-    
-    
-    
-    % reload and re downsample data
-    %%
-    % downsample to about same res as atlas
-    down = round(dxI10./dxJ0);
-    for f = 1 : length(info)
-        %disp(['File ' num2str(f) ' of ' num2str(length(info))])
-        J_ = double(imread(target_name,f));
-        if f == 1
-            nxJ0 = [size(J_,2),size(J_,1),length(info)];
-            nxJ = floor(nxJ0./down);
-            J = zeros(nxJ(2),nxJ(1),nxJ(3));
-        end
-        % downsample J_
-        Jd = zeros(nxJ(2),nxJ(1));
-        for i = 1 : down(1)
-            for j = 1 : down(2)
-                Jd = Jd + J_(i:down(2):down(2)*nxJ(2), j:down(1):down(1)*nxJ(1))/down(1)/down(2);
-            end
-        end
-        
-        slice = floor( (f-1)/down(3) ) + 1;
-        if slice > nxJ(3)
-            break;
-        end
-        J(:,:,slice) = J(:,:,slice) + Jd/down(3);
-        
-        if ~mod(f-1,10)
-            danfigure(1234);
-            imagesc(J(:,:,slice));
-            axis image
-            drawnow;
-        end
-    end
-    dxJ = dxJ0.*down;
-    xJ = (0:nxJ(1)-1)*dxJ(1);
-    yJ = (0:nxJ(2)-1)*dxJ(2);
-    zJ = (0:nxJ(3)-1)*dxJ(3);
-    
-    xJ = xJ - mean(xJ);
-    yJ = yJ - mean(yJ);
-    zJ = zJ - mean(zJ);
-    
-    xJp = [xJ(1)-dxJ(1), xJ, xJ(end)+dxJ(1)];
-    yJp = [yJ(1)-dxJ(2), yJ, yJ(end)+dxJ(2)];
-    zJp = [zJ(1)-dxJ(3), zJ, zJ(end)+dxJ(3)];
-    Jp = padarray(J,[1,1,1]);
-    
-    climJ = [min(J(:)),max(J(:))];
-    %%
-    % deformatlas target to atlas
-    % first thing is to upsample Aphi to Aphi10
-    % due to memory issues, I'm going to have to loop through slices,
-    % so this will be a bit slow
-    Jdef = zeros([nxI10(2) nxI10(1) nxI10(3)]);
-    Fx = griddedInterpolant({yI,xI,zI},Aphi1tinvx,'linear','nearest');
-    Fy = griddedInterpolant({yI,xI,zI},Aphi1tinvy,'linear','nearest');
-    Fz = griddedInterpolant({yI,xI,zI},Aphi1tinvz,'linear','nearest');
-    F = griddedInterpolant({yJp,xJp,zJp},Jp,'linear','nearest');
-    [XI10_,YI10_] = meshgrid(xI10,yI10);
-    for i = 1 : size(Jdef,3)
-        disp(['Applying deformation slice ' num2str(i) ' of ' num2str(size(Jdef,3))]);
-        
-        Aphi10x = Fx(YI10_,XI10_,ones(size(XI10_))*zI10(i));
-        Aphi10y = Fy(YI10_,XI10_,ones(size(XI10_))*zI10(i));
-        Aphi10z = Fz(YI10_,XI10_,ones(size(XI10_))*zI10(i));
-        
-        
-        Jdef(:,:,i) = F(Aphi10y,Aphi10x,Aphi10z);
-        
-        if ~mod(i,25)
-            danfigure(22993);
-            sliceView(xI,yI,zI,Jdef,5,climJ)
-            drawnow
-        end
-        
-    end
-    
-    %%
-    % last write out Jdef and L as analyze
-    % /*Acceptable values for datatype are*/
-    % #define DT_NONE             0
-    % #define DT_UNKNOWN          0    /*Unknown data type*/
-    % #define DT_BINARY           1    /*Binary             ( 1 bit per voxel)*/
-    % #define DT_UNSIGNED_CHAR    2    /*Unsigned character ( 8 bits per voxel)*/
-    % #define DT_SIGNED_SHORT     4    /*Signed short       (16 bits per voxel)*/
-    % #define DT_SIGNED_INT       8    /*Signed integer     (32 bits per voxel)*/
-    % #define DT_FLOAT           16    /*Floating point     (32 bits per voxel)*/
-    % #define DT_COMPLEX         32    /*Complex (64 bits per voxel; 2 floating point numbers)/*
-    % #define DT_DOUBLE          64    /*Double precision   (64 bits per voxel)*/
-    % #define DT_RGB            128    /*A Red-Green-Blue datatype*/
-    % #define DT_ALL            255    /*Undocumented*/
-    
-    
-    danfigure(22994);
-    avw = avw_hdr_make;
-    avw.hdr.dime.datatype = 4; % 16 bits
-    avw.hdr.dime.bitpix = 16;
-    avw.hdr.dime.dim(2:4) = size(Jdef);
-    avw.hdr.dime.pixdim([3,2,4]) = [10 10 10];
-    avw.img = Jdef;
-    avw_img_write(avw,[prefix 'target_to_atlas.img'])
+%    dxI10 = [10 10 10]
+%    nxI10 = [1320 800 1140]
+%    xI10 = (0:nxI10(1)-1)*dxI10(1);
+%    yI10 = (0:nxI10(2)-1)*dxI10(2);
+%    zI10 = (0:nxI10(3)-1)*dxI10(3);
+%    xI10 = xI10 - mean(xI10);
+%    yI10 = yI10 - mean(yI10);
+%    zI10 = zI10 - mean(zI10);
+%    
+%    
+%    
+%    
+%    % reload and re downsample data
+%    %%
+%    % downsample to about same res as atlas
+%    down = round(dxI10./dxJ0);
+%    for f = 1 : length(info)
+%        %disp(['File ' num2str(f) ' of ' num2str(length(info))])
+%        J_ = double(imread(target_name,f));
+%        if f == 1
+%            nxJ0 = [size(J_,2),size(J_,1),length(info)];
+%            nxJ = floor(nxJ0./down);
+%            J = zeros(nxJ(2),nxJ(1),nxJ(3));
+%        end
+%        % downsample J_
+%        Jd = zeros(nxJ(2),nxJ(1));
+%        for i = 1 : down(1)
+%            for j = 1 : down(2)
+%                Jd = Jd + J_(i:down(2):down(2)*nxJ(2), j:down(1):down(1)*nxJ(1))/down(1)/down(2);
+%            end
+%        end
+%        
+%        slice = floor( (f-1)/down(3) ) + 1;
+%        if slice > nxJ(3)
+%            break;
+%        end
+%        J(:,:,slice) = J(:,:,slice) + Jd/down(3);
+%        
+%        if ~mod(f-1,10)
+%            danfigure(1234);
+%            imagesc(J(:,:,slice));
+%            axis image
+%            drawnow;
+%        end
+%    end
+%    dxJ = dxJ0.*down;
+%    xJ = (0:nxJ(1)-1)*dxJ(1);
+%    yJ = (0:nxJ(2)-1)*dxJ(2);
+%    zJ = (0:nxJ(3)-1)*dxJ(3);
+%    
+%    xJ = xJ - mean(xJ);
+%    yJ = yJ - mean(yJ);
+%    zJ = zJ - mean(zJ);
+%    
+%    xJp = [xJ(1)-dxJ(1), xJ, xJ(end)+dxJ(1)];
+%    yJp = [yJ(1)-dxJ(2), yJ, yJ(end)+dxJ(2)];
+%    zJp = [zJ(1)-dxJ(3), zJ, zJ(end)+dxJ(3)];
+%    Jp = padarray(J,[1,1,1]);
+%    
+%    climJ = [min(J(:)),max(J(:))];
+%    %%
+%    % deformatlas target to atlas
+%    % first thing is to upsample Aphi to Aphi10
+%    % due to memory issues, I'm going to have to loop through slices,
+%    % so this will be a bit slow
+%    Jdef = zeros([nxI10(2) nxI10(1) nxI10(3)]);
+%    Fx = griddedInterpolant({yI,xI,zI},Aphi1tinvx,'linear','nearest');
+%    Fy = griddedInterpolant({yI,xI,zI},Aphi1tinvy,'linear','nearest');
+%    Fz = griddedInterpolant({yI,xI,zI},Aphi1tinvz,'linear','nearest');
+%    F = griddedInterpolant({yJp,xJp,zJp},Jp,'linear','nearest');
+%    [XI10_,YI10_] = meshgrid(xI10,yI10);
+%    for i = 1 : size(Jdef,3)
+%        disp(['Applying deformation slice ' num2str(i) ' of ' num2str(size(Jdef,3))]);
+%        
+%        Aphi10x = Fx(YI10_,XI10_,ones(size(XI10_))*zI10(i));
+%        Aphi10y = Fy(YI10_,XI10_,ones(size(XI10_))*zI10(i));
+%        Aphi10z = Fz(YI10_,XI10_,ones(size(XI10_))*zI10(i));
+%        
+%        
+%        Jdef(:,:,i) = F(Aphi10y,Aphi10x,Aphi10z);
+%        
+%        if ~mod(i,25)
+%            danfigure(22993);
+%            sliceView(xI,yI,zI,Jdef,5,climJ)
+%            drawnow
+%        end
+%        
+%    end
+%    
+%    %%
+%    % last write out Jdef and L as analyze
+%    % /*Acceptable values for datatype are*/
+%    % #define DT_NONE             0
+%    % #define DT_UNKNOWN          0    /*Unknown data type*/
+%    % #define DT_BINARY           1    /*Binary             ( 1 bit per voxel)*/
+%    % #define DT_UNSIGNED_CHAR    2    /*Unsigned character ( 8 bits per voxel)*/
+%    % #define DT_SIGNED_SHORT     4    /*Signed short       (16 bits per voxel)*/
+%    % #define DT_SIGNED_INT       8    /*Signed integer     (32 bits per voxel)*/
+%    % #define DT_FLOAT           16    /*Floating point     (32 bits per voxel)*/
+%    % #define DT_COMPLEX         32    /*Complex (64 bits per voxel; 2 floating point numbers)/*
+%    % #define DT_DOUBLE          64    /*Double precision   (64 bits per voxel)*/
+%    % #define DT_RGB            128    /*A Red-Green-Blue datatype*/
+%    % #define DT_ALL            255    /*Undocumented*/
+%    
+%    
+%    danfigure(22994);
+%    avw = avw_hdr_make;
+%    avw.hdr.dime.datatype = 4; % 16 bits
+%    avw.hdr.dime.bitpix = 16;
+%    avw.hdr.dime.dim(2:4) = size(Jdef);
+%    avw.hdr.dime.pixdim([3,2,4]) = [10 10 10];
+%    avw.img = Jdef;
+%    avw_img_write(avw,[prefix 'target_to_atlas.img'])
     
     %end
     

@@ -3,13 +3,13 @@ close all;
 fclose all;
 
 
-addpath /data/vikram/registration_daniel_matlab/Functions/
-addpath /data/vikram/registration_daniel_matlab/Functions/plotting/
-addpath /data/vikram/registration_daniel_matlab/Functions/nrrd/
-addpath /data/vikram/registration_daniel_matlab/Functions/avwQuiet/
-addpath /data/vikram/registration_daniel_matlab/Functions/downsample/
-addpath /data/vikram/registration_daniel_matlab/Functions/spatially_varying_polynomial/
-addpath /data/vikram/registration_daniel_matlab/Functions/textprogressbar/
+addpath ./Functions/
+addpath ./Functions/plotting/
+addpath ./Functions/nrrd/
+addpath ./Functions/avwQuiet/
+addpath ./Functions/downsample/
+addpath ./Functions/spatially_varying_polynomial/
+addpath ./Functions/textprogressbar/
 
 %%
 % note that this code should be run twice
@@ -25,27 +25,25 @@ addpath /data/vikram/registration_daniel_matlab/Functions/textprogressbar/
 downloop_start = 1
 for downloop = downloop_start : 4
     % input this output prefix
-    prefix = 'Im10x_Rat_R92_1024_20190717_CHN00_multiscale/';
+    prefix = '/home/ubuntu/gad2_7267_registration/';
+    in_prefix = '/home/ubuntu/MBAC/registration/atlases/';
     
-    target_name = '/data/vikram/registration_for_all_data/Im10x_Rat_R92_1024_20190717_CHN00_23360_23360_20000_reoriented.tif';
+    target_name = '/home/ubuntu/Gad2_7267_ch1.tif';
+
     % pixel size is required here as the tif data structure does not store it
-    dxJ0 = [23.36 23.36  20.0];
+    dxJ0 = [37.44 37.44  5.0];
 
     if downloop == 1
-        template_name = '/data/vikram/registration_for_all_data/WHS_SD_rat_T2star_v1.01_skullstrip_res3_iso.nii.gz';
-        label_name = '/data/vikram/registration_for_all_data/WHS_SD_rat_atlas_v3_res3.nii.gz';
+        template_name = strcat(in_prefix,'/average_template_200.nrrd');
+        label_name = strcat(in_prefix, '/annotation_200.nrrd');
         
     elseif downloop == 2
-        template_name = '/data/vikram/registration_for_all_data/WHS_SD_rat_T2star_v1.01_skullstrip_res2_iso.nii.gz';
-        label_name = '/data/vikram/registration_for_all_data/WHS_SD_rat_atlas_v3_res2.nii.gz';
+        template_name = strcat(in_prefix,'/average_template_100.nrrd');
+        label_name = strcat(in_prefix, '/annotation_100.nrrd');
 
     elseif downloop == 3
-        template_name = '/data/vikram/registration_for_all_data/WHS_SD_rat_T2star_v1.01_skullstrip_res1_iso.nii.gz';
-        label_name = '/data/vikram/registration_for_all_data/WHS_SD_rat_atlas_v3_res1.nii.gz';
-
-    else
-        template_name = '/data/vikram/registration_for_all_data/WHS_SD_rat_T2star_v1.01_skullstrip.nii.gz';
-        label_name = '/data/vikram/registration_for_all_data/WHS_SD_rat_atlas_v3.nii.gz';
+        template_name = strcat(in_prefix,'/average_template_50.nrrd');
+        label_name = strcat(in_prefix, '/annotation_50.nrrd');
         
     end
     
@@ -60,14 +58,6 @@ for downloop = downloop_start : 4
         vname = [a,filesep, b,['downloop_' num2str(downloop-1) '_'], c , 'v.mat'];
         Aname = [a,filesep, b,['downloop_' num2str(downloop-1) '_'], c , 'A.mat'];
 
-%    elseif downloop == 2
-%        [a,b,c] = fileparts(prefix);
-%        vname = [a,filesep, b,['downloop_1_'], c , 'v.mat'];
-%        Aname = [a,filesep, b,['downloop_1_'], c , 'A.mat'];
-%    elseif downloop == 3
-%        [a,b,c] = fileparts(prefix);
-%        vname = [a,filesep, b,['downloop_2_'], c , 'v.mat'];
-%        Aname = [a,filesep, b,['downloop_2_'], c , 'A.mat'];
     end
     % add down loop to prefix
     [a,b,c] = fileparts(prefix);
@@ -82,13 +72,13 @@ for downloop = downloop_start : 4
     
     %%
     % allen atlas
-    % [I,meta] = nrrdread(template_name);
-    I = niftiread(template_name);
-    meta = niftiinfo(template_name)
+    [I,meta] = nrrdread(template_name);
+%    I = niftiread(template_name);
+%    meta = niftiinfo(template_name);
     I = double(I);
     %  convert pixel dimensions from  mm to um
-    dxI = meta.PixelDimensions * 1000.0
-    % dxI = diag(sscanf(meta.spacedirections,'(%d,%d,%d) (%d,%d,%d) (%d,%d,%d)',[3,3]))';
+%    dxI = meta.PixelDimensions * 1000.0
+    dxI = diag(sscanf(meta.spacedirections,'(%d,%d,%d) (%d,%d,%d) (%d,%d,%d)',[3,3]))';
     
     
     
@@ -117,21 +107,23 @@ for downloop = downloop_start : 4
     fzI = (0:nxI(3)-1)/nxI(3)/dxI(3);
     [FXI,FYI,FZI] = meshgrid(fxI,fyI,fzI);
     
-    L = niftiread(label_name);
-    meta_L = niftiinfo(label_name)
+    [L, meta] = nrrdread(label_name);
+%    L = niftiread(label_name);
+%    meta_L = niftiinfo(label_name)
     %  convert pixel dimensions from  mm to um
-    dxL = meta.PixelDimensions * 1000.0
+%    dxL = meta.PixelDimensions * 1000.0
+    dxL = diag(sscanf(meta.spacedirections,'(%d,%d,%d) (%d,%d,%d) (%d,%d,%d)',[3,3]))';
     L = padarray(L,[1,1,1]*npad,0,'both');
     
     
     %%
     % vikram mouse
-    info = imfinfo(target_name);
+    info = imfinfo(target_name)
     %%
     % downsample to about same res as atlas
     down = round(dxI./dxJ0);
     textprogressbar('reading target: ');
-    num_slices = length(info);
+    num_slices = length(info)
     for f = 1 : num_slices
         textprogressbar((f/num_slices)*100);
         %disp(['File ' num2str(f) ' of ' num2str(length(info))])
@@ -163,6 +155,7 @@ for downloop = downloop_start : 4
         end
     end
     textprogressbar('done reading target.');
+    display(size(J))
     dxJ = dxJ0.*down;
     xJ = (0:nxJ(1)-1)*dxJ(1);
     yJ = (0:nxJ(2)-1)*dxJ(2);
@@ -482,26 +475,26 @@ for downloop = downloop_start : 4
     % initialize
     A = eye(4);
     % translation down in axis 2
-    A(3,4)=-1100;
+%    A(3,4)=-1100;
     % translation in axis 1 direction
-    A(2,4)=1000;
+%    A(2,4)=1000;
     % translation in axis 0
-    A(1,4)=-1500;
+%    A(1,4)=-1500;
     %  30 degree  rotation
-    A = [0.8660254,-0.5,0,0;
-         0.5,0.8660254,0,0;
-         0,0,1,0
-         0,0,0,1]*A;
-    % A = [0,0,1,0;
-    %     0,1,0,0;
-    %     1,0,0,0;
+    %A = [0.8660254,-0.5,0,0;
+    %     0.5,0.8660254,0,0;
+    %     0,0,1,0
     %     0,0,0,1]*A;
+    A = [0,0,1,0;
+        1,0,0,0;
+        0,1,0,0;
+        0,0,0,1]*A;
     % % note this has det -1!
     % A = diag([-1,1,1,1])*A;
     
     % shrink atlas to make affine estimate more accurate
     % comment out below for SertCre
-    A = diag([1.05,1.05,1.05,1])*A;
+    %A = diag([1.05,1.05,1.05,1])*A;
     
     % 30 degree rotation for gad2cre sample
     %A = [  0.8660254, -0.5,0.0,0;
