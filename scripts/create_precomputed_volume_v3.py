@@ -167,10 +167,10 @@ def main():
     print(f'image size is: {img_size}')
     print(f'voxel size is: {voxel_size}')
     global vol,num_mips,progress_dir
-    vol = create_cloud_volume(args.precomputed_path,img_size,voxel_size,parallel=False)
+    num_mips = 8
+    vol = create_cloud_volume(args.precomputed_path,img_size,voxel_size,parallel=False,num_hierarchy_levels=num_mips)
     progress_dir = mkdir('progress/') # unlike os.mkdir doesn't crash on prexisting 
     done_files = set([ int(z) for z in os.listdir(progress_dir) ])
-    num_mips = 6
     all_files = set(range(vol.bounds.minpt.z, vol.bounds.maxpt.z))
     
     to_upload = [ int(z) for z in list(all_files.difference(done_files)) ]
