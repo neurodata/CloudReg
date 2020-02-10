@@ -1,9 +1,9 @@
 function [] = transform_data(path_to_source,source_voxel_size,path_to_affine,path_to_velocity,velocity_voxel_size,destination_voxel_size,destination_shape,transformation_direction,path_to_output,interpolation_method)
     
-    addpath /data/vikram/registration_daniel_matlab/Functions/avwQuiet/
-    addpath /data/vikram/registration_daniel_matlab/Functions/downsample/
-    addpath /data/vikram/registration_daniel_matlab/Functions/plotting/
-    addpath /data/vikram/registration_daniel_matlab/Functions/textprogressbar/
+    addpath ./Functions/avwQuiet/
+    addpath ./Functions/downsample/
+    addpath ./Functions/plotting/
+    addpath ./Functions/textprogressbar/
 
     % typical use case 1
     % eg.  transform the allen atlas to the high resolution CLARITY space
@@ -193,8 +193,11 @@ function [] = transform_data(path_to_source,source_voxel_size,path_to_affine,pat
     %for i = 1:length(info)
     %    textprogressbar((i/size(Idef,3))*100)
     %    %disp(['Applying deformation slice ' num2str(i) ' of ' num2str(size(Jdef,3))]);
-
-
+    %	Aphi10x = Fx(YI10_,XI10_,ones(size(XI10_))*zI10(i));
+    %	Aphi10y = Fy(YI10_,XI10_,ones(size(XI10_))*zI10(i));
+    %	Aphi10z = Fz(YI10_,XI10_,ones(size(XI10_))*zI10(i));
+    %
+    %	Jdef(:,:,i) = F(Aphi10y,Aphi10x,Aphi10z);
     %end
     %textprogressbar('-- done applying deformation to source')
 

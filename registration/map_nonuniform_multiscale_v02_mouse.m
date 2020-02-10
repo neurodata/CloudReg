@@ -23,7 +23,7 @@ addpath ./Functions/textprogressbar/
 %indir = '/data/vikram/registration_daniel_matlab/Gad2_VGat_Brain12_20190308_downsampled/';
 
 downloop_start = 1
-for downloop = downloop_start : 4
+for downloop = downloop_start : 2
     % input this output prefix
     prefix = '/home/ubuntu/gad2_7267_registration/';
     in_prefix = '/home/ubuntu/MBAC/registration/atlases/';
@@ -31,20 +31,25 @@ for downloop = downloop_start : 4
     target_name = '/home/ubuntu/Gad2_7267_ch1.tif';
 
     % pixel size is required here as the tif data structure does not store it
-    dxJ0 = [37.44 37.44  5.0];
+    dxJ0 = [9.36 9.36  5];
+%    dxJ0 = [5.0 37.44 37.44];
 
+%    if downloop == 1
+%        template_name = strcat(in_prefix,'/average_template_200.nrrd');
+%        label_name = strcat(in_prefix, '/annotation_200.nrrd');
+%        
+%    elseif downloop == 2
     if downloop == 1
-        template_name = strcat(in_prefix,'/average_template_200.nrrd');
-        label_name = strcat(in_prefix, '/annotation_200.nrrd');
-        
-    elseif downloop == 2
         template_name = strcat(in_prefix,'/average_template_100.nrrd');
         label_name = strcat(in_prefix, '/annotation_100.nrrd');
 
-    elseif downloop == 3
+    elseif downloop == 2
         template_name = strcat(in_prefix,'/average_template_50.nrrd');
         label_name = strcat(in_prefix, '/annotation_50.nrrd');
         
+%    elseif downloop == 3
+%        template_name = strcat(in_prefix,'/average_template_50.nrrd');
+%        label_name = strcat(in_prefix, '/annotation_50.nrrd');
     end
     
     
@@ -118,7 +123,7 @@ for downloop = downloop_start : 4
     
     %%
     % vikram mouse
-    info = imfinfo(target_name)
+    info = imfinfo(target_name);
     %%
     % downsample to about same res as atlas
     down = round(dxI./dxJ0);
@@ -195,10 +200,7 @@ for downloop = downloop_start : 4
     % grid correction
     Jsum = sum(J0_orig,3);
     % blur
-    % 2x for rat
-    % actually 2x introduces a lot of artifacts
-    % going to try .25x
-    grid_correction_blur_width = 50;
+    grid_correction_blur_width = 200;
     [XJgrid,YJgrid] = meshgrid(xJ,yJ);
     
     K = exp(-(XJgrid.^2 + YJgrid.^2)/2/(grid_correction_blur_width)^2);
@@ -221,7 +223,7 @@ for downloop = downloop_start : 4
     
     
     %%
-    % basic inhomogeneity correction based on histogram flow
+    % basic inhomogeneity correction based on histogaam flow
     % first find a low threshold for taking logs
     J = J0;
     
@@ -399,7 +401,7 @@ for downloop = downloop_start : 4
     nMaffine = 1; % number of m steps per e step durring affine only
     
     
-    niter = 100/downloop;
+    niter = 1000/downloop;
 %    niter_a5 = 1000;
 %    niter_a4 = 500;
     %if dxI < 50
@@ -417,14 +419,14 @@ for downloop = downloop_start : 4
     % sigmaR = 5e3;
     
     % twice as big for rat brain
-    a = 500*2;
+    a = 500;
     % try different smoothness scale for
     % higher resolution to account for serious
     % local deformation
 
-%    if downloop == 2
-%        a = 250
-%    end
+    if downloop == 3
+        a = 250
+    end
     p = 2;
     % apre = 1000;
     % make this a function of voxel size
@@ -434,8 +436,8 @@ for downloop = downloop_start : 4
     ppre = 2;
     %aC = 2000; % I think this should be bigger, about 20 voxels, I think 2000 is too big
     %aC = 1000;
-    aC = 750; % try a little smaller
-    aC = 750*2; % try bigger for rat, maybe 2x
+    aC = 7.5*dxI(1); % try a little smaller
+    %aC = 750*2; % try bigger for rat, maybe 2x
     pC = 2;
     
     LL = (1 - 2 * a^2 * ( (cos(2*pi*dxI(1)*FXI) - 1)/dxI(1)^2 + (cos(2*pi*dxI(2)*FYI) - 1)/dxI(2)^2 + (cos(2*pi*dxI(3)*FZI) - 1)/dxI(3)^2 )).^(2*p);
@@ -457,12 +459,12 @@ for downloop = downloop_start : 4
     post_affine_reduce = 0.1;
     
     %eV = 1e6;
-    eV = 5e6;
+    eV = 2e6;
     
     
     sigmaR = 1e4;
     % make it smaller 
-    sigmaR = sigmaR*4;
+    sigmaR = sigmaR*2;
     
     % decrease sigmaA from x10 to x2
     sigmaA = sigmaM*2;
@@ -474,10 +476,18 @@ for downloop = downloop_start : 4
     % %%
     % initialize
     A = eye(4);
+    A = [0,-1,0,0;
+        1,0,0,0;
+        0,0,1,0
+        0,0,0,1]*A;
+    A = [0,0,1,0;
+        0,1,0,0;
+        1,0,0,0;
+        0,0,0,1]*A;
     % translation down in axis 2
-%    A(3,4)=-1100;
-    % translation in axis 1 direction
-%    A(2,4)=1000;
+%    A(3,4)=-500;
+    % translation up in axis 1 direction
+    A(2,4)=-1400;
     % translation in axis 0
 %    A(1,4)=-1500;
     %  30 degree  rotation
@@ -485,16 +495,39 @@ for downloop = downloop_start : 4
     %     0.5,0.8660254,0,0;
     %     0,0,1,0
     %     0,0,0,1]*A;
-    A = [0,0,1,0;
-        1,0,0,0;
-        0,1,0,0;
-        0,0,0,1]*A;
+
+    %  5 degree clockwise rotation in xy
+    A = [0.9961947,0.0871557,0,0;
+         -0.0871557,0.9961947,0,0;
+         0,0,1,0
+         0,0,0,1]*A;
+    %  10 degree  rotation in yz
+    A = [  1.0000000,  0.0000000,  0.0000000, 0;
+           0.0000000,  0.9848077, -0.1736482, 0;
+           0.0000000,  0.1736482,  0.9848077, 0;
+	   0.0000000,  0.0000000,  0.0000000, 1.0 ]*A;
+    %  15 degree  rotation
+%    A = [0.9659258,0.2588190,0,0;
+%         -0.2588190,0.9659258,0,0;
+%         0,0,1,0
+%         0,0,0,1]*A;
+%    A = [0,0,1,0;
+%        1,0,0,0;
+%        0,1,0,0;
+%        0,0,0,1]*A;
     % % note this has det -1!
-    % A = diag([-1,1,1,1])*A;
+    A = diag([-1,1,1,1])*A;
+
+    % expand atlas
+    %A = diag([1.85,1.85,1.85,1])*A;
+    
     
     % shrink atlas to make affine estimate more accurate
     % comment out below for SertCre
-    %A = diag([1.05,1.05,1.05,1])*A;
+    %  stretch atlas in y dimension, typical deformation introduced
+    A = diag([1.05,0.90,0.95,1])*A;
+
+%    A = diag([1,1.5,0.95,1])*A;
     
     % 30 degree rotation for gad2cre sample
     %A = [  0.8660254, -0.5,0.0,0;
@@ -580,6 +613,7 @@ for downloop = downloop_start : 4
         coeffs = cat(4,coeffs_1,coeffs_2,coeffs_3,coeffs_4);
     end
     
+    return
     
     
     % start
