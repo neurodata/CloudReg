@@ -7,6 +7,9 @@ import SimpleITK as sitk
 import math
 from cloudvolume import CloudVolume
 import tinybrain
+from psutil import virtual_memory
+import joblib
+from concurrent.futures import ProcessPoolExecutor
 
 def get_vol_at_mip(precomputed_path, mip, parallel=False):
     return CloudVolume(precomputed_path,mip=mip,parallel=parallel)
@@ -73,10 +76,12 @@ def main():
     num_mips = 7
     layer_path = vol.layer_cloudpath
 
-    files = list(((i,img[:,:,i]) for i in range(img.shape[-1])))
+    data = [(i,img[:,:,i]) for i in range(img.shape[-1])]
+    files = [i[1] for i in data]
+    zs = [i[0] for i in data]
 
     with ProcessPoolExecutor(max_workers=num_procs) as executor:
-        executor.map(process, files)
+        executor.map(process, zs, files)
 
 
 if __name__ == '__main__':
