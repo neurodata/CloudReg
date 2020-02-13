@@ -25,7 +25,7 @@ addpath ./Functions/textprogressbar/
 downloop_start = 1
 for downloop = downloop_start : 2
     % input this output prefix
-    prefix = '/home/ubuntu/gad2_7267_registration_w_init/';
+    prefix = '/home/ubuntu/gad2_7267_registration_w_init_testing/';
     in_prefix = '/home/ubuntu/MBAC/registration/atlases/';
     
     target_name = '/home/ubuntu/Gad2_7267_ch1.tif';
@@ -425,9 +425,9 @@ for downloop = downloop_start : 2
     % higher resolution to account for serious
     % local deformation
 
-    if downloop >= 2
-        a = 250
-    end
+%    if downloop >= 2
+%        a = 250
+%    end
     p = 2;
     % apre = 1000;
     % make this a function of voxel size
@@ -460,7 +460,7 @@ for downloop = downloop_start : 2
     post_affine_reduce = 0.1;
     
     %eV = 1e6;
-    eV = 2e6;
+    eV = 1e6;
     
     
     sigmaR = 1e4;
@@ -503,10 +503,10 @@ for downloop = downloop_start : 2
 %         0,0,1,0
 %         0,0,0,1]*A;
     %  10 degree  rotation in yz
-    A = [  1.0000000,  0.0000000,  0.0000000, 0;
-           0.0000000,  0.9848077, -0.1736482, 0;
-           0.0000000,  0.1736482,  0.9848077, 0;
-	   0.0000000,  0.0000000,  0.0000000, 1.0 ]*A;
+%    A = [  1.0000000,  0.0000000,  0.0000000, 0;
+%           0.0000000,  0.9848077, -0.1736482, 0;
+%           0.0000000,  0.1736482,  0.9848077, 0;
+%	   0.0000000,  0.0000000,  0.0000000, 1.0 ]*A;
 %    %  15 degree  rotation
 %    A = [0.9659258,0.2588190,0,0;
 %         -0.2588190,0.9659258,0,0;
@@ -554,14 +554,6 @@ for downloop = downloop_start : 2
     vty = zeros([size(I),nT]);
     vtz = zeros([size(I),nT]);
     
-    % initial local translation
-    blob_width = 2000;
-    blob_displacement = 3000;
-    initial_y_disp = exp(-((XI + 5000).^2 + (YI).^2 + (ZI.^2))/2/(blob_width)^2) * blob_displacement;
-    for t = 1 : nT
-        vty(:,:,:,t) = initial_y_disp;
-    end
-    
     % local rotation
     theta = 60;
     
@@ -575,15 +567,25 @@ for downloop = downloop_start : 2
         sin(theta),cos(theta)];
     ROTX = cos(theta*pi/180)*(XI-cx) + sin(theta*pi/180)*(YI-cy) - (XI-cx);
     ROTY = -sin(theta*pi/180)*(XI-cx) + cos(theta*pi/180)*(YI-cy) - (YI-cy);
-    blob_width = 2400;
+    blob_width = 3200;
     blob = exp(-((XI - bx).^2 + (YI-by).^2 + (ZI.^2))/2/(blob_width)^2);
     for t = 1 : nT
         vty(:,:,:,t) = ROTY.*blob;
         vtx(:,:,:,t) = ROTX.*blob;
     end
 
+    % initial local translation
+    blob_width = 3000;
+    blob_displacement = 3000;
+    initial_y_disp = exp(-((XI + 4000).^2 + (YI + 2000).^2 + (ZI).^2)/2/(blob_width)^2) * blob_displacement;
+    for t = 1 : nT
+        vty(:,:,:,t) = vty(:,:,:,t) + initial_y_disp;
+    end
+    
+
     % add translation in X,Y and Z axes
-    A = [eye(3),[100;-800;-400];[0,0,0,1]]*A;
+    A = [eye(3),[100;-1300;300];[0,0,0,1]]*A;
+    A = diag([0.95,0.95,0.95,1])*A;
     
     
     % load data
