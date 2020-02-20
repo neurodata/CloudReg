@@ -24,7 +24,7 @@ def main():
 #    parser.add_argument('--extension',help='Extension of stitched files. default is tif', default='tif',type=str)
     args = parser.parse_args()
 
-    registration_res = 50000.0 # nanometers
+    registration_res = 10000.0 # nanometers
     vol = CloudVolume(args.s3_path)
     mip_needed = get_mip_at_res(vol,np.array([registration_res]*3))
     vol = CloudVolume(args.s3_path,mip=mip_needed,parallel=True)

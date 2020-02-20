@@ -25,10 +25,10 @@ addpath ./Functions/textprogressbar/
 downloop_start = 1
 for downloop = downloop_start : 2
     % input this output prefix
-    prefix = '/home/ubuntu/gad2_7267_registration_w_init_testing/';
+    prefix = '/home/ubuntu/gad2_812_registration/';
     in_prefix = '/home/ubuntu/MBAC/registration/atlases/';
     
-    target_name = '/home/ubuntu/Gad2_7267_ch1.tif';
+    target_name = '/home/ubuntu/Gad2_812_ch1.tif';
 
     % pixel size is required here as the tif data structure does not store it
     dxJ0 = [9.36 9.36  5];
@@ -44,6 +44,7 @@ for downloop = downloop_start : 2
         label_name = strcat(in_prefix, '/annotation_100.nrrd');
 
     elseif downloop == 2
+        return
         template_name = strcat(in_prefix,'/average_template_50.nrrd');
         label_name = strcat(in_prefix, '/annotation_50.nrrd');
         
@@ -402,7 +403,10 @@ for downloop = downloop_start : 2
     naffine = 0;
     
     
-    niter = 500/downloop;
+    niter = 5000;
+    if downloop > 1
+        niter = 500;
+    end
 %    niter_a5 = 1000;
 %    niter_a4 = 500;
     %if dxI < 50
@@ -420,7 +424,7 @@ for downloop = downloop_start : 2
     % sigmaR = 5e3;
     
     % kernel width
-    a = 250;
+    a = 500;
     % try different smoothness scale for
     % higher resolution to account for serious
     % local deformation
@@ -554,38 +558,45 @@ for downloop = downloop_start : 2
     vty = zeros([size(I),nT]);
     vtz = zeros([size(I),nT]);
     
-    % local rotation
-    theta = 60;
-    
-    bx = -4500;
-    by = 1000;
-    
-    cx = -2000;
-    cy = 1000;
-    
-    rotmat = [cos(theta),-sin(theta);
-        sin(theta),cos(theta)];
-    ROTX = cos(theta*pi/180)*(XI-cx) + sin(theta*pi/180)*(YI-cy) - (XI-cx);
-    ROTY = -sin(theta*pi/180)*(XI-cx) + cos(theta*pi/180)*(YI-cy) - (YI-cy);
-    blob_width = 3200;
-    blob = exp(-((XI - bx).^2 + (YI-by).^2 + (ZI.^2))/2/(blob_width)^2);
-    for t = 1 : nT
-        vty(:,:,:,t) = ROTY.*blob;
-        vtx(:,:,:,t) = ROTX.*blob;
-    end
+%     % local rotation
+%     theta = 50;
+%     
+%     bx = -3000;
+%     by = -1000;
+%     
+% %    cx = -2000;
+%     cx = 500;
+%     cy = 3500;
+%     
+%     rotmat = [cos(theta),-sin(theta);
+%         sin(theta),cos(theta)];
+%     ROTX = cos(theta*pi/180)*(XI-cx) + sin(theta*pi/180)*(YI-cy) - (XI-cx);
+%     ROTY = -sin(theta*pi/180)*(XI-cx) + cos(theta*pi/180)*(YI-cy) - (YI-cy);
+%     blob_width = 3000;
+%     blob = exp(-((XI - bx).^2 + (YI-by).^2 + (ZI.^2))/2/(blob_width)^2);
+%     %x_idx = (XI - bx) > 0;
+%     % testing uniform rotation
+%     %blob = zeros(size(XI));
+%     %blob(x_idx) = 0.5;
+%     for t = 1 : nT
+%         vty(:,:,:,t) = ROTY.*blob;
+%         vtx(:,:,:,t) = ROTX.*blob;
+%     end
 
-    % initial local translation
-    blob_width = 3000;
-    blob_displacement = 3000;
-    initial_y_disp = exp(-((XI + 4000).^2 + (YI + 2000).^2 + (ZI).^2)/2/(blob_width)^2) * blob_displacement;
-    for t = 1 : nT
-        vty(:,:,:,t) = vty(:,:,:,t) + initial_y_disp;
-    end
-    
-
+%    % initial local translation
+%   blob_width = 3000;
+%   blob_displacement = 3000;
+%   bx2 = -5000;
+%   by2 = 0;
+%   initial_y_disp = exp(-((XI - bx2).^2 + (YI - by2).^2 + (ZI).^2)/2/(blob_width)^2) * blob_displacement;
+%   for t = 1 : nT
+%       vty(:,:,:,t) = vty(:,:,:,t) + initial_y_disp;
+%   end
+%    
+ 
     % add translation in X,Y and Z axes
-    A = [eye(3),[100;-1300;300];[0,0,0,1]]*A;
-    A = diag([0.95,0.95,0.95,1])*A;
+%    A = [eye(3),[100;-1000;500];[0,0,0,1]]*A;
+    A = diag([1,1.15,1,1])*A;
     
     
     % load data
@@ -668,7 +679,7 @@ for downloop = downloop_start : 2
         phiinvx = XI;
         phiinvy = YI;
         phiinvz = ZI;
-        for t = 1 : nT * (it > naffine)
+        for t = 1 : nT
             
             
             % sample image
@@ -731,7 +742,7 @@ for downloop = downloop_start : 2
         danfigure(6666);
         sliceView(xJ,yJ,zJ,cat(4,J,fAphiI,J),nplot,climJ);
         
-        %return % for checking affine
+%         return % for checking affine
         
         % now a weight
         doENumber = nMaffine;

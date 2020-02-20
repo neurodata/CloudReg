@@ -25,10 +25,11 @@ addpath ./Functions/textprogressbar/
 downloop_start = 1
 for downloop = downloop_start : 2
     % input this output prefix
-    prefix = '/home/ubuntu/gad2_7267_registration_w_init/';
+    prefix = '/home/ubuntu/gad2_rabies_6443_registration/';
+    target_name = '/home/ubuntu/Gad2Rabies_6443_ch1.tif';
+
     in_prefix = '/home/ubuntu/MBAC/registration/atlases/';
     
-    target_name = '/home/ubuntu/Gad2_7267_ch1.tif';
 
     % pixel size is required here as the tif data structure does not store it
     dxJ0 = [9.36 9.36  5];
@@ -44,6 +45,7 @@ for downloop = downloop_start : 2
         label_name = strcat(in_prefix, '/annotation_100.nrrd');
 
     elseif downloop == 2
+        return
         template_name = strcat(in_prefix,'/average_template_50.nrrd');
         label_name = strcat(in_prefix, '/annotation_50.nrrd');
         
@@ -398,11 +400,15 @@ for downloop = downloop_start : 2
     nM = 1;
     nMaffine = 1; % number of m steps per e step durring affine only
 
-    % only do deformation
+    % number of affine only iterations
     naffine = 0;
     
     
-    niter = 500/downloop;
+    % total number of iterations
+    niter = 5000;
+    if downloop > 1
+        niter = 500;
+    end
 %    niter_a5 = 1000;
 %    niter_a4 = 500;
     %if dxI < 50
@@ -420,14 +426,14 @@ for downloop = downloop_start : 2
     % sigmaR = 5e3;
     
     % kernel width
-    a = 250;
+    a = 500;
     % try different smoothness scale for
     % higher resolution to account for serious
     % local deformation
 
-    if downloop >= 2
-        a = 250
-    end
+%    if downloop >= 2
+%        a = 250
+%    end
     p = 2;
     % apre = 1000;
     % make this a function of voxel size
@@ -460,7 +466,7 @@ for downloop = downloop_start : 2
     post_affine_reduce = 0.1;
     
     %eV = 1e6;
-    eV = 2e6;
+    eV = 1e6;
     
     
     sigmaR = 1e4;
@@ -477,7 +483,7 @@ for downloop = downloop_start : 2
     % %%
     % initialize
     A = eye(4);
-    A = [0,-1,0,0;
+    A = [0,1,0,0;
         1,0,0,0;
         0,0,1,0
         0,0,0,1]*A;
@@ -503,10 +509,10 @@ for downloop = downloop_start : 2
 %         0,0,1,0
 %         0,0,0,1]*A;
     %  10 degree  rotation in yz
-    A = [  1.0000000,  0.0000000,  0.0000000, 0;
-           0.0000000,  0.9848077, -0.1736482, 0;
-           0.0000000,  0.1736482,  0.9848077, 0;
-	   0.0000000,  0.0000000,  0.0000000, 1.0 ]*A;
+%    A = [  1.0000000,  0.0000000,  0.0000000, 0;
+%           0.0000000,  0.9848077, -0.1736482, 0;
+%           0.0000000,  0.1736482,  0.9848077, 0;
+%	   0.0000000,  0.0000000,  0.0000000, 1.0 ]*A;
 %    %  15 degree  rotation
 %    A = [0.9659258,0.2588190,0,0;
 %         -0.2588190,0.9659258,0,0;
@@ -517,7 +523,7 @@ for downloop = downloop_start : 2
 %        0,1,0,0;
 %        0,0,0,1]*A;
     % % note this has det -1!
-    A = diag([-1,1,1,1])*A;
+%    A = diag([-1,1,1,1])*A;
 
     % expand atlas
     %A = diag([1.85,1.85,1.85,1])*A;
@@ -554,36 +560,45 @@ for downloop = downloop_start : 2
     vty = zeros([size(I),nT]);
     vtz = zeros([size(I),nT]);
     
-    % initial local translation
-    blob_width = 2000;
-    blob_displacement = 3000;
-    initial_y_disp = exp(-((XI + 5000).^2 + (YI).^2 + (ZI.^2))/2/(blob_width)^2) * blob_displacement;
-    for t = 1 : nT
-        vty(:,:,:,t) = initial_y_disp;
-    end
-    
-    % local rotation
-    theta = 60;
-    
-    bx = -4500;
-    by = 1000;
-    
-    cx = -2000;
-    cy = 1000;
-    
-    rotmat = [cos(theta),-sin(theta);
-        sin(theta),cos(theta)];
-    ROTX = cos(theta*pi/180)*(XI-cx) + sin(theta*pi/180)*(YI-cy) - (XI-cx);
-    ROTY = -sin(theta*pi/180)*(XI-cx) + cos(theta*pi/180)*(YI-cy) - (YI-cy);
-    blob_width = 2400;
-    blob = exp(-((XI - bx).^2 + (YI-by).^2 + (ZI.^2))/2/(blob_width)^2);
-    for t = 1 : nT
-        vty(:,:,:,t) = ROTY.*blob;
-        vtx(:,:,:,t) = ROTX.*blob;
-    end
+%     % local rotation
+%     theta = 50;
+%     
+%     bx = -3000;
+%     by = -1000;
+%     
+% %    cx = -2000;
+%     cx = 500;
+%     cy = 3500;
+%     
+%     rotmat = [cos(theta),-sin(theta);
+%         sin(theta),cos(theta)];
+%     ROTX = cos(theta*pi/180)*(XI-cx) + sin(theta*pi/180)*(YI-cy) - (XI-cx);
+%     ROTY = -sin(theta*pi/180)*(XI-cx) + cos(theta*pi/180)*(YI-cy) - (YI-cy);
+%     blob_width = 3000;
+%     blob = exp(-((XI - bx).^2 + (YI-by).^2 + (ZI.^2))/2/(blob_width)^2);
+%     %x_idx = (XI - bx) > 0;
+%     % testing uniform rotation
+%     %blob = zeros(size(XI));
+%     %blob(x_idx) = 0.5;
+%     for t = 1 : nT
+%         vty(:,:,:,t) = ROTY.*blob;
+%         vtx(:,:,:,t) = ROTX.*blob;
+%     end
 
+%    % initial local translation
+%   blob_width = 3000;
+%   blob_displacement = 3000;
+%   bx2 = -5000;
+%   by2 = 0;
+%   initial_y_disp = exp(-((XI - bx2).^2 + (YI - by2).^2 + (ZI).^2)/2/(blob_width)^2) * blob_displacement;
+%   for t = 1 : nT
+%       vty(:,:,:,t) = vty(:,:,:,t) + initial_y_disp;
+%   end
+    
+ 
     % add translation in X,Y and Z axes
-    A = [eye(3),[100;-800;-400];[0,0,0,1]]*A;
+%   A = [eye(3),[100;0;300];[0,0,0,1]]*A;
+    A = diag([1.05,1.15,1.05,1])*A;
     
     
     % load data
@@ -729,7 +744,7 @@ for downloop = downloop_start : 2
         danfigure(6666);
         sliceView(xJ,yJ,zJ,cat(4,J,fAphiI,J),nplot,climJ);
         
-        %return % for checking affine
+%         return % for checking affine
         
         % now a weight
         doENumber = nMaffine;
