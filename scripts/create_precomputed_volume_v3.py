@@ -147,6 +147,7 @@ def process(z,file_path):
     image.close()
     touch(os.path.join(progress_dir, str(z)))
     print(f'Processing {z} took {time.time() - start}')
+    return
 
 def main():
     parser = argparse.ArgumentParser(description='Convert local volume into precomputed volume on S3.')
