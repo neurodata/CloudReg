@@ -22,10 +22,10 @@ addpath ./Functions/textprogressbar/
 
 %indir = '/data/vikram/registration_daniel_matlab/Gad2_VGat_Brain12_20190308_downsampled/';
 
-downloop_start = 2
+downloop_start = 1
 for downloop = downloop_start : 2
     % input this output prefix
-    prefix = '/home/ubuntu/gad2_rabies_6443_registration/';
+    prefix = '/home/ubuntu/gad2_rabies_6443_GN_registration_weights_rigidonly/';
     target_name = '/home/ubuntu/Gad2Rabies_6443_ch1.tif';
 
     in_prefix = '/home/ubuntu/MBAC/registration/atlases/';
@@ -45,7 +45,7 @@ for downloop = downloop_start : 2
         label_name = strcat(in_prefix, '/annotation_100.nrrd');
 
     elseif downloop == 2
-%        return
+        return
         template_name = strcat(in_prefix,'/average_template_50.nrrd');
         label_name = strcat(in_prefix, '/annotation_50.nrrd');
         
@@ -374,7 +374,7 @@ for downloop = downloop_start : 2
     nT = 5;
     dt = 1/nT;
     sigmaM = std(J(:));
-    sigmaA = sigmaM*10; % artifact
+    %sigmaA = sigmaM*10; % artifact
     CA = 1; % estimate
     % I want to make it less, its actually quite low
     sigmaB = sigmaM/2;
@@ -407,7 +407,7 @@ for downloop = downloop_start : 2
     % total number of iterations
     niter = 5000;
     if downloop > 1
-        niter = 1000;
+        niter = 500;
     end
 %    niter_a5 = 1000;
 %    niter_a4 = 500;
@@ -443,7 +443,8 @@ for downloop = downloop_start : 2
     ppre = 2;
     %aC = 2000; % I think this should be bigger, about 20 voxels, I think 2000 is too big
     %aC = 1000;
-    aC = 7.5*dxI(1); % try a little smaller
+%    aC = 7.5*dxI(1); % try a little smaller
+    aC = 750; % try a little smaller
     %aC = 750*2; % try bigger for rat, maybe 2x
     pC = 2;
     
@@ -467,11 +468,6 @@ for downloop = downloop_start : 2
     
     %eV = 1e6;
     eV = 1e6;
-    % if high resolotion, cut the step size by 2
-    if dxI < 100
-        eV = 5e5
-    end
-
     
     
     sigmaR = 1e4;
@@ -479,7 +475,13 @@ for downloop = downloop_start : 2
     sigmaR = sigmaR*2;
     
     % decrease sigmaA from x10 to x2
-    sigmaA = sigmaM*2;
+%    sigmaA = sigmaM*2;
+    sigmaB = sigmaM * 2;
+    sigmaA = sigmaM * 5;
+    prior = [0.89,0.1,0.01];
+	
+
+
     % try more timesteps because deformation is getting big
     nT = 10;
     
@@ -637,7 +639,7 @@ for downloop = downloop_start : 2
     It(:,:,:,1) = I;
     
     
-    if downloop >= 1
+    if downloop == 1
         % actually
         % we need an initial linear transformation to compute our first weight
         Jq = quantile(J(:),[0.1 0.9]);
@@ -755,9 +757,9 @@ for downloop = downloop_start : 2
         doENumber = nMaffine;
         if it > naffine; doENumber = nM; end
         if ~mod(it-1,doENumber)
-            WM = 1/sqrt(2*pi*(sigmaM^2)).*exp(-1.0/2.0/sigmaM^2*err.^2);
-            WA = 1/sqrt(2*pi*sigmaA^2)*exp(-1.0/2.0/sigmaA^2*(CA - J).^2);
-            WB = 1/sqrt(2*pi*sigmaB^2)*exp(-1.0/2.0/sigmaB^2*(CB - J).^2);
+            WM = 1/sqrt(2*pi*(sigmaM^2)).*exp(-1.0/2.0/sigmaM^2*err.^2) * prior(1);
+            WA = 1/sqrt(2*pi*sigmaA^2)*exp(-1.0/2.0/sigmaA^2*(CA - J).^2) * prior(2);
+            WB = 1/sqrt(2*pi*sigmaB^2)*exp(-1.0/2.0/sigmaB^2*(CB - J).^2) * prior(3);
             
             Wsum = WM + WA + WB;
             
@@ -822,20 +824,54 @@ for downloop = downloop_start : 2
         % gradient
         [AphiI_x,AphiI_y,AphiI_z] = gradient(AphiI,dxJ(1),dxJ(2),dxJ(3));
         grad = zeros(4,4);
+        do_GN = 1; % do gauss newton
+        rigid_only  = 1; % constrain affine to be rigid
+	uniform_scale_only = 0; % for uniform scaling
+        % NOTE
+        % without Gauss Newton, the affine transformation will be updated with
+        % rigid transforms.  If the initial guess is nonrigid, it wli lremain
+        % nonrigid
+        % with GN, the affine transformation will be projected onto rigid
+        % transforms, you will lose any nonrigid initialization
+        if ~do_GN % do gradient descent
+        [AphiI_x,AphiI_y,AphiI_z] = gradient(AphiI,dxJ(1),dxJ(2),dxJ(3));
+        grad = zeros(4,4);
         for r = 1 : 3
             for c = 1 : 4
                 dA = (double((1:4)'==r)) * double(((1:4)==c));
-                
                 AdAB = A * dA * B;
                 AdABX = AdAB(1,1)*XJ + AdAB(1,2)*YJ + AdAB(1,3)*ZJ + AdAB(1,4);
                 AdABY = AdAB(2,1)*XJ + AdAB(2,2)*YJ + AdAB(2,3)*ZJ + AdAB(2,4);
                 AdABZ = AdAB(3,1)*XJ + AdAB(3,2)*YJ + AdAB(3,3)*ZJ + AdAB(3,4);
-                
                 grad(r,c) = -sum(sum(sum(errWDf.*(AphiI_x.*AdABX + AphiI_y.*AdABY + AphiI_z.*AdABZ))))*prod(dxJ)/sigmaM^2;
-                
             end
         end
-        grad(1:3,1:3) = grad(1:3,1:3) - grad(1:3,1:3)';
+        if rigid_only
+            grad(1:3,1:3) = grad(1:3,1:3) - grad(1:3,1:3)';
+        end
+        else % do Gauss Newton optimization
+            [fAphiI_x,fAphiI_y,fAphiI_z] = gradient(fAphiI,dxJ(1),dxJ(2),dxJ(3));
+            Jerr = zeros(size(J,1),size(J,2),size(J,3),12);
+            count = 0;
+            for r = 1 : 3
+                for c = 1 : 4
+                    dA = double((1:4==r))' * double((1:4==c));
+                    AdAAi = A*dA;
+                    Xs = AdAAi(1,1)*XJ + AdAAi(1,2)*YJ + AdAAi(1,3)*ZJ + AdAAi(1,4);
+                    Ys = AdAAi(2,1)*XJ + AdAAi(2,2)*YJ + AdAAi(2,3)*ZJ + AdAAi(2,4);
+                    Zs = AdAAi(3,1)*XJ + AdAAi(3,2)*YJ + AdAAi(3,3)*ZJ + AdAAi(3,4);
+                    count = count + 1;
+                    Jerr(:,:,:,count) = (bsxfun(@times, fAphiI_x,Xs) + bsxfun(@times, fAphiI_y,Ys) + bsxfun(@times, fAphiI_z,Zs)).*sqrt(WM);
+                end
+            end
+%             JerrJerr = squeeze(sum(sum(sum(bsxfun(@times, permute(bsxfun(@times,Jerr,1),[1,2,3,4,5]) , permute(Jerr,[1,2,3,5,4])),3),2),1));
+            % the above line is very slow
+            Jerr_ = reshape(Jerr,[],count);
+            JerrJerr = Jerr_' * Jerr_;
+            % step
+            step = JerrJerr \ squeeze(sum(sum(sum(bsxfun(@times, Jerr, err.*sqrt(WM)),3),2),1));
+            step = reshape(step,4,3)';
+        end % end of affine gradient loop
         
         % now pull back the error, pad it so we can easily get 0 boundary
         % conditions
@@ -936,14 +972,32 @@ for downloop = downloop_start : 2
         CA = sum(WA(:).*J(:).*WJ(:))/sum(WA(:).*WJ(:));
         
         % update A
-        
+        if ~do_GN % if gradient descent
         e = [ones(3)*eL,ones(3,1)*eT;0,0,0,0];
         if it > naffine
             % smaller step size now!
             e = e * post_affine_reduce;
         end
         A = A * expm(-e.*grad);
-        %     e.*grad % I printed to check size of gradient
+    %     e.*grad % I printed to check size of gradient
+        else % do gauss newton
+            Ai = inv(A);
+            eA = 0.5;
+            Ai(1:3,1:4) = Ai(1:3,1:4) - eA * step;
+            A = inv(Ai);
+            if rigid_only
+                %
+                [U,S,V] = svd(A(1:3,1:3));
+                A(1:3,1:3) = U * V';
+            end
+	    if uniform_scale_only
+                [U,S,V] = svd(A(1:3,1:3));
+		s = diag(S);
+		s = mean(s) * ones(size(s));
+                A(1:3,1:3) = U * diag(s) *  V';
+		
+	    end
+        end
         
         danfigure(8);
         Asave = [Asave,A(:)];
@@ -952,7 +1006,7 @@ for downloop = downloop_start : 2
         title('linear part')
         subplot(1,3,2)
         plot(Asave([13,14,15],:)')
-        ylabel mm
+        ylabel um
         title('translation part')
         legend('x','y','z','location','best')
         subplot(1,3,3)

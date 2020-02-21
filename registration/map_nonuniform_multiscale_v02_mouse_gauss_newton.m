@@ -25,7 +25,7 @@ addpath ./Functions/textprogressbar/
 downloop_start = 1
 for downloop = downloop_start : 2
     % input this output prefix
-    prefix = '/home/ubuntu/gad2_rabies_6443_GN_registration/';
+    prefix = '/home/ubuntu/gad2_rabies_6443_GN_registration_weights/';
     target_name = '/home/ubuntu/Gad2Rabies_6443_ch1.tif';
 
     in_prefix = '/home/ubuntu/MBAC/registration/atlases/';
@@ -374,7 +374,7 @@ for downloop = downloop_start : 2
     nT = 5;
     dt = 1/nT;
     sigmaM = std(J(:));
-    sigmaA = sigmaM*10; % artifact
+    %sigmaA = sigmaM*10; % artifact
     CA = 1; % estimate
     % I want to make it less, its actually quite low
     sigmaB = sigmaM/2;
@@ -443,7 +443,8 @@ for downloop = downloop_start : 2
     ppre = 2;
     %aC = 2000; % I think this should be bigger, about 20 voxels, I think 2000 is too big
     %aC = 1000;
-    aC = 7.5*dxI(1); % try a little smaller
+%    aC = 7.5*dxI(1); % try a little smaller
+    aC = 750; % try a little smaller
     %aC = 750*2; % try bigger for rat, maybe 2x
     pC = 2;
     
@@ -474,7 +475,13 @@ for downloop = downloop_start : 2
     sigmaR = sigmaR*2;
     
     % decrease sigmaA from x10 to x2
-    sigmaA = sigmaM*2;
+%    sigmaA = sigmaM*2;
+    sigmaB = sigmaM * 2;
+    sigmaA = sigmaM * 5;
+    prior = [0.89,0.1,0.01];
+	
+
+
     % try more timesteps because deformation is getting big
     nT = 10;
     
@@ -750,9 +757,9 @@ for downloop = downloop_start : 2
         doENumber = nMaffine;
         if it > naffine; doENumber = nM; end
         if ~mod(it-1,doENumber)
-            WM = 1/sqrt(2*pi*(sigmaM^2)).*exp(-1.0/2.0/sigmaM^2*err.^2);
-            WA = 1/sqrt(2*pi*sigmaA^2)*exp(-1.0/2.0/sigmaA^2*(CA - J).^2);
-            WB = 1/sqrt(2*pi*sigmaB^2)*exp(-1.0/2.0/sigmaB^2*(CB - J).^2);
+            WM = 1/sqrt(2*pi*(sigmaM^2)).*exp(-1.0/2.0/sigmaM^2*err.^2) * prior(1);
+            WA = 1/sqrt(2*pi*sigmaA^2)*exp(-1.0/2.0/sigmaA^2*(CA - J).^2) * prior(2);
+            WB = 1/sqrt(2*pi*sigmaB^2)*exp(-1.0/2.0/sigmaB^2*(CB - J).^2) * prior(3);
             
             Wsum = WM + WA + WB;
             
@@ -819,6 +826,7 @@ for downloop = downloop_start : 2
         grad = zeros(4,4);
         do_GN = 1; % do gauss newton
         rigid_only  = 0; % constrain affine to be rigid
+	uniform_scale_only = 1; % for uniform scaling
         % NOTE
         % without Gauss Newton, the affine transformation will be updated with
         % rigid transforms.  If the initial guess is nonrigid, it wli lremain
@@ -982,6 +990,13 @@ for downloop = downloop_start : 2
                 [U,S,V] = svd(A(1:3,1:3));
                 A(1:3,1:3) = U * V';
             end
+	    if uniform_scale_only
+                [U,S,V] = svd(A(1:3,1:3));
+		s = diag(S);
+		s = mean(s) * ones(size(s));
+                A(1:3,1:3) = U * diag(s) *  V';
+		
+	    end
         end
         
         danfigure(8);
@@ -991,7 +1006,7 @@ for downloop = downloop_start : 2
         title('linear part')
         subplot(1,3,2)
         plot(Asave([13,14,15],:)')
-        ylabel mm
+        ylabel um
         title('translation part')
         legend('x','y','z','location','best')
         subplot(1,3,3)
