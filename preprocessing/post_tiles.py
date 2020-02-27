@@ -53,14 +53,6 @@ def create_message(in_bucket_name,in_file,bias_bucket,bias_path,id,out_bucket):
                 'StringValue': in_file,
                 'DataType': 'String'
             },
-            'BiasPath': {
-                'StringValue': bias_path,
-                'DataType': 'String'
-            },
-            'BiasBucket': {
-                'StringValue': bias_bucket,
-                'DataType': 'String'
-            },
             'OutBucket': {
                 'StringValue': out_bucket,
                 'DataType': 'String'
@@ -128,7 +120,7 @@ def main():
     # attach our lambda function to this queue
     lambda_client = boto3.client('lambda')
     lambda_client.add_permission(
-        FunctionName='test_colm_correction',
+        FunctionName='colm_tile_correction',
         StatementId=f'{args.experiment_name}_CHN0{args.channel}_{int(time.time())}_FunctionPermission',
         Action='lambda:InvokeFunction',
         Principal='sqs.amazonaws.com',
@@ -137,7 +129,7 @@ def main():
     try:
         lambda_client.create_event_source_mapping(
             EventSourceArn=arn_queue,
-            FunctionName='test_colm_correction'
+            FunctionName='colm_tile_correction'
         )
     except:
         pass
