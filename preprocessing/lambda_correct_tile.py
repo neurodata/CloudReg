@@ -6,9 +6,7 @@ from io import BytesIO
 import boto3
 import numpy as np
 from PIL import Image
-import tifffile as tf
 import SimpleITK as sitk
-
 
 
 def imgResample(img, spacing, size=[], useNearest=False, origin=None, outsideValue=0):
@@ -130,7 +128,9 @@ def correct_tile(s3, raw_tile_bucket, raw_tile_path, out_path, out_bucket):
     fp = BytesIO()
     raw_tile_bc = correct_bias_field(raw_tile, scale=0.25)
     raw_tile_bc =  np.around(raw_tile_bc)
-    tf.imwrite(fp, data=raw_tile_bc.astype('uint16'), compress=1)
+    img = Image.fromarray(raw_tile_bc)
+    img.save(fp,'TIFF',compression='tiff_adobe_deflate')
+    #tf.imwrite(fp, data=raw_tile_bc.astype('uint16'), compress=1)
     # reset pointer to beginning  of file
     fp.seek(0)
     s3.Object(out_bucket, out_path).upload_fileobj(fp)
