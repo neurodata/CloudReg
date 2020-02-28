@@ -1,3 +1,8 @@
+try:
+    import unzip_requirements
+except ImportError:
+    pass
+
 import os
 import time
 import math
@@ -6,7 +11,12 @@ from io import BytesIO
 import boto3
 import numpy as np
 from PIL import Image
+import tifffile as tf
 import SimpleITK as sitk
+
+# brightness of tiles to fix
+# hardcoding arbitrary  value for now, might be a heuristic that is better
+BRIGHTNESS = 6000
 
 
 def imgResample(img, spacing, size=[], useNearest=False, origin=None, outsideValue=0):
@@ -66,7 +76,7 @@ def imgResample(img, spacing, size=[], useNearest=False, origin=None, outsideVal
         img.GetDirection(),
         outsideValue)
 
-def correct_bias_field(img, mask=None, scale=1.0, niters=[50, 50, 50, 50]):
+def correct_bias_field(image, mask=None, scale=1.0, niters=[50, 50, 50, 50]):
     """Correct bias field in image using the N4ITK algorithm (http://bit.ly/2oFwAun)
 
     Parameters:
@@ -89,10 +99,10 @@ def correct_bias_field(img, mask=None, scale=1.0, niters=[50, 50, 50, 50]):
     # do in case image has 0 intensities
     # add a small constant that depends on
     # distribution of intensities in the image
-    stats = sitk.StatisticsImageFilter()
-    stats.Execute(img)
-    std = math.sqrt(stats.GetVariance())
-    img_rescaled = sitk.Cast(img, sitk.sitkFloat32) + 0.1*std
+    image_min = image.min()
+    image2 = image - image_min + 1
+    img = sitk.GetImageFromArray(image2)
+    img_rescaled = sitk.Cast(img, sitk.sitkFloat32)
 
     spacing = np.array(img_rescaled.GetSpacing())/scale
     img_ds = imgResample(img_rescaled, spacing=spacing)
@@ -114,27 +124,62 @@ def correct_bias_field(img, mask=None, scale=1.0, niters=[50, 50, 50, 50]):
 
     # Upsample bias
     bias = imgResample(bias_ds, spacing=img.GetSpacing(), size=img.GetSize())
+    bias = sitk.Cast(bias, sitk.sitkFloat32)
+    bias_np = sitk.GetArrayFromImage(bias)
 
-    img_bc = sitk.Cast(img, sitk.sitkFloat32) * sitk.Cast(bias, sitk.sitkFloat32)
+    img_bc = sitk.Cast(img, sitk.sitkFloat32) * bias
     img_bc_np = sitk.GetArrayFromImage(img_bc)
-    return img_bc_np
+    img_bc_np += image_min - 1
+    return img_bc_np,bias_np
 
-def correct_tile(s3, raw_tile_bucket, raw_tile_path, out_path, out_bucket):
-    start_time = time.time()
-    raw_tile_obj = s3.Object(raw_tile_bucket, raw_tile_path)
-    raw_tile = np.asarray(Image.open(BytesIO(raw_tile_obj.get()["Body"].read())))
-    print(f'PULL - time: {time.time() - start_time}, path: {raw_tile_path}')
+def save_tile(s3, raw_tile, out_path, out_bucket):
     start_time = time.time()
     fp = BytesIO()
-    raw_tile_bc = correct_bias_field(raw_tile, scale=0.25)
-    raw_tile_bc =  np.around(raw_tile_bc)
-    img = Image.fromarray(raw_tile_bc)
-    img.save(fp,'TIFF',compression='tiff_adobe_deflate')
-    #tf.imwrite(fp, data=raw_tile_bc.astype('uint16'), compress=1)
+    raw_tile_bc =  np.around(raw_tile)
+    raw_tile_bc = np.clip(raw_tile_bc,0,np.iinfo(np.uint16).max)
+    tf.imwrite(fp, data=raw_tile_bc.astype('uint16'), compress=1)
     # reset pointer to beginning  of file
     fp.seek(0)
     s3.Object(out_bucket, out_path).upload_fileobj(fp)
     print(f'SAVE - time: {time.time() - start_time} s path: {out_path}')
+
+def adjust_brightness(raw_tile_bc):
+    # correct_brightness if non-background tile
+    curr_brightness = np.mean(raw_tile_bc)
+    if np.std(raw_tile_bc) < 10 and curr_brightness < 100:
+        pass
+    else:
+        brightness_correction_factor = BRIGHTNESS - np.mean(raw_tile_bc)
+        raw_tile_bc += brightness_correction_factor
+    return raw_tile_bc
+
+def correct_tile(s3, raw_tile_bucket, raw_tile_path, out_path, out_bucket, bias=None):
+    start_time = time.time()
+    raw_tile_obj = s3.Object(raw_tile_bucket, raw_tile_path)
+    raw_tile = np.asarray(Image.open(BytesIO(raw_tile_obj.get()["Body"].read())))
+    print(f'PULL - time: {time.time() - start_time}, path: {raw_tile_path}')
+    if bias is not None:
+        raw_tile_bc = raw_tile * bias
+        return adjust_brightness(raw_tile_bc)
+    else:
+        raw_tile_bc,bias = correct_bias_field(raw_tile, scale=0.25)
+        return adjust_brightness(raw_tile_bc),bias
+
+def correct_tiles(s3, raw_tile_bucket, raw_tile_path, out_path, out_bucket, auto_channel, num_channels):
+    channels = list(range(num_channels))
+    idx_auto = channels.index(auto_channel)
+    channels[idx_auto], channels[0] = channels[0], channels[idx_auto]
+    bias = None
+    for i in channels:
+        if i == auto_channel:
+            raw_tile_bc,bias = correct_tile(s3, raw_tile_bucket, raw_tile_path, out_path, out_bucket)
+        else:
+            tile_path = raw_tile_path.replace(f'CHN0{auto_channel}','CHN0{i}')
+            out_path = out_path.replace(f'CHN0{auto_channel}','CHN0{i}')
+            raw_tile_bc = correct_tile(s3, raw_tile_bucket, raw_tile_path, out_path, out_bucket, bias=bias)
+
+        save_tile(s3, raw_tile_bc, out_path, out_bucket)
+
 
 def lambda_handler(event, context):
     s3 = boto3.resource("s3")
@@ -149,4 +194,6 @@ def lambda_handler(event, context):
             attributes["RawTilePath"]["stringValue"],
             attributes["OutPath"]["stringValue"],
             attributes["OutBucket"]["stringValue"]
+            attributes["AutoChannel"]["stringValue"]
+            attributes["NumChannels"]["stringValue"]
         )
