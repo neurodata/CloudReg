@@ -135,7 +135,7 @@ def correct_bias_field(image, mask=None, scale=1.0, niters=[50, 50, 50, 50]):
 def save_tile(s3, raw_tile, out_path, out_bucket):
     start_time = time.time()
     fp = BytesIO()
-    raw_tile_bc =  np.around(raw_tile)
+    raw_tile_bc = np.around(raw_tile)
     raw_tile_bc = np.clip(raw_tile_bc,0,np.iinfo(np.uint16).max)
     tf.imwrite(fp, data=raw_tile_bc.astype('uint16'), compress=1)
     # reset pointer to beginning  of file
@@ -153,6 +153,7 @@ def adjust_brightness(raw_tile_bc):
         raw_tile_bc += brightness_correction_factor
     return raw_tile_bc
 
+
 def correct_tile(s3, raw_tile_bucket, raw_tile_path, out_path, out_bucket, bias=None):
     start_time = time.time()
     raw_tile_obj = s3.Object(raw_tile_bucket, raw_tile_path)
@@ -162,8 +163,9 @@ def correct_tile(s3, raw_tile_bucket, raw_tile_path, out_path, out_bucket, bias=
         raw_tile_bc = raw_tile * bias
         return adjust_brightness(raw_tile_bc)
     else:
-        raw_tile_bc,bias = correct_bias_field(raw_tile, scale=0.25)
+        raw_tile_bc, bias = correct_bias_field(raw_tile, scale=0.25)
         return adjust_brightness(raw_tile_bc),bias
+
 
 def correct_tiles(s3, raw_tile_bucket, raw_tile_path, out_path, out_bucket, auto_channel, num_channels):
     channels = list(range(num_channels))
@@ -193,7 +195,7 @@ def lambda_handler(event, context):
             attributes["RawTileBucket"]["stringValue"],
             attributes["RawTilePath"]["stringValue"],
             attributes["OutPath"]["stringValue"],
-            attributes["OutBucket"]["stringValue"]
-            attributes["AutoChannel"]["stringValue"]
+            attributes["OutBucket"]["stringValue"],
+            attributes["AutoChannel"]["stringValue"],
             attributes["NumChannels"]["stringValue"]
         )
