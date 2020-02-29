@@ -143,6 +143,7 @@ def save_tile(s3, raw_tile, out_path, out_bucket):
     s3.Object(out_bucket, out_path).upload_fileobj(fp)
     print(f'SAVE - time: {time.time() - start_time} s path: {out_path}')
 
+
 def adjust_brightness(raw_tile_bc):
     # correct_brightness if non-background tile
     curr_brightness = np.mean(raw_tile_bc)
@@ -153,11 +154,13 @@ def adjust_brightness(raw_tile_bc):
         raw_tile_bc += brightness_correction_factor
     return raw_tile_bc
 
-def adjust_intensity(img,minval=1,maxval=1):
+
+def adjust_intensity(img, minval=1, maxval=1):
     img_r = (img - img.min()) / (img.max() - img.min())
     img_r += minval
     img_r *= maxval
     return img_r
+
 
 def correct_tile(s3, raw_tile_bucket, raw_tile_path, out_path, out_bucket, bias=None):
     start_time = time.time()
@@ -173,7 +176,7 @@ def correct_tile(s3, raw_tile_bucket, raw_tile_path, out_path, out_bucket, bias=
         bias = adjust_intensity(bias)
         raw_tile_bc = bias * raw_tile
         print(f'CORRECT - time: {time.time() - start_time}, path: {raw_tile_path}')
-        return raw_tile_bc,bias
+        return raw_tile_bc, bias
 
 
 def correct_tiles(s3, raw_tile_bucket, raw_tile_path, out_path, out_bucket, auto_channel, num_channels):
