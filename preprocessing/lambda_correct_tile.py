@@ -153,18 +153,27 @@ def adjust_brightness(raw_tile_bc):
         raw_tile_bc += brightness_correction_factor
     return raw_tile_bc
 
+def adjust_intensity(img,minval=1,maxval=1):
+    img_r = (img - img.min()) / (img.max() - img.min())
+    img_r += minval
+    img_r *= maxval
+    return img_r
 
 def correct_tile(s3, raw_tile_bucket, raw_tile_path, out_path, out_bucket, bias=None):
     start_time = time.time()
     raw_tile_obj = s3.Object(raw_tile_bucket, raw_tile_path)
     raw_tile = np.asarray(Image.open(BytesIO(raw_tile_obj.get()["Body"].read())))
-    print(f'PULL - time: {time.time() - start_time}, path: {raw_tile_path}')
     if bias is not None:
         raw_tile_bc = raw_tile * bias
-        return adjust_brightness(raw_tile_bc)
+        print(f'MULTIPLY - time: {time.time() - start_time}, path: {raw_tile_path}')
+        return raw_tile_bc
     else:
-        raw_tile_bc, bias = correct_bias_field(raw_tile, scale=0.25)
-        return adjust_brightness(raw_tile_bc),bias
+        _, bias = correct_bias_field(raw_tile, scale=0.25)
+        # rescale bias to be between 1 and 2
+        bias = adjust_intensity(bias)
+        raw_tile_bc = bias * raw_tile
+        print(f'CORRECT - time: {time.time() - start_time}, path: {raw_tile_path}')
+        return raw_tile_bc,bias
 
 
 def correct_tiles(s3, raw_tile_bucket, raw_tile_path, out_path, out_bucket, auto_channel, num_channels):
@@ -175,12 +184,13 @@ def correct_tiles(s3, raw_tile_bucket, raw_tile_path, out_path, out_bucket, auto
     for i in channels:
         if i == auto_channel:
             raw_tile_bc,bias = correct_tile(s3, raw_tile_bucket, raw_tile_path, out_path, out_bucket)
+            save_tile(s3, raw_tile_bc, out_path, out_bucket)
         else:
-            tile_path = raw_tile_path.replace(f'CHN0{auto_channel}','CHN0{i}')
-            out_path = out_path.replace(f'CHN0{auto_channel}','CHN0{i}')
-            raw_tile_bc = correct_tile(s3, raw_tile_bucket, raw_tile_path, out_path, out_bucket, bias=bias)
+            tile_path = raw_tile_path.replace(f'CHN0{auto_channel}',f'CHN0{i}')
+            out_path2 = out_path.replace(f'CHN0{auto_channel}',f'CHN0{i}')
+            raw_tile_bc = correct_tile(s3, raw_tile_bucket, tile_path, out_path2, out_bucket, bias=bias)
+            save_tile(s3, raw_tile_bc, out_path2, out_bucket)
 
-        save_tile(s3, raw_tile_bc, out_path, out_bucket)
 
 
 def lambda_handler(event, context):
@@ -190,12 +200,12 @@ def lambda_handler(event, context):
     print(attributes)
     for message in event['Records']:
         attributes = message['messageAttributes']
-        correct_tile(
+        correct_tiles(
             s3,
             attributes["RawTileBucket"]["stringValue"],
             attributes["RawTilePath"]["stringValue"],
             attributes["OutPath"]["stringValue"],
             attributes["OutBucket"]["stringValue"],
-            attributes["AutoChannel"]["stringValue"],
-            attributes["NumChannels"]["stringValue"]
+            int(attributes["AutoChannel"]["stringValue"]),
+            int(attributes["NumChannels"]["stringValue"])
         )

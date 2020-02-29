@@ -9,6 +9,7 @@ from joblib import Parallel, delayed
 import joblib
 import multiprocessing
 import time
+from pathlib import Path
 
 def chunks(l,n):
     for i in range(0, len(l),n):
@@ -36,11 +37,13 @@ def get_list_of_files_to_process(in_bucket_name, prefix, channel):
         all_files.extend([f['Key'] for f in get_all_s3_objects(s3_client,Bucket=in_bucket_name,Prefix=i)])
     return all_files
 
-def create_message(in_bucket_name,in_file,bias_bucket,bias_path,id,out_bucket):
+def create_message(in_bucket_name,in_file,id,out_bucket,num_channels,auto_channel):
     head,fname = os.path.split(in_file)
     idx = fname.find('.')
     fname_new = fname[:idx] + '_corrected.tiff'
-    out_path = f'{head}/{fname_new}'
+    # make sure output is in tmp prefix of bucket so it is deleted within 2 days
+    # otherwise storage costs might blow up
+    out_path = f'tmp/{head}/{fname_new}'
     message = {
         'Id': f'{id}',
         'MessageBody': 'Raw tile',
@@ -59,6 +62,14 @@ def create_message(in_bucket_name,in_file,bias_bucket,bias_path,id,out_bucket):
             },
             'OutPath': {
                 'StringValue': out_path,
+                'DataType': 'String'
+            },
+            'NumChannels': {
+                'StringValue': num_channels,
+                'DataType': 'String'
+            },
+            'AutoChannel': {
+                'StringValue': auto_channel,
                 'DataType': 'String'
             }
 
@@ -82,23 +93,22 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--in_bucket_name', help='Name of input S3 bucket where raw tiles live.', type=str)
     parser.add_argument('--out_bucket_name', help='Name of input S3 bucket where raw tiles live.', type=str)
-    parser.add_argument('--bias_bucket_name', help='Name of S3 bucket where bias correction tile lives.', type=str)
     parser.add_argument('--in_path', help='Full path  to VW0 directory on S3 bucket.', type=str)
-    parser.add_argument('--bias_path', help='Full path  to bias file for given channel.', type=str)
-    parser.add_argument('--channel', help='Channel number to process. accepted values are 0, 1, or 2', type=str)
+    parser.add_argument('--auto_channel', help='Autofluorescence channel.', type=str)
+    parser.add_argument('--num_channels', help='total number of channels acquired.', type=str)
     parser.add_argument('--experiment_name', help='Name of experiment used to name newly created AWS resources for this job.', type=str)
 
     args = parser.parse_args()
 
     # file name to save messages to or read from
-    fname_messages = f'./{args.experiment_name}_{args.channel}.json'
+    fname_messages = f'{args.experiment_name}_{args.auto_channel}.json'
 
     if not os.path.exists(fname_messages):
         # get list of all tiles to correct for  given channel
-        all_files = get_list_of_files_to_process(args.in_bucket_name,args.in_path,args.channel)
+        all_files = get_list_of_files_to_process(args.in_bucket_name,args.in_path,args.auto_channel)
         print(f'num files: {len(all_files)}')
         # create one message for  each tile to be  corrected
-        ch_messages = [create_message(args.in_bucket_name,f,args.bias_bucket_name,args.bias_path,i,args.out_bucket_name) for i,f in tqdm(enumerate(all_files))]
+        ch_messages = [create_message(args.in_bucket_name,f,i,args.out_bucket_name,args.num_channels,args.auto_channel) for i,f in tqdm(enumerate(all_files))]
         # save messages out to json file so dont need to recompute
         json.dump(ch_messages, open(fname_messages,'w'))
     else:
@@ -112,7 +122,7 @@ def main():
         'maxReceiveCount': '5'
     }
     global queue_name
-    queue_name = f'{args.experiment_name}_CHN0{args.channel}'
+    queue_name = f'{args.experiment_name}_CHN0{args.auto_channel}'
     response_sqs = sqs.create_queue(QueueName=queue_name, Attributes={'DelaySeconds': '0', 'VisibilityTimeout': '2000', 'RedrivePolicy': json.dumps(redrive_policy)})
     acct_id = response_sqs.url.split('/')[-2]
     arn_queue = f'arn:aws:sqs:us-west-2:{acct_id}:{queue_name}'
@@ -120,21 +130,23 @@ def main():
     # attach our lambda function to this queue
     lambda_client = boto3.client('lambda')
     lambda_client.add_permission(
-        FunctionName='colm_tile_correction',
-        StatementId=f'{args.experiment_name}_CHN0{args.channel}_{int(time.time())}_FunctionPermission',
+        FunctionName='colm-tile-correction-dev-hello',
+        StatementId=f'{args.experiment_name}_CHN0{args.auto_channel}_{int(time.time())}_FunctionPermission',
         Action='lambda:InvokeFunction',
         Principal='sqs.amazonaws.com',
-        SourceArn=arn_queue
+        SourceArn=arn_queue,
     )
     try:
         lambda_client.create_event_source_mapping(
             EventSourceArn=arn_queue,
-            FunctionName='colm_tile_correction'
+            FunctionName='colm-tile-correction-dev-hello',
+            BatchSize=5
         )
     except:
         pass
 
 
+    print(ch_messages[0])
     num_cpus = joblib.cpu_count()
     Parallel(n_jobs=num_cpus)(delayed(send_message_batch)(i) for i in tqdm(chunks(ch_messages,num_cpus), desc='uploading messages to queue...'))
 
