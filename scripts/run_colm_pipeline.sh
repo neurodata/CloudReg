@@ -1,14 +1,14 @@
 # exit when any command fails
 set -e
 
-while getopts i:o:c:ac:e: option
+while getopts i:o:c:a:e: option
 do
 case "${option}"
 in
 i) IBUCKET=${OPTARG};;
 o) OBUCKET=${OPTARG};;
 c) CHANNEL=${OPTARG};;
-ac) AUTOCHANNEL=${OPTARG};;
+a) AUTOCHANNEL=${OPTARG};;
 e) EXP=${OPTARG};;
 esac
 done
