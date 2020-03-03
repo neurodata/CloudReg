@@ -1,7 +1,7 @@
 # exit when any command fails
 set -e
 
-while getopts i:o:c:e: option
+while getopts i:o:c:ac:e: option
 do
 case "${option}"
 in
@@ -24,6 +24,7 @@ OUTDIR=${SSD1}
 
 # compute and apply bias
 python ec2_compute_bias.py --in_bucket_path ${IBUCKET}VW0/ --bias_bucket_name ${OBUCKET} --channel ${CHANNEL} --experiment_name ${EXP} --outdir ${OUTDIR}/ --auto_channel ${AUTOCHANNEL}
+#python ec2_compute_bias_per_tile.py --in_bucket_path ${IBUCKET}VW0/ --bias_bucket_name ${OBUCKET} --channel ${CHANNEL} --experiment_name ${EXP} --outdir ${OUTDIR}/
 
 # kill all remaining processes in case
 pkill -f python
