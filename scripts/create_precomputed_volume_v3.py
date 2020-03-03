@@ -19,6 +19,7 @@ import tinybrain
 import os
 from concurrent.futures import ProcessPoolExecutor
 from multiprocessing import Pool
+from itertools import product
 
 import numpy as np
 from PIL import Image
@@ -186,7 +187,7 @@ def main():
     global layer_path
     layer_path = vol.layer_cloudpath
 
-    with Pool(num_procs) as p:
+    with ProcessPoolExecutor(num_procs) as p:
         p.map(process, to_upload, remaining_files)
 
     print(f"took {time.time() - start_time} seconds to upload to S3")
