@@ -263,9 +263,11 @@ def main():
     parser.add_argument('--in_bucket_path', help='Full path to S3 bucket where raw tiles live. Should be of the form s3://<bucket-name>/<path-to-VW0-folder>/', type=str)
     parser.add_argument('--bias_bucket_name', help='Name of S3 bucket where bias correction will live.', type=str)
     parser.add_argument('--channel', help='Channel number to process. accepted values are 0, 1, or 2', type=str)
+    parser.add_argument('--auto_channel', help='Autofluorescence Channel number for computing bias. accepted values are 0, 1, or 2', type=str)
     parser.add_argument('--experiment_name', help='Name of experiment used to name newly created AWS resources for this job.', type=str)
     parser.add_argument('--outdir', help='Path to output directory to store corrected tiles. VW0 directory will  be saved here. Default: ~/', default='/home/ubuntu/' ,type=str)
     parser.add_argument('--subsample_factor', help='Factor to subsample the tiles by to compute the bias. Default is subsample by 10 which means every 10th tile  will be used.', type=int, default=10)
+    parser.add_argument('--skip_bias_correction', help='If included, no bias correction will be done', type=bool, default=False)
 
     args = parser.parse_args()
     args.in_bucket_name = args.in_bucket_path.split('s3://')[-1].split('/')[0]
@@ -275,32 +277,44 @@ def main():
     # get list of all tiles to correct for  given channel
     all_files = get_list_of_files_to_process(args.in_bucket_name,args.in_path,args.channel)
     total_files = len(all_files)
-    # subsample tiles
-    files_cb = all_files[::args.subsample_factor]
-    num_files  = len(files_cb)
+    
+    if not args.skip_bias_correction:
+    
+        # get list of all tiles to process for bias tile. use autofluorescence channel
+        all_files_auto = get_list_of_files_to_process(args.in_bucket_name,args.in_path,args.auto_channel)
+        total_files_auto = len(all_files_auto)
+        # subsample tiles
+        files_cb = all_files_auto[::args.subsample_factor]
+        num_files  = len(files_cb)
+    
+        # compute running sums in parallel
+        sums = Parallel(total_n_jobs, verbose=10)(delayed(sum_tiles)(f, args.in_bucket_name) for f in chunks(files_cb,math.ceil(num_files//(total_n_jobs))+1))
+        sums = [i[:,:,None] for i in sums]
+        sum_tile = np.squeeze(np.sum(np.concatenate(sums,axis=2),axis=2))/num_files
+        sum_tile = sitk.GetImageFromArray(sum_tile)
+    
+        # get the bias correction tile using N4ITK
+        bias = sitk.GetArrayFromImage(correct_bias_field(sum_tile,scale=1.0)[-1])
+    
+        # save bias tile to S3
+        s3 = boto3.resource('s3')
+        img = Image.fromarray(bias)
+        fp = BytesIO()
+        img.save(fp,format='TIFF')
+        # reset pointer to beginning  of file
+        fp.seek(0)
+        args.bias_path = f'{args.in_path}/CHN0{args.auto_channel}'
+        s3.Object(args.bias_bucket_name, args.bias_path).upload_fileobj(fp)
+        print(f"total time taken for creating bias tile: {time.time() - s} s")
 
-    # compute running sums in parallel
-    sums = Parallel(total_n_jobs, verbose=10)(delayed(sum_tiles)(f, args.in_bucket_name) for f in chunks(files_cb,math.ceil(num_files//(total_n_jobs))+1))
-    sums = [i[:,:,None] for i in sums]
-    sum_tile = np.squeeze(np.sum(np.concatenate(sums,axis=2),axis=2))/num_files
-    sum_tile = sitk.GetImageFromArray(sum_tile)
+    else:
 
-    # get the bias correction tile using N4ITK
-    bias = sitk.GetArrayFromImage(correct_bias_field(sum_tile,scale=1.0)[-1])
-
-    # save bias tile to S3
-    s3 = boto3.resource('s3')
-    img = Image.fromarray(bias)
-    fp = BytesIO()
-    img.save(fp,format='TIFF')
-    # reset pointer to beginning  of file
-    fp.seek(0)
-    args.bias_path = f'{args.in_path}/CHN0{args.channel}'
-    s3.Object(args.bias_bucket_name, args.bias_path).upload_fileobj(fp)
-    print(f"total time taken for creating bias tile: {time.time() - s} s")
+        s3 = boto3.resource('s3')
+        raw_tile_obj = s3.Object(args.in_bucket_name,all_files[0])
+        raw_tile = np.asarray(Image.open(BytesIO(raw_tile_obj.get()["Body"].read())))
+        bias = np.ones(raw_tile.shape)
 
     # correct all the files and save them
-
     print(f"correcting tiles using {joblib.cpu_count()} cpus")
     Parallel(n_jobs=-1,verbose=10)(delayed(correct_tiles)(files, args.in_bucket_name, bias, args.outdir) for files in chunks(all_files,math.ceil(total_files/float(joblib.cpu_count()))+1))
     print(f"total time taken for creating bias tile AND correcting all tiles: {time.time() - s} s")
