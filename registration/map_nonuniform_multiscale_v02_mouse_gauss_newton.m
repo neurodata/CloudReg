@@ -22,6 +22,8 @@ addpath ./Functions/textprogressbar/
 
 %indir = '/data/vikram/registration_daniel_matlab/Gad2_VGat_Brain12_20190308_downsampled/';
 
+fixed_scale = 0; % I used 1.15, works with gauss newton uniform scale, turns off when set to 0
+
 downloop_start = 1
 for downloop = downloop_start : 2
     % input this output prefix
@@ -29,6 +31,7 @@ for downloop = downloop_start : 2
     target_name = '/home/ubuntu/Gad2Rabies_6443_ch1.tif';
 
     in_prefix = '/home/ubuntu/MBAC/registration/atlases/';
+    
     
 
     % pixel size is required here as the tif data structure does not store it
@@ -142,9 +145,11 @@ for downloop = downloop_start : 2
         end
         % downsample J_
         Jd = zeros(nxJ(2),nxJ(1));
+	WJd = zeros(size(Jd)); % when there is no data, we have value 0
         for i = 1 : down(1)
             for j = 1 : down(2)
                 Jd = Jd + J_(i:down(2):down(2)*nxJ(2), j:down(1):down(1)*nxJ(1))/down(1)/down(2);
+		WJd = WJd + double((J_(i:down(2):down(2)*nxJ(2), j:down(1):down(1)*nxJ(1))/down(1)/down(2)>0));
             end
         end
         
@@ -153,11 +158,15 @@ for downloop = downloop_start : 2
             break;
         end
         J(:,:,slice) = J(:,:,slice) + Jd/down(3);
+	WJ(:,:,slice) = WJ(:,:,slice) + WJd/down(3);
         
         if ~mod(f-1,10)
             danfigure(1234);
             imagesc(J(:,:,slice));
             axis image
+            danfigure(1235);
+            imagesc(WJ(:,:,slice));
+            axis image	    
             drawnow;
         end
     end
@@ -197,7 +206,18 @@ for downloop = downloop_start : 2
     sliceView(xJ,yJ,zJ,J0_orig);
     saveas(gcf,[prefix 'example_target.png'])
     
-    
+    %%
+    % missing data correction
+    WJ = WJ/max(WJ(:));
+    q = 0.01;
+    c = quantile(J(WJ==1),q);
+    J_ = J;
+    J_ = J_.*(WJ) + c*(1-WJ);
+    danfigure(22)
+    sliceView(xJ,yJ,zJ,J_,nplot)
+    J0_orig = J_;
+
+
     %%
     % grid correction
     Jsum = sum(J0_orig,3);
@@ -288,6 +308,7 @@ for downloop = downloop_start : 2
     
     % iterate
     niterhom = 10;
+    niterhom = 20; % a little more for more inhomogeneity correction
 
     textprogressbar('correcting inhomogeneity: ');
     for it = 1 : niterhom
@@ -993,7 +1014,10 @@ for downloop = downloop_start : 2
 	    if uniform_scale_only
                 [U,S,V] = svd(A(1:3,1:3));
 		s = diag(S);
-		s = mean(s) * ones(size(s));
+		s = exp(mean(log(s))) * ones(size(s));
+		if fixed_scale ~= 0
+		    s = [1,1,1]*fixed_scale;
+		end
                 A(1:3,1:3) = U * diag(s) *  V';
 		
 	    end
