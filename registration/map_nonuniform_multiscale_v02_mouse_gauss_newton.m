@@ -22,18 +22,17 @@ addpath ./Functions/textprogressbar/
 
 %indir = '/data/vikram/registration_daniel_matlab/Gad2_VGat_Brain12_20190308_downsampled/';
 
-fixed_scale = 0; % I used 1.15, works with gauss newton uniform scale, turns off when set to 0
+fixed_scale = 1.15; % I used 1.15, works with gauss newton uniform scale, turns off when set to 0
 
 downloop_start = 1
 for downloop = downloop_start : 2
+    p = '/data/vikram/'
     % input this output prefix
-    prefix = '/home/ubuntu/gad2_rabies_6443_GN_registration_weights/';
-    target_name = '/home/ubuntu/Gad2Rabies_6443_ch1.tif';
+    prefix = [p 'vglut3_539_GN_registration_weights/'];
+    target_name = [p 'vglut3_539_ch1.tif'];
 
-    in_prefix = '/home/ubuntu/MBAC/registration/atlases/';
+    in_prefix = [p '/MBAC/registration/atlases/'];
     
-    
-
     % pixel size is required here as the tif data structure does not store it
     dxJ0 = [9.36 9.36  5];
 %    dxJ0 = [5.0 37.44 37.44];
@@ -290,9 +289,9 @@ for downloop = downloop_start : 2
     
     [XJ,YJ,ZJ] = meshgrid(xJp,yJp,zJp);
     % K = exp(-(XJ.^2 + YJ.^2 + ZJ.^2)/2/(dxJ(1)*15)^2);
-    width = 750; % this value gives goood results
+    % width = 750; % this value gives goood results
     % width = 500;
-    % width = 1000;
+    width = 1000;
     K = exp(-(XJ.^2 + YJ.^2 + ZJ.^2)/2/(width)^2);
     K = K / sum(K(:));
     Ks = ifftshift(K);
@@ -403,7 +402,7 @@ for downloop = downloop_start : 2
     WJ = 1;
     sigmaC = 5.0;
     % try more
-    sigmaC = 10.0;
+%    sigmaC = 10.0;
 %    % vikram testing out even more
 %    sigmaC = 20.0;
     
@@ -460,7 +459,7 @@ for downloop = downloop_start : 2
     % make this a function of voxel size
     % to speed up optimization
     % 10/2/19 -- VC
-    apre = 10*dxI(1);
+    apre = 1000;
     ppre = 2;
     %aC = 2000; % I think this should be bigger, about 20 voxels, I think 2000 is too big
     %aC = 1000;
@@ -491,15 +490,17 @@ for downloop = downloop_start : 2
     eV = 1e6;
     
     
-    sigmaR = 1e4;
+    sigmaR = 5e3;
     % make it smaller 
-    sigmaR = sigmaR*2;
+%    sigmaR = sigmaR*2;
     
     % decrease sigmaA from x10 to x2
 %    sigmaA = sigmaM*2;
     sigmaB = sigmaM * 2;
     sigmaA = sigmaM * 5;
     prior = [0.89,0.1,0.01];
+    prior = [0.79, 0.2, 0.01];
+    prior = prior / sum(prior);
 	
 
 
@@ -847,7 +848,7 @@ for downloop = downloop_start : 2
         grad = zeros(4,4);
         do_GN = 1; % do gauss newton
         rigid_only  = 0; % constrain affine to be rigid
-	uniform_scale_only = 1; % for uniform scaling
+	    uniform_scale_only = 1; % for uniform scaling
         % NOTE
         % without Gauss Newton, the affine transformation will be updated with
         % rigid transforms.  If the initial guess is nonrigid, it wli lremain
@@ -978,7 +979,7 @@ for downloop = downloop_start : 2
             basis(:,:,:,1,o) = AphiI.^(o-1);
         end
         if it == 1
-            nitercoeffs = 10;
+            nitercoeffs = 20;
         else
             nitercoeffs = 5;
             % vikram testing fewer because maybe better to update slower in the beginning
@@ -1003,7 +1004,7 @@ for downloop = downloop_start : 2
     %     e.*grad % I printed to check size of gradient
         else % do gauss newton
             Ai = inv(A);
-            eA = 0.5;
+            eA = 0.1;
             Ai(1:3,1:4) = Ai(1:3,1:4) - eA * step;
             A = inv(Ai);
             if rigid_only
