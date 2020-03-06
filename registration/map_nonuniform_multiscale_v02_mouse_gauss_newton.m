@@ -22,13 +22,14 @@ addpath ./Functions/textprogressbar/
 
 %indir = '/data/vikram/registration_daniel_matlab/Gad2_VGat_Brain12_20190308_downsampled/';
 
-fixed_scale = 1.15; % I used 1.15, works with gauss newton uniform scale, turns off when set to 0
+fixed_scale = 1.2; % I used 1.15, works with gauss newton uniform scale, turns off when set to 0
+fixed_scale = 0;
 
 downloop_start = 1
 for downloop = downloop_start : 2
     p = '/data/vikram/'
     % input this output prefix
-    prefix = [p 'vglut3_539_GN_registration_weights/'];
+    prefix = [p 'vglut3_539_GN_registration_weights_danupdate/'];
     target_name = [p 'vglut3_539_ch1.tif'];
 
     in_prefix = [p '/MBAC/registration/atlases/'];
@@ -141,10 +142,11 @@ for downloop = downloop_start : 2
             nxJ0 = [size(J_,2),size(J_,1),length(info)];
             nxJ = floor(nxJ0./down);
             J = zeros(nxJ(2),nxJ(1),nxJ(3));
+            WJ = zeros(nxJ(2),nxJ(1),nxJ(3));
         end
         % downsample J_
         Jd = zeros(nxJ(2),nxJ(1));
-	WJd = zeros(size(Jd)); % when there is no data, we have value 0
+    	WJd = zeros(size(Jd)); % when there is no data, we have value 0
         for i = 1 : down(1)
             for j = 1 : down(2)
                 Jd = Jd + J_(i:down(2):down(2)*nxJ(2), j:down(1):down(1)*nxJ(1))/down(1)/down(2);
@@ -157,7 +159,7 @@ for downloop = downloop_start : 2
             break;
         end
         J(:,:,slice) = J(:,:,slice) + Jd/down(3);
-	WJ(:,:,slice) = WJ(:,:,slice) + WJd/down(3);
+    	WJ(:,:,slice) = WJ(:,:,slice) + WJd/down(3);
         
         if ~mod(f-1,10)
             danfigure(1234);
@@ -198,6 +200,9 @@ for downloop = downloop_start : 2
     % danfigure(2);
     % sliceView(xJ,yJ,zJ,J)
     % [XJ,YJ,ZJ] = meshgrid(xJ,yJ,zJ);
+
+    nplot = 5;
+
     J0 = J; % save it
     J0_orig = J0;
     
@@ -308,6 +313,8 @@ for downloop = downloop_start : 2
     % iterate
     niterhom = 10;
     niterhom = 20; % a little more for more inhomogeneity correction
+    niterhom = 30; % vikram trying even more
+    niterhom = 40; % vikram trying even more
 
     textprogressbar('correcting inhomogeneity: ');
     for it = 1 : niterhom
@@ -399,7 +406,7 @@ for downloop = downloop_start : 2
     % I want to make it less, its actually quite low
     sigmaB = sigmaM/2;
     CB = -1;
-    WJ = 1;
+    %WJ = 1;
     sigmaC = 5.0;
     % try more
 %    sigmaC = 10.0;
@@ -415,7 +422,6 @@ for downloop = downloop_start : 2
     sliceView(xJ,yJ,zJ,J)
     climJ = get(gca,'clim');
     % May 2019
-    nplot = 5;
     order = 4;
     nM = 1;
     nMaffine = 1; % number of m steps per e step durring affine only
@@ -490,9 +496,10 @@ for downloop = downloop_start : 2
     eV = 1e6;
     
     
-    sigmaR = 5e3;
+    sigmaR = 1e4;
     % make it smaller 
 %    sigmaR = sigmaR*2;
+
     
     % decrease sigmaA from x10 to x2
 %    sigmaA = sigmaM*2;
@@ -512,7 +519,7 @@ for downloop = downloop_start : 2
     % %%
     % initialize
     A = eye(4);
-    A = [0,1,0,0;
+    A = [0,-1,0,0;
         1,0,0,0;
         0,0,1,0
         0,0,0,1]*A;
@@ -543,10 +550,10 @@ for downloop = downloop_start : 2
 %           0.0000000,  0.1736482,  0.9848077, 0;
 %	   0.0000000,  0.0000000,  0.0000000, 1.0 ]*A;
 %    %  15 degree  rotation
-%    A = [0.9659258,0.2588190,0,0;
-%         -0.2588190,0.9659258,0,0;
-%         0,0,1,0
-%         0,0,0,1]*A;
+    A = [0.9659258,-0.2588190,0,0;
+         0.2588190,0.9659258,0,0;
+         0,0,1,0
+         0,0,0,1]*A;
 %    A = [0,0,1,0;
 %        1,0,0,0;
 %        0,1,0,0;
@@ -627,7 +634,9 @@ for downloop = downloop_start : 2
  
     % add translation in X,Y and Z axes
 %   A = [eye(3),[100;0;300];[0,0,0,1]]*A;
-    A = diag([1.05,1.15,1.05,1])*A;
+    if fixed_scale
+        A = diag([fixed_scale,fixed_scale,fixed_scale,1])*A;
+    end
     
     
     % load data
@@ -979,7 +988,7 @@ for downloop = downloop_start : 2
             basis(:,:,:,1,o) = AphiI.^(o-1);
         end
         if it == 1
-            nitercoeffs = 20;
+            nitercoeffs = 10;
         else
             nitercoeffs = 5;
             % vikram testing fewer because maybe better to update slower in the beginning
@@ -1004,7 +1013,7 @@ for downloop = downloop_start : 2
     %     e.*grad % I printed to check size of gradient
         else % do gauss newton
             Ai = inv(A);
-            eA = 0.1;
+            eA = 0.2;
             Ai(1:3,1:4) = Ai(1:3,1:4) - eA * step;
             A = inv(Ai);
             if rigid_only
