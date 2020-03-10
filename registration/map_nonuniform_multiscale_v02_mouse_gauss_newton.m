@@ -22,10 +22,10 @@ addpath ./Functions/textprogressbar/
 
 %indir = '/data/vikram/registration_daniel_matlab/Gad2_VGat_Brain12_20190308_downsampled/';
 
-fixed_scale = 1.2; % I used 1.15, works with gauss newton uniform scale, turns off when set to 0
-fixed_scale = 0;
+fixed_scale = 1.3; % I used 1.15, works with gauss newton uniform scale, turns off when set to 0
+missing_data_correction = 0;
 
-downloop_start = 1
+downloop_start = 2
 for downloop = downloop_start : 2
     p = '/data/vikram/'
     % input this output prefix
@@ -48,7 +48,6 @@ for downloop = downloop_start : 2
         label_name = strcat(in_prefix, '/annotation_100.nrrd');
 
     elseif downloop == 2
-        return
         template_name = strcat(in_prefix,'/average_template_50.nrrd');
         label_name = strcat(in_prefix, '/annotation_50.nrrd');
         
@@ -212,15 +211,18 @@ for downloop = downloop_start : 2
     
     %%
     % missing data correction
-    WJ = WJ/max(WJ(:));
-    q = 0.01;
-    c = quantile(J(WJ==1),q);
-    J_ = J;
-    J_ = J_.*(WJ) + c*(1-WJ);
-    danfigure(22)
-    sliceView(xJ,yJ,zJ,J_,nplot)
-    J0_orig = J_;
-
+    if missing_data_correction
+        WJ = WJ/max(WJ(:));
+        q = 0.01;
+        c = quantile(J(WJ==1),q);
+        J_ = J;
+        J_ = J_.*(WJ) + c*(1-WJ);
+        danfigure(22)
+        sliceView(xJ,yJ,zJ,J_,nplot)
+        J0_orig = J_;
+    else
+        WJ = 1;
+    end
 
     %%
     % grid correction
@@ -311,11 +313,11 @@ for downloop = downloop_start : 2
     
     
     % iterate
-    niterhom = 10;
-    niterhom = 20; % a little more for more inhomogeneity correction
-    niterhom = 30; % vikram trying even more
-    niterhom = 40; % vikram trying even more
-
+    if missing_data_correction
+        niterhom = 20;
+    else
+        niterhom = 10; % a little more for more inhomogeneity correction
+    end
     textprogressbar('correcting inhomogeneity: ');
     for it = 1 : niterhom
         textprogressbar((it/niterhom)*100);
@@ -496,9 +498,9 @@ for downloop = downloop_start : 2
     eV = 1e6;
     
     
-    sigmaR = 1e4;
+    sigmaR = 5e3;
     % make it smaller 
-%    sigmaR = sigmaR*2;
+    sigmaR = sigmaR*2;
 
     
     % decrease sigmaA from x10 to x2
@@ -633,7 +635,7 @@ for downloop = downloop_start : 2
     
  
     % add translation in X,Y and Z axes
-%   A = [eye(3),[100;0;300];[0,0,0,1]]*A;
+%    A = [eye(3),[0;0;300];[0,0,0,1]]*A;
     if fixed_scale
         A = diag([fixed_scale,fixed_scale,fixed_scale,1])*A;
     end
@@ -670,7 +672,7 @@ for downloop = downloop_start : 2
     It(:,:,:,1) = I;
     
     
-    if downloop == 1
+    if downloop >= 1
         % actually
         % we need an initial linear transformation to compute our first weight
         Jq = quantile(J(:),[0.1 0.9]);
@@ -846,7 +848,6 @@ if downloop == 1 && fixed_scale == 0 && it == 1
     end
     danfigure(6666);
     sliceView(xJ,yJ,zJ,cat(4,J,fAphiI,J),nplot,climJ);
-    saveas(6666,[prefix 'test_scale_' num2str(s) '.png']);
 end
 
         
@@ -1054,7 +1055,12 @@ end
             basis(:,:,:,1,o) = AphiI.^(o-1);
         end
         if it == 1
-            nitercoeffs = 10;
+            if downloop == 1
+                nitercoeffs = 10;
+            else
+                nitercoeffs = 20;
+            end
+            % vikram testing fewer because maybe better to update slower in the beginning
         else
             nitercoeffs = 5;
             % vikram testing fewer because maybe better to update slower in the beginning
