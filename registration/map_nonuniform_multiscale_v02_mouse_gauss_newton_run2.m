@@ -22,30 +22,26 @@ addpath ./Functions/textprogressbar/
 
 %indir = '/data/vikram/registration_daniel_matlab/Gad2_VGat_Brain12_20190308_downsampled/';
 
+fixed_scale = 1.0; % I used 1.15, works with gauss newton uniform scale, turns off when set to 0
+missing_data_correction = 1;
+
 downloop_start = 1
 for downloop = downloop_start : 2
+    p = '/home/ubuntu/'
     % input this output prefix
-    prefix = '/home/ubuntu/gad2_rabies_6443_GN_registration_weights_rigidonly/';
-    target_name = '/home/ubuntu/Gad2Rabies_6443_ch1.tif';
+    prefix = [p 'gad2_4w_GN_registration_weights_danupdate/'];
+    target_name = [p 'gad2_4w_ch0.tif'];
 
-    in_prefix = '/home/ubuntu/MBAC/registration/atlases/';
+    in_prefix = [p '/MBAC/registration/atlases/'];
     
-
     % pixel size is required here as the tif data structure does not store it
     dxJ0 = [9.36 9.36  5];
-%    dxJ0 = [5.0 37.44 37.44];
 
-%    if downloop == 1
-%        template_name = strcat(in_prefix,'/average_template_200.nrrd');
-%        label_name = strcat(in_prefix, '/annotation_200.nrrd');
-%        
-%    elseif downloop == 2
     if downloop == 1
         template_name = strcat(in_prefix,'/average_template_100.nrrd');
         label_name = strcat(in_prefix, '/annotation_100.nrrd');
 
     elseif downloop == 2
-        return
         template_name = strcat(in_prefix,'/average_template_50.nrrd');
         label_name = strcat(in_prefix, '/annotation_50.nrrd');
         
@@ -139,12 +135,15 @@ for downloop = downloop_start : 2
             nxJ0 = [size(J_,2),size(J_,1),length(info)];
             nxJ = floor(nxJ0./down);
             J = zeros(nxJ(2),nxJ(1),nxJ(3));
+            WJ = zeros(nxJ(2),nxJ(1),nxJ(3));
         end
         % downsample J_
         Jd = zeros(nxJ(2),nxJ(1));
+    	WJd = zeros(size(Jd)); % when there is no data, we have value 0
         for i = 1 : down(1)
             for j = 1 : down(2)
                 Jd = Jd + J_(i:down(2):down(2)*nxJ(2), j:down(1):down(1)*nxJ(1))/down(1)/down(2);
+		WJd = WJd + double((J_(i:down(2):down(2)*nxJ(2), j:down(1):down(1)*nxJ(1))/down(1)/down(2)>0));
             end
         end
         
@@ -153,11 +152,15 @@ for downloop = downloop_start : 2
             break;
         end
         J(:,:,slice) = J(:,:,slice) + Jd/down(3);
+    	WJ(:,:,slice) = WJ(:,:,slice) + WJd/down(3);
         
         if ~mod(f-1,10)
             danfigure(1234);
             imagesc(J(:,:,slice));
             axis image
+            danfigure(1235);
+            imagesc(WJ(:,:,slice));
+            axis image	    
             drawnow;
         end
     end
@@ -190,6 +193,9 @@ for downloop = downloop_start : 2
     % danfigure(2);
     % sliceView(xJ,yJ,zJ,J)
     % [XJ,YJ,ZJ] = meshgrid(xJ,yJ,zJ);
+
+    nplot = 5;
+
     J0 = J; % save it
     J0_orig = J0;
     
@@ -197,7 +203,21 @@ for downloop = downloop_start : 2
     sliceView(xJ,yJ,zJ,J0_orig);
     saveas(gcf,[prefix 'example_target.png'])
     
-    
+    %%
+    % missing data correction
+    if missing_data_correction
+        WJ = WJ/max(WJ(:));
+        q = 0.01;
+        c = quantile(J(WJ==1),q);
+        J_ = J;
+        J_ = J_.*(WJ) + c*(1-WJ);
+        danfigure(22)
+        sliceView(xJ,yJ,zJ,J_,nplot)
+        J0_orig = J_;
+    else
+        WJ = 1;
+    end
+
     %%
     % grid correction
     Jsum = sum(J0_orig,3);
@@ -270,9 +290,9 @@ for downloop = downloop_start : 2
     
     [XJ,YJ,ZJ] = meshgrid(xJp,yJp,zJp);
     % K = exp(-(XJ.^2 + YJ.^2 + ZJ.^2)/2/(dxJ(1)*15)^2);
-    width = 750; % this value gives goood results
+    % width = 750; % this value gives goood results
     % width = 500;
-    % width = 1000;
+    width = 1000;
     K = exp(-(XJ.^2 + YJ.^2 + ZJ.^2)/2/(width)^2);
     K = K / sum(K(:));
     Ks = ifftshift(K);
@@ -287,8 +307,11 @@ for downloop = downloop_start : 2
     
     
     % iterate
-    niterhom = 10;
-
+    if missing_data_correction
+        niterhom = 20;
+    else
+        niterhom = 10; % a little more for more inhomogeneity correction
+    end
     textprogressbar('correcting inhomogeneity: ');
     for it = 1 : niterhom
         textprogressbar((it/niterhom)*100);
@@ -379,10 +402,10 @@ for downloop = downloop_start : 2
     % I want to make it less, its actually quite low
     sigmaB = sigmaM/2;
     CB = -1;
-    WJ = 1;
+    %WJ = 1;
     sigmaC = 5.0;
     % try more
-    sigmaC = 10.0;
+%    sigmaC = 10.0;
 %    % vikram testing out even more
 %    sigmaC = 20.0;
     
@@ -395,7 +418,6 @@ for downloop = downloop_start : 2
     sliceView(xJ,yJ,zJ,J)
     climJ = get(gca,'clim');
     % May 2019
-    nplot = 5;
     order = 4;
     nM = 1;
     nMaffine = 1; % number of m steps per e step durring affine only
@@ -439,7 +461,7 @@ for downloop = downloop_start : 2
     % make this a function of voxel size
     % to speed up optimization
     % 10/2/19 -- VC
-    apre = 10*dxI(1);
+    apre = 1000;
     ppre = 2;
     %aC = 2000; % I think this should be bigger, about 20 voxels, I think 2000 is too big
     %aC = 1000;
@@ -470,15 +492,17 @@ for downloop = downloop_start : 2
     eV = 1e6;
     
     
-    sigmaR = 1e4;
-    % make it smaller 
+    sigmaR = 5e3;
     sigmaR = sigmaR*2;
+
     
     % decrease sigmaA from x10 to x2
 %    sigmaA = sigmaM*2;
     sigmaB = sigmaM * 2;
     sigmaA = sigmaM * 5;
     prior = [0.89,0.1,0.01];
+    prior = [0.79, 0.2, 0.01];
+    prior = prior / sum(prior);
 	
 
 
@@ -490,7 +514,7 @@ for downloop = downloop_start : 2
     % %%
     % initialize
     A = eye(4);
-    A = [0,1,0,0;
+    A = [0,-1,0,0;
         1,0,0,0;
         0,0,1,0
         0,0,0,1]*A;
@@ -604,8 +628,10 @@ for downloop = downloop_start : 2
     
  
     % add translation in X,Y and Z axes
-%   A = [eye(3),[100;0;300];[0,0,0,1]]*A;
-    A = diag([1.05,1.15,1.05,1])*A;
+%    A = [eye(3),[0;0;300];[0,0,0,1]]*A;
+    if fixed_scale
+        A = diag([fixed_scale,fixed_scale,fixed_scale,1])*A;
+    end
     
     
     % load data
@@ -639,7 +665,7 @@ for downloop = downloop_start : 2
     It(:,:,:,1) = I;
     
     
-    if downloop == 1
+    if downloop >= 1
         % actually
         % we need an initial linear transformation to compute our first weight
         Jq = quantile(J(:),[0.1 0.9]);
@@ -752,6 +778,71 @@ for downloop = downloop_start : 2
         sliceView(xJ,yJ,zJ,cat(4,J,fAphiI,J),nplot,climJ);
         
 %         return % for checking affine
+if downloop == 1 && fixed_scale == 0 && it == 1
+    % show 5 scales
+    Asave_ = A;
+    [U,S,V] = svd(A(1:3,1:3));
+    s = diag(S);
+    ss = [0.9,1.0,1.1,1.2,1.3,1.4,1.5];
+    for ssloop = 1 : length(ss)
+        s = ss(ssloop);
+        A(1:3,1:3) = U * diag([s,s,s]) * V';
+        B = inv(A);
+        Xs = B(1,1)*XJ + B(1,2)*YJ + B(1,3)*ZJ + B(1,4);
+        Ys = B(2,1)*XJ + B(2,2)*YJ + B(2,3)*ZJ + B(2,4);
+        Zs = B(3,1)*XJ + B(3,2)*YJ + B(3,3)*ZJ + B(3,4);
+        
+        % okay if I did this together I would see
+        % AphiI = I(phiinv(B x))
+        % first sample phiinv at Bx
+        % then sample I at phiinv Bx
+        F = griddedInterpolant({yI,xI,zI},phiinvx-XI,'linear','nearest');
+        phiinvBx = F(Ys,Xs,Zs) + Xs;
+        F = griddedInterpolant({yI,xI,zI},phiinvy-YI,'linear','nearest');
+        phiinvBy = F(Ys,Xs,Zs) + Ys;
+        F = griddedInterpolant({yI,xI,zI},phiinvz-ZI,'linear','nearest');
+        phiinvBz = F(Ys,Xs,Zs) + Zs;
+        F = griddedInterpolant({yI,xI,zI},I,'linear','nearest');
+        AphiI = F(phiinvBy,phiinvBx,phiinvBz);
+        
+        
+        % now apply the linear intensity transformation
+        % order is 1 plus highest power
+        fAphiI = zeros(size(J));
+        for o = 1 : order
+            fAphiI = fAphiI + coeffs(:,:,:,o).*AphiI.^(o-1);
+        end
+        
+        
+        danfigure(6666);
+        sliceView(xJ,yJ,zJ,cat(4,J,fAphiI,J),nplot,climJ);
+        saveas(6666,[prefix 'test_scale_' num2str(s) '.png']);
+    end
+    A = Asave_;
+    B = inv(A);
+    Xs = B(1,1)*XJ + B(1,2)*YJ + B(1,3)*ZJ + B(1,4);
+    Ys = B(2,1)*XJ + B(2,2)*YJ + B(2,3)*ZJ + B(2,4);
+    Zs = B(3,1)*XJ + B(3,2)*YJ + B(3,3)*ZJ + B(3,4);
+    F = griddedInterpolant({yI,xI,zI},phiinvx-XI,'linear','nearest');
+    phiinvBx = F(Ys,Xs,Zs) + Xs;
+    F = griddedInterpolant({yI,xI,zI},phiinvy-YI,'linear','nearest');
+    phiinvBy = F(Ys,Xs,Zs) + Ys;
+    F = griddedInterpolant({yI,xI,zI},phiinvz-ZI,'linear','nearest');
+    phiinvBz = F(Ys,Xs,Zs) + Zs;
+    F = griddedInterpolant({yI,xI,zI},I,'linear','nearest');
+    AphiI = F(phiinvBy,phiinvBx,phiinvBz);
+    
+    
+    % now apply the linear intensity transformation
+    % order is 1 plus highest power
+    fAphiI = zeros(size(J));
+    for o = 1 : order
+        fAphiI = fAphiI + coeffs(:,:,:,o).*AphiI.^(o-1);
+    end
+    danfigure(6666);
+    sliceView(xJ,yJ,zJ,cat(4,J,fAphiI,J),nplot,climJ);
+end
+
         
         % now a weight
         doENumber = nMaffine;
@@ -825,8 +916,8 @@ for downloop = downloop_start : 2
         [AphiI_x,AphiI_y,AphiI_z] = gradient(AphiI,dxJ(1),dxJ(2),dxJ(3));
         grad = zeros(4,4);
         do_GN = 1; % do gauss newton
-        rigid_only  = 1; % constrain affine to be rigid
-	uniform_scale_only = 0; % for uniform scaling
+        rigid_only  = 0; % constrain affine to be rigid
+	uniform_scale_only = 1; % for uniform scaling
         % NOTE
         % without Gauss Newton, the affine transformation will be updated with
         % rigid transforms.  If the initial guess is nonrigid, it wli lremain
@@ -957,7 +1048,12 @@ for downloop = downloop_start : 2
             basis(:,:,:,1,o) = AphiI.^(o-1);
         end
         if it == 1
-            nitercoeffs = 10;
+            if downloop == 1
+                nitercoeffs = 10;
+            else
+                nitercoeffs = 20;
+            end
+            % vikram testing fewer because maybe better to update slower in the beginning
         else
             nitercoeffs = 5;
             % vikram testing fewer because maybe better to update slower in the beginning
@@ -982,7 +1078,7 @@ for downloop = downloop_start : 2
     %     e.*grad % I printed to check size of gradient
         else % do gauss newton
             Ai = inv(A);
-            eA = 0.5;
+            eA = 0.2;
             Ai(1:3,1:4) = Ai(1:3,1:4) - eA * step;
             A = inv(Ai);
             if rigid_only
@@ -993,7 +1089,10 @@ for downloop = downloop_start : 2
 	    if uniform_scale_only
                 [U,S,V] = svd(A(1:3,1:3));
 		s = diag(S);
-		s = mean(s) * ones(size(s));
+		s = exp(mean(log(s))) * ones(size(s));
+		if fixed_scale ~= 0
+		    s = [1,1,1]*fixed_scale;
+		end
                 A(1:3,1:3) = U * diag(s) *  V';
 		
 	    end

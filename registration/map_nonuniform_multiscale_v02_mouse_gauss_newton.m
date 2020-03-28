@@ -25,12 +25,12 @@ addpath ./Functions/textprogressbar/
 fixed_scale = 1.3; % I used 1.15, works with gauss newton uniform scale, turns off when set to 0
 missing_data_correction = 0;
 
-downloop_start = 2
+downloop_start = 1
 for downloop = downloop_start : 2
-    p = '/data/vikram/'
+    p = '/home/ubuntu/'
     % input this output prefix
-    prefix = [p 'vglut3_539_GN_registration_weights_danupdate/'];
-    target_name = [p 'vglut3_539_ch1.tif'];
+    prefix = [p 'gad2_812_GN_registration_weights_danupdate/'];
+    target_name = [p 'Gad2_812_ch1.tif'];
 
     in_prefix = [p '/MBAC/registration/atlases/'];
     
@@ -500,7 +500,7 @@ for downloop = downloop_start : 2
     
     sigmaR = 5e3;
     % make it smaller 
-    sigmaR = sigmaR*2;
+%    sigmaR = sigmaR*2;
 
     
     % decrease sigmaA from x10 to x2
@@ -552,10 +552,10 @@ for downloop = downloop_start : 2
 %           0.0000000,  0.1736482,  0.9848077, 0;
 %	   0.0000000,  0.0000000,  0.0000000, 1.0 ]*A;
 %    %  15 degree  rotation
-    A = [0.9659258,-0.2588190,0,0;
-         0.2588190,0.9659258,0,0;
-         0,0,1,0
-         0,0,0,1]*A;
+%    A = [0.9659258,-0.2588190,0,0;
+%         0.2588190,0.9659258,0,0;
+%         0,0,1,0
+%         0,0,0,1]*A;
 %    A = [0,0,1,0;
 %        1,0,0,0;
 %        0,1,0,0;
