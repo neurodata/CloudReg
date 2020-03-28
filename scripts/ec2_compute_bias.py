@@ -295,6 +295,27 @@ def main():
     
         # get the bias correction tile using N4ITK
         bias = sitk.GetArrayFromImage(correct_bias_field(sum_tile,scale=1.0)[-1])
+
+        # if signal channel, compute mean bias correction with signal tiles
+        #  scale autofluorescence bias correction so it matches mean of signal
+        # bias correction
+        # then use scaled autofluorescence correction for all tiles
+        if args.channel != args.auto_channel:
+            files_cb = all_files[::args.subsample_factor]
+            num_files  = len(files_cb)
+            # compute running sums in parallel
+            sums = Parallel(total_n_jobs, verbose=10)(delayed(sum_tiles)(f, args.in_bucket_name) for f in chunks(files_cb,math.ceil(num_files//(total_n_jobs))+1))
+            sums = [i[:,:,None] for i in sums]
+            sum_tile = np.squeeze(np.sum(np.concatenate(sums,axis=2),axis=2))/num_files
+            sum_tile = sitk.GetImageFromArray(sum_tile)
+    
+            # get the bias correction tile using N4ITK
+            bias2 = sitk.GetArrayFromImage(correct_bias_field(sum_tile,scale=1.0)[-1])
+        
+            bias *= np.mean(bias2)/np.mean(bias) 
+
+
+
     
         # save bias tile to S3
         s3 = boto3.resource('s3')
