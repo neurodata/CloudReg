@@ -1,4 +1,4 @@
-run('/home/ubuntu/MBAC/registration/map_nonuniform_multiscale_v02_mouse_gauss_newton_run2.m');
+run('/data/vikram/MBAC/registration/map_nonuniform_multiscale_v02_mouse_gauss_newton_run2.m');
 atlas_prefix = './atlases/';
 atlas_path = [atlas_prefix 'ara_annotation_10um.tif'];
 atlas_voxel_size = [10.0, 10.0, 10.0]; % microns
