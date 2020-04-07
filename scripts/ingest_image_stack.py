@@ -55,7 +55,6 @@ def process(z, img):
 
     print(f"Processing {z} took {time.time() - start}")
 
-
 def main():
 
     parser = argparse.ArgumentParser(description='Ingest an image stack into S3.')

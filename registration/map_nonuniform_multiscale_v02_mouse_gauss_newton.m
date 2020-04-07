@@ -22,19 +22,20 @@ addpath ./Functions/textprogressbar/
 
 %indir = '/data/vikram/registration_daniel_matlab/Gad2_VGat_Brain12_20190308_downsampled/';
 
-fixed_scale = 1.3; % I used 1.15, works with gauss newton uniform scale, turns off when set to 0
-missing_data_correction = 0;
+fixed_scale = 0; % I used 1.15, works with gauss newton uniform scale, turns off when set to 0
+missing_data_correction = 1;
 
 downloop_start = 1
 for downloop = downloop_start : 2
     p = '/home/ubuntu/'
     % input this output prefix
-    prefix = [p 'gad2_812_GN_registration_weights_danupdate/'];
-    target_name = [p 'Gad2_812_ch1.tif'];
+    prefix = [p 'gad2_7267_registration/'];
+    target_name = [p 'Gad2_7267_ch1.tif'];
 
     in_prefix = [p '/MBAC/registration/atlases/'];
     
     % pixel size is required here as the tif data structure does not store it
+%    dxJ0 = [11.68, 11.68, 5.0];
     dxJ0 = [9.36 9.36  5];
 %    dxJ0 = [5.0 37.44 37.44];
 
@@ -499,8 +500,7 @@ for downloop = downloop_start : 2
     
     
     sigmaR = 5e3;
-    % make it smaller 
-%    sigmaR = sigmaR*2;
+    sigmaR = sigmaR*2;
 
     
     % decrease sigmaA from x10 to x2
@@ -635,7 +635,7 @@ for downloop = downloop_start : 2
     
  
     % add translation in X,Y and Z axes
-%    A = [eye(3),[0;0;300];[0,0,0,1]]*A;
+    A = [eye(3),[0;-300;0];[0,0,0,1]]*A;
     if fixed_scale
         A = diag([fixed_scale,fixed_scale,fixed_scale,1])*A;
     end
