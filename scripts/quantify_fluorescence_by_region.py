@@ -5,6 +5,7 @@ import numpy as np
 from cloudvolume import CloudVolume
 from collections import defaultdict
 from skimage import transform
+from tqdm import tqdm, trange
 
 def get_region_stats(atlas_s3_path, data_s3_path, z_slice):
     # create vols
@@ -42,10 +43,11 @@ def main():
     parser.add_argument('data_s3_path',help='full s3 path to data of interest as precomputed volume. must be of the form `s3://bucket-name/path/to/channel`')
     parser.add_argument('atlas_s3_path',help='full s3 path to transfomed atlas. must have the same number of slices as native resolution data.')
     parser.add_argument('out_path',help='path to save output results')
+    parser.add_argument('--num_procs',help='number of processes to use',default=35, type=int)
     args = parser.parse_args()
     data_vol = CloudVolume(args.data_s3_path)
-    results = Parallel(30)(delayed(get_region_stats)(args.atlas_s3_path, args.data_s3_path,i) 
-                       for i in tnrange(data_vol.scales[0]['size'][-1]))
+    results = Parallel(args.num_procs)(delayed(get_region_stats)(args.atlas_s3_path, args.data_s3_path,i) 
+                       for i in trange(data_vol.scales[0]['size'][-1]))
     total_fluorescence, total_volume = combine_results(results)
     fluorescence_density = defaultdict(float)
     for i,j in total_fluorescence.items():
