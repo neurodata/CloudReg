@@ -1,0 +1,170 @@
+import argparse
+from tqdm import tqdm
+import SimpleITK as sitk
+import numpy as np
+from cloudvolume import CloudVolume
+import tinybrain
+from joblib import Parallel, delayed
+
+
+def imgResample(img, spacing, size=[], useNearest=False, origin=None, outsideValue=0):
+    """Resample image to certain spacing and size.
+
+    Parameters:
+    ----------
+    img : {SimpleITK.SimpleITK.Image}
+        Input 3D image.
+    spacing : {list}
+        List of length 3 indicating the voxel spacing as [x, y, z]
+    size : {list}, optional
+        List of length 3 indicating the number of voxels per dim [x, y, z] (the default is [], which will use compute the appropriate size based on the spacing.)
+    useNearest : {bool}, optional
+        If True use nearest neighbor interpolation. (the default is False, which will use linear interpolation.)
+    origin : {list}, optional
+        The location in physical space representing the [0,0,0] voxel in the input image. (the default is [0,0,0])
+    outsideValue : {int}, optional
+        value used to pad are outside image (the default is 0)
+
+    Returns
+    -------
+    SimpleITK.SimpleITK.Image
+        Resampled input image.
+    """
+
+    if origin is None: origin = [0]*3
+    if len(spacing) != img.GetDimension():
+        raise Exception(
+            "len(spacing) != " + str(img.GetDimension()))
+
+    # Set Size
+    if size == []:
+        inSpacing = img.GetSpacing()
+        inSize = img.GetSize()
+        size = [int(math.ceil(inSize[i] * (inSpacing[i] / spacing[i])))
+                for i in range(img.GetDimension())]
+    else:
+        if len(size) != img.GetDimension():
+            raise Exception(
+                "len(size) != " + str(img.GetDimension()))
+
+    # Resample input image
+    interpolator = [sitk.sitkLinear, sitk.sitkNearestNeighbor][useNearest]
+    identityTransform = sitk.Transform()
+    identityDirection = list(
+        sitk.AffineTransform(
+            img.GetDimension()).GetMatrix())
+
+    return sitk.Resample(
+        img,
+        size,
+        identityTransform,
+        interpolator,
+        origin,
+        spacing,
+        img.GetDirection(),
+        outsideValue)
+
+
+def get_bias_field(img, mask=None, scale=1.0, niters=[50, 50, 50, 50]):
+    """Correct bias field in image using the N4ITK algorithm (http://bit.ly/2oFwAun)
+
+    Parameters:
+    ----------
+    img : {SimpleITK.SimpleITK.Image}
+        Input image with bias field.
+    mask : {SimpleITK.SimpleITK.Image}, optional
+        If used, the bias field will only be corrected within the mask. (the default is None, which results in the whole image being corrected.)
+    scale : {float}, optional
+        Scale at which to compute the bias correction. (the default is 0.25, which results in bias correction computed on an image downsampled to 1/4 of it's original size)
+    niters : {list}, optional
+        Number of iterations per resolution. Each additional entry in the list adds an additional resolution at which the bias is estimated. (the default is [50, 50, 50, 50] which results in 50 iterations per resolution at 4 resolutions)
+
+    Returns
+    -------
+    SimpleITK.SimpleITK.Image
+        Bias-corrected image that has the same size and spacing as the input image.
+    """
+
+    # do in case image has 0 intensities
+    # add a small constant that depends on
+    # distribution of intensities in the image
+    minmaxfilter = sitk.MinimumMaximumImageFilter()
+    minmaxfilter.Execute(img)
+    minval = minmaxfilter.GetMinimum()
+    img_rescaled = sitk.Cast(img, sitk.sitkFloat32) - minval + 1.0
+
+    spacing = np.array(img_rescaled.GetSpacing())/scale
+    img_ds = imgResample(img_rescaled, spacing=spacing)
+    img_ds = sitk.Cast(img_ds, sitk.sitkFloat32)
+
+    # Calculate bias
+    if mask is None:
+        mask = sitk.Image(img_ds.GetSize(), sitk.sitkUInt8)+1
+        mask.CopyInformation(img_ds)
+    else:
+        if type(mask) is not sitk.SimpleITK.Image:
+            mask_sitk = sitk.GetImageFromArray(mask)
+            mask_sitk.CopyInformation(img)
+            mask = mask_sitk
+        mask = imgResample(mask, spacing=spacing)
+
+    img_ds_bc = sitk.N4BiasFieldCorrection(img_ds, mask, 0.001, niters)
+    bias_ds = img_ds_bc / sitk.Cast(img_ds, img_ds_bc.GetPixelID())
+
+    # Upsample bias
+    bias = imgResample(bias_ds, spacing=img.GetSpacing(), size=img.GetSize())
+
+    return bias
+
+
+def get_vol_at_mip(precomputed_path, mip, parallel=True):
+    return CloudVolume(precomputed_path,mip=mip,parallel=parallel)
+
+
+def process_slice(bias_slice,z,data_orig_path,data_bc_path):
+    data_vol = CloudVolume(data_orig_path,parallel=False,progress=False)
+    data_vol_bc = CloudVolume(data_bc_path,parallel=False,progress=False)
+    data_vols_bc = [get_vol_at_mip(data_bc_path,i,parallel=False) for i in range(len(data_vol_bc.scales))]
+    # convert spcing rom nm to um
+    new_spacing = np.array(data_vol.scales[0]['resolution'][:2])/1000
+    bias_upsampled_sitk = imgResample(bias_slice,new_spacing,size=data_vol.scales[0]['size'][:2])
+    bias_upsampled = sitk.GetArrayFromImage(bias_upsampled_sitk)
+    data_native = np.squeeze(data_vol[:,:,z]).T
+    data_corrected = data_native * bias_upsampled
+    img_pyramid = tinybrain.downsample_with_averaging(data_corrected.T[:,:,None], factor=(2,2,1), num_mips=len(data_vol_bc.scales)-1)
+    data_vol_bc[:,:,z] = data_corrected.T.astype('uint16')[:,:,None]
+    for i in range(len(data_vols_bc)-1):
+        data_vols_bc[i+1][:,:,z] = img_pyramid[i].astype('uint16')
+
+
+def main():
+    parser = argparse.ArgumentParser('Correct whole brain bias field in image at native resolution.')
+    parser.add_argument('data_s3_path',help='full s3 path to data of interest as precomputed volume. must be of the form `s3://bucket-name/path/to/channel`')
+    parser.add_argument('out_s3_path',help='S3 path to save output results')
+    parser.add_argument('--num_procs',help='number of processes to use', default=15, type=int)
+    args = parser.parse_args()
+
+    # create vol
+    vol = CloudVolume(args.data_s3_path)
+    mip = 0
+    for i in range(len(vol.scales)):
+        # get low res image smaller than 10 um
+        if vol.scales[i]['resolution'][:2] < 10000:
+            mip = i
+    vol_ds = CloudVolume(args.data_s3_path,mip,parallel=True)
+
+    # create new vol if it doesnt exist
+    vol_bc = CloudVolume(args.out_s3_path,info=vol.info.copy())
+    vol_bc.commit_info()
+
+    # download image at low res
+    data = sitk.GetImageFromArray(np.squeeze(vol_ds[:,:,:]).T)
+    data.SetSpacing(vol_ds.scales[mip]['resolution'])
+
+    bias = get_bias_field(data,scale=0.125)
+    bias_slices = [bias[:,:,i] for i in range(bias.GetSize()[-1])]
+    Parallel(args.num_procs)(delayed(process_slice)(bias_slice,z,args.data_s3_path,args.out_s3_path) 
+                       for z,bias_slice in tqdm(enumerate(bias_slices),total=len(bias_slices)))
+
+if __name__ == "__main__":
+    main()
