@@ -3,7 +3,7 @@ import argparse
 from joblib import Parallel, delayed
 import numpy as np
 from cloudvolume import CloudVolume
-from collections import defaultdict
+from collections import defaultdict,Counter
 from skimage import transform
 from tqdm import tqdm, trange
 
@@ -25,7 +25,7 @@ def get_region_stats(atlas_s3_path, data_s3_path, z_slice):
         idx = atlas_slice_upsampled == j
         fluorescence_sum[j] += np.sum(data_slice[idx])
         region_volume[j] += np.count_nonzero(idx)
-    print(f"{z_slice} z slice done")
+    #print(f"{z_slice} z slice done")
 #     with open('fluorescence_quantification_vglut3_539', 'wb') as fp:
 #         pickle.dump([fluorescence_sum,region_volume], fp)
     return fluorescence_sum, region_volume
@@ -52,7 +52,7 @@ def main():
     fluorescence_density = defaultdict(float)
     for i,j in total_fluorescence.items():
         fluorescence_density[i] = float(j)/float(total_volume[i])
-    experiment_name = '_'.join(args.data_s3_path.split('\\')[-2:])
+    experiment_name = '_'.join(args.data_s3_path.split('/')[-2:])
     with open(f'{args.out_path}/{experiment_name}_fluorescence_quantification', 'wb') as fp:
         pickle.dump([total_fluorescence,total_volume], fp)
 
