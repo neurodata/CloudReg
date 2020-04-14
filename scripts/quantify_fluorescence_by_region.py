@@ -79,7 +79,7 @@ def main():
     fluorescence_density_roi = defaultdict(float)
     for i,j in fluorescence_density_sorted.items():
         fluorescence_density_roi[id2name[i]] = [i,j]
-    save_results_to_csv(total_fluorescence_roi, columns, outfile + 'fluorescence_density')
+    save_results_to_csv(fluorescence_density_roi, columns, outfile + 'fluorescence_density')
     
     # total fluorescence by roi
     columns = ['atlas id','total fluorescence']
