@@ -5,6 +5,7 @@ import numpy as np
 from cloudvolume import CloudVolume
 import tinybrain
 from joblib import Parallel, delayed
+import math
 
 
 def imgResample(img, spacing, size=[], useNearest=False, origin=None, outsideValue=0):
@@ -149,7 +150,7 @@ def main():
     mip = 0
     for i in range(len(vol.scales)):
         # get low res image smaller than 10 um
-        if vol.scales[i]['resolution'][:2] < 10000:
+        if vol.scales[i]['resolution'][0] < 10000:
             mip = i
     vol_ds = CloudVolume(args.data_s3_path,mip,parallel=True)
 
