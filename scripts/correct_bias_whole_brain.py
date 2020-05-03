@@ -160,7 +160,7 @@ def main():
 
     # download image at low res
     data = sitk.GetImageFromArray(np.squeeze(vol_ds[:,:,:]).T)
-    data.SetSpacing(vol_ds.scales[mip]['resolution']/1000)
+    data.SetSpacing(np.array(vol_ds.scales[mip]['resolution'])/1000)
 
     bias = get_bias_field(data,scale=0.125)
     bias_slices = [bias[:,:,i] for i in range(bias.GetSize()[-1])]
