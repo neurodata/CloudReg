@@ -1,3 +1,4 @@
+import os
 import pickle
 import argparse
 from joblib import Parallel, delayed
@@ -7,7 +8,7 @@ from collections import defaultdict, Counter
 from skimage import transform
 from tqdm import tqdm, trange
 import pandas as pd
-from ..ARA_stuff.parse_ara import *
+from ARA_stuff.parse_ara import *
 
 def get_region_stats(atlas_s3_path, data_s3_path, z_slice):
     # create vols
@@ -41,7 +42,7 @@ def combine_results(results):
     return total_fluorescence,total_volume
 
 def get_ara_dict(path_to_ontology):
-    with open('./MBAC/ARA_stuff/ara_ontology.json','r') as fp:
+    with open(path_to_ontology,'r') as fp:
         f = json.load(fp)
         tree = build_tree(f)
         id2name = defaultdict(str)
@@ -59,8 +60,8 @@ def main():
     parser.add_argument('data_s3_path',help='full s3 path to data of interest as precomputed volume. must be of the form `s3://bucket-name/path/to/channel`')
     parser.add_argument('atlas_s3_path',help='full s3 path to transfomed atlas. must have the same number of slices as native resolution data.')
     parser.add_argument('out_path',help='path to save output results')
-    parser.add_argument('--path_to_ontology',help='path to save output results',type=str,defalt='~/MBAC/ARA_stuff/ara_ontology.json')
-    parser.add_argument('--num_procs',help='number of processes to use',default=35, type=int)
+    parser.add_argument('--path_to_ontology',help='path to save output results',type=str,default=os.path.expanduser('~/MBAC/scripts/ARA_stuff/ara_ontology.json'))
+    parser.add_argument('--num_procs',help='number of processes to use',default=16, type=int)
     args = parser.parse_args()
     data_vol = CloudVolume(args.data_s3_path)
     id2name = get_ara_dict(args.path_to_ontology)
@@ -75,11 +76,11 @@ def main():
     fluorescence_density_sorted = {k: v for k, v in sorted(fluorescence_density.items(), key=lambda item: item[1])}
     # density by roi
     columns = ['atlas id','fluorescence density']
-    outfile = f'{args.out_path}/{experiment_name}_'
+    outfile = f'{args.out_path}'
     fluorescence_density_roi = defaultdict(float)
     for i,j in fluorescence_density_sorted.items():
         fluorescence_density_roi[id2name[i]] = [i,j]
-    save_results_to_csv(fluorescence_density_roi, columns, outfile + 'fluorescence_density')
+    save_results_to_csv(fluorescence_density_roi, columns, outfile)
     
     # total fluorescence by roi
     columns = ['atlas id','total fluorescence']

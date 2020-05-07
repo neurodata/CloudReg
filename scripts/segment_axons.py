@@ -3,7 +3,7 @@ from cloudvolume import CloudVolume
 import tifffile as tf
 import numpy as np
 from skimage import filters, morphology, measure, exposure, util, segmentation, transform, feature
-from tqdm import tqdm, tqdm_notebook, trange, tnrange
+from tqdm import tqdm, trange
 
 from scipy import ndimage as ndi
 
@@ -15,8 +15,6 @@ import pandas as pd
 
 from skimage.morphology import selem,binary_opening
 from joblib import Parallel,delayed
-
-from tqdm import tnrange
 
 import tinybrain
 
@@ -114,15 +112,18 @@ def create_binarized_vol(vol_path_bin,vol_path_old,ltype='image',dtype='float32'
 
 def main():
     parser = ArgumentParser('Binarize slice gievn two s3 paths and global threshold.')
+    parser.add_argument('input_s3_path',help='Path to source data to be segmented',type=str)
+    parser.add_argument('output_s3_path',help='Path to output data to be segmented',type=str)
     parser.add_argument('--num_processes', default=16, help='Number of parallel processes to use to process dataset.')
+    parser.add_argument('--mask_s3_path', help='Optional: path to precomputed volume that will be used as a mask', default=None, type=str)
     args = parser.parse_args()
     # atlas_s3_path = 'https://d1o9rpg615hgq7.cloudfront.net/precomputed_volumes/2020-01-15/Gad2_812/atlas_to_target'
-    data_s3_path = 'https://dlab-colm.neurodata.io/precomputed_volumes/2020-01-15/Gad2_812/CHN00_gradient'
-    mask_s3_path = 'https://dlab-colm.neurodata.io/precomputed_volumes/2020-01-15/Gad2_812/CHN01_gradient'
-    binarized_s3_path = 's3://colm-precomputed-volumes/precomputed_volumes/2020-01-15/Gad2_812/CHN00_binarized'
 
-    bin_vol = create_binarized_vol(binarized_s3_path, data_s3_path, ltype='segmentation', dtype='uint8',res=0,parallel=False)
+    bin_vol = create_binarized_vol(args.output_s3_path,args.input_s3_path, ltype='segmentation', dtype='uint8',res=0,parallel=False)
 
     _ = Parallel(args.num_processes)(delayed(binarize_slice)
-                (data_s3_path,binarized_s3_path,i,1.96)
-                    for i in tqdm_notebook(bin_vol.scales[0]['size'][-1]))
+                (args.input_s3_path,args.output_s3_path,i,1.96,mask_s3_path=args.mask_s3_path,mask_threshold=1.89)
+                    for i in trange(bin_vol.scales[0]['size'][-1]))
+
+if __name__ == "__main__":
+    main()
