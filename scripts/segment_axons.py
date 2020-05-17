@@ -37,7 +37,7 @@ def compute_gradient_slice(data_s3_path,output_s3_path,z_slice,num_mips=6,sigma=
     binarized_vols[0][:,:,z_slice] = binarized_slice.T[:,:,None].astype(dtype)
     for i in range(num_mips-1):
         binarized_vols[i+1][:,:,z_slice] = img_pyramid[i]
-    print(f"{z_slice} z slice done")
+    #print(f"{z_slice} z slice done")
 
 def remove_small_ccs(data_binarized, min_cc_size):
     data_labeled = sitk.ConnectedComponent(data_binarized)
@@ -46,6 +46,8 @@ def remove_small_ccs(data_binarized, min_cc_size):
     labels_to_remove = [i+1 for i,j in enumerate(relabel_filter.GetSizeOfObjectsInPixels()) if j < min_cc_size]
     if len(labels_to_remove) > 0:
         data_relabeled = sitk.BinaryThreshold(data_relabeled,lowerThreshold=1,upperThreshold=labels_to_remove[0])
+    else:
+        data_relabeled = sitk.BinaryThreshold(data_relabeled,lowerThreshold=1)
     return data_relabeled
 
 def threshold_slice(data_slice, threshold, min_cc_size=150, closing_radius=3):
@@ -61,7 +63,7 @@ def threshold_slice(data_slice, threshold, min_cc_size=150, closing_radius=3):
 
 def binarize_slice(data_s3_path,binarized_s3_path,z_slice,data_threshold,mask_s3_path=None,mask_threshold=None,num_mips=6,dtype='uint8'):
     min_cc_size = 150
-    closing_radius = 3
+    closing_radius = 5
     # create vols
     data_vol = CloudVolume(data_s3_path,parallel=False,progress=False)
     binarized_vols = [get_vol_at_mip(binarized_s3_path,i) for i in range(num_mips)]
@@ -70,27 +72,37 @@ def binarize_slice(data_s3_path,binarized_s3_path,z_slice,data_threshold,mask_s3
 #     binarized_slice = data_slice
 #     binarized_slice = threshold_slice(data_slice,data_threshold)
     data_sitk = sitk.GetImageFromArray(data_slice)
+    if data_vol.layer_type == 'image':
     # binarize slice
-    data_native_binarized = sitk.BinaryThreshold(data_sitk,lowerThreshold=data_threshold)
-    data_labeled = remove_small_ccs(data_native_binarized, min_cc_size)
-    data_relabeled2 = sitk.BinaryClosingByReconstruction(data_labeled,closing_radius)
-    binarized_slice = sitk.GetArrayViewFromImage(data_relabeled2)
+        data_native_binarized = sitk.BinaryThreshold(data_sitk,lowerThreshold=data_threshold)
+        data_labeled = remove_small_ccs(data_native_binarized, min_cc_size)
+        data_relabeled2 = sitk.BinaryClosingByReconstruction(data_labeled,closing_radius)
+        data_relabeled2 = sitk.BinaryErode(data_relabeled2,3)
+        binarized_slice = sitk.GetArrayViewFromImage(data_relabeled2)
+    else:
+        data_eroded = sitk.BinaryErode(data_sitk,3)
+        binarized_slice = data_slice > 0
     if mask_s3_path != None:
         mask_vol = CloudVolume(mask_s3_path,parallel=False,progress=False)
         mask_slice = np.squeeze(mask_vol[:,:,z_slice]).T
         if mask_threshold != None:
             mask_slice = mask_slice > mask_threshold
+        mask_sitk = sitk.GetImageFromArray(mask_slice)
+        mask_sitk = sitk.BinaryClosingByReconstruction(mask_sitk,closing_radius*2)
+        mask_sitk = sitk.BinaryFillhole(mask_sitk)
+        mask_sitk = sitk.BinaryDilate(mask_sitk,closing_radius)
+        mask_slice = sitk.GetArrayViewFromImage(mask_sitk)
         binarized_slice = binarized_slice.astype('float') - mask_slice.astype('float')
         binarized_slice[ binarized_slice < 0 ] = 0
         data_sitk = sitk.GetImageFromArray(binarized_slice.astype('uint8'))
-        binarized_slice_sitk = remove_small_ccs(data_sitk,min_cc_size=100)
-        binarized_slice_sitk = sitk.BinaryClosingByReconstruction(binarized_slice_sitk,3)
+        binarized_slice_sitk = sitk.BinaryClosingByReconstruction(data_sitk,closing_radius)
+        binarized_slice_sitk = remove_small_ccs(binarized_slice_sitk,min_cc_size=min_cc_size)
         binarized_slice = sitk.GetArrayViewFromImage(binarized_slice_sitk)
     img_pyramid = tinybrain.accelerated.mode_pooling_2x2(binarized_slice.T[:,:,None].astype(dtype), num_mips)
     binarized_vols[0][:,:,z_slice] = binarized_slice.T[:,:,None].astype(dtype)
     for i in range(num_mips-1):
         binarized_vols[i+1][:,:,z_slice] = img_pyramid[i]
-    print(f"{z_slice} z slice done")
+    #print(f"{z_slice} z slice done")
 
 def create_binarized_vol(vol_path_bin,vol_path_old,ltype='image',dtype='float32',res=0,parallel=False):
     vol = CloudVolume(vol_path_old)
@@ -125,14 +137,9 @@ def main():
 
     bin_vol = create_binarized_vol(args.output_s3_path,args.input_s3_path, ltype='segmentation', dtype='uint8',res=0,parallel=False)
 
-    if args.mask_s3_path != None:
-        _ = Parallel(args.num_processes)(delayed(binarize_slice)
-                 (args.input_s3_path,args.output_s3_path,i,args.input_threshold,mask_s3_path=args.mask_s3_path,mask_threshold=args.mask_threshold)
-                        for i in trange(bin_vol.scales[0]['size'][-1]))
-    else:
-        _ = Parallel(args.num_processes)(delayed(binarize_slice)
-                 (args.input_s3_path,args.output_s3_path,i,args.input_threshold)
-                        for i in trange(bin_vol.scales[0]['size'][-1]))
+    _ = Parallel(args.num_processes)(delayed(binarize_slice)
+             (args.input_s3_path,args.output_s3_path,i,args.input_threshold,mask_s3_path=args.mask_s3_path,mask_threshold=args.mask_threshold) 
+             for i in trange(bin_vol.scales[0]['size'][-1]))
 
 if __name__ == "__main__":
     main()

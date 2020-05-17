@@ -23,8 +23,8 @@ OUTDIR=${SSD1}
 . /home/ubuntu/bias_correction/bin/activate
 
 # compute and apply bias
-python ec2_compute_bias.py --in_bucket_path ${IBUCKET}VW0/ --bias_bucket_name ${OBUCKET} --channel ${CHANNEL} --experiment_name ${EXP} --outdir ${OUTDIR}/ --auto_channel ${AUTOCHANNEL}
-#python ec2_compute_bias_per_tile.py --in_bucket_path ${IBUCKET}VW0/ --bias_bucket_name ${OBUCKET} --channel ${CHANNEL} --experiment_name ${EXP} --outdir ${OUTDIR}/
+#python ec2_compute_bias.py --in_bucket_path ${IBUCKET}VW0/ --bias_bucket_name ${OBUCKET} --channel ${CHANNEL} --experiment_name ${EXP} --outdir ${OUTDIR}/ --auto_channel ${AUTOCHANNEL}
+python ec2_compute_bias_per_tile.py --in_bucket_path ${IBUCKET}VW0/ --bias_bucket_name ${OBUCKET} --channel ${CHANNEL} --experiment_name ${EXP} --outdir ${OUTDIR}/
 
 # kill all remaining processes in case
 pkill -f python
