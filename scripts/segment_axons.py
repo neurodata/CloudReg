@@ -128,18 +128,25 @@ def main():
     parser = ArgumentParser('Binarize slice gievn two s3 paths and global threshold.')
     parser.add_argument('input_s3_path',help='Path to source data to be segmented',type=str)
     parser.add_argument('output_s3_path',help='Path to output data to be segmented',type=str)
-    parser.add_argument('input_threshold',help='Threshold for input data to binarize.',type=float, default=1.0)
+    parser.add_argument('--input_threshold',help='Threshold for input data to binarize.',type=float, default=1.0)
     parser.add_argument('--num_processes', default=16, help='Number of parallel processes to use to process dataset.', type=int)
     parser.add_argument('--mask_s3_path', help='Optional: path to precomputed volume that will be used as a mask', default=None, type=str)
     parser.add_argument('--mask_threshold', help='Optional: threshold for mask channel if not already binarized', default=None, type=float)
+    parser.add_argument('--gradient_only', help='Optional: compute gradient onl and upload to output_path. input thresholds ignored', default=False, type=bool)
     args = parser.parse_args()
     # atlas_s3_path = 'https://d1o9rpg615hgq7.cloudfront.net/precomputed_volumes/2020-01-15/Gad2_812/atlas_to_target'
 
-    bin_vol = create_binarized_vol(args.output_s3_path,args.input_s3_path, ltype='segmentation', dtype='uint8',res=0,parallel=False)
 
-    _ = Parallel(args.num_processes)(delayed(binarize_slice)
-             (args.input_s3_path,args.output_s3_path,i,args.input_threshold,mask_s3_path=args.mask_s3_path,mask_threshold=args.mask_threshold) 
-             for i in trange(bin_vol.scales[0]['size'][-1]))
+    if args.gradient_only:
+        bin_vol = create_binarized_vol(args.output_s3_path,args.input_s3_path, ltype='image', dtype='float32',res=0,parallel=False)
+        _ = Parallel(args.num_processes)(delayed(compute_gradient_slice)
+                 (args.input_s3_path,args.output_s3_path,i) 
+                 for i in trange(bin_vol.scales[0]['size'][-1]))
+    else:
+        bin_vol = create_binarized_vol(args.output_s3_path,args.input_s3_path, ltype='segmentation', dtype='uint8',res=0,parallel=False)
+        _ = Parallel(args.num_processes)(delayed(binarize_slice)
+                 (args.input_s3_path,args.output_s3_path,i,args.input_threshold,mask_s3_path=args.mask_s3_path,mask_threshold=args.mask_threshold) 
+                 for i in trange(bin_vol.scales[0]['size'][-1]))
 
 if __name__ == "__main__":
     main()

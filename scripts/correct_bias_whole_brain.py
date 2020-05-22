@@ -123,8 +123,8 @@ def get_vol_at_mip(precomputed_path, mip, parallel=True):
 
 
 def process_slice(bias_slice,z,data_orig_path,data_bc_path):
-    data_vol = CloudVolume(data_orig_path,parallel=False,progress=False)
-    data_vol_bc = CloudVolume(data_bc_path,parallel=False,progress=False)
+    data_vol = CloudVolume(data_orig_path,parallel=False,progress=False,fill_missing=True)
+    data_vol_bc = CloudVolume(data_bc_path,parallel=False,progress=False,fill_missing=True)
     data_vols_bc = [get_vol_at_mip(data_bc_path,i,parallel=False) for i in range(len(data_vol_bc.scales))]
     # convert spcing rom nm to um
     new_spacing = np.array(data_vol.scales[0]['resolution'][:2])/1000
@@ -152,7 +152,7 @@ def main():
         # get low res image smaller than 10 um
         if vol.scales[i]['resolution'][0] < 10000:
             mip = i
-    vol_ds = CloudVolume(args.data_s3_path,mip,parallel=True)
+    vol_ds = CloudVolume(args.data_s3_path,mip,parallel=True,fill_missing=True)
 
     # create new vol if it doesnt exist
     vol_bc = CloudVolume(args.out_s3_path,info=vol.info.copy())
