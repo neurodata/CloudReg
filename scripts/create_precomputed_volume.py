@@ -9,33 +9,21 @@ from glob import glob
 import argparse
 import bs4
 import time
-import tifffile as tf
 import PIL
 from psutil import virtual_memory
 
-from skimage import transform
 import tinybrain
 
 import os
 from concurrent.futures import ProcessPoolExecutor
-from multiprocessing import Pool
-from itertools import product
 
-import numpy as np
-from PIL import Image
-
-from cloudvolume import CloudVolume
 from cloudvolume.lib import mkdir, touch
 
+from util import chunks
 
 PIL.Image.MAX_IMAGE_PIXELS = None
 
 CHUNK_SIZE = 16
-
-def chunks(l,n):
-    for i in range(0,len(l),n):
-        yield l[i:i+n]
-
 
 def create_cloud_volume(precomputed_path,img_size,voxel_size,num_hierarchy_levels=6,parallel=True):
     chunk_size = [ 1024, 1024, 1 ]

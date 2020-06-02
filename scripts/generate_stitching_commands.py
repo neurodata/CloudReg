@@ -4,7 +4,7 @@ import math
 # from bs4 import BeautifulSoup
 import argparse
 from psutil import virtual_memory
-import  joblib
+import joblib
 
 
 def write_import_xml(fname_importxml,scanned_matrix,metadata):
