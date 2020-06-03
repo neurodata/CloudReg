@@ -1,10 +1,13 @@
 # generate xml_import and terastitcher commands
 from configparser import ConfigParser
 import math
-# from bs4 import BeautifulSoup
 import argparse
 from psutil import virtual_memory
 import joblib
+import boto3
+
+parastitcher_path = '~/Parastitcher_for_py37.py'
+paraconverter_path = '~/paraconverter2_3_2_py37.py'
 
 
 def write_import_xml(fname_importxml,scanned_matrix,metadata):
@@ -48,7 +51,8 @@ def write_import_xml(fname_importxml,scanned_matrix,metadata):
             f'</TeraStitcher>{eofl}'
         ])
 
-def write_terastitcher_commands(fname_ts,metadata,channel,stitched_dir):
+
+def write_terastitcher_commands(fname_ts, metadata, stitched_dir, stitch_only):
     eofl = '\n'
     subvoldim = 60
     #subvoldim = max(metadata['num_slices']//num_processes,20)
@@ -59,19 +63,21 @@ def write_terastitcher_commands(fname_ts,metadata,channel,stitched_dir):
     num_proc_merge = min(math.floor(mem.total/(metadata['height']*metadata['width']*2*depth)),num_cpus)
     print(f"num processes to use for stitching is: {num_processes}")
     step1 = f"terastitcher --test --projin={metadata['stack_dir']}/xml_import.xml --imout_depth=16 --sparse_data{eofl}"
-    step2 = f"mpirun -n {num_processes} python3 ~/Parastitcher_for_py37.py -2 --projin=\"xml_import.xml\" --projout=\"xml_displcomp.xml\" --sV={metadata['sV']} --sH={metadata['sH']} --sD={metadata['sD']} --subvoldim={subvoldim} --sparse_data --exectimes --exectimesfile=\"t_displcomp\"{eofl}"
-    step3 = f'terastitcher --displproj --projin="xml_displcomp.xml" --projout="xml_displproj.xml" --sparse_data{eofl}'
-    step4 = f'terastitcher --displthres --projin="xml_displproj.xml" --projout="xml_displthres.xml" --threshold=0.3 --sparse_data{eofl}'
-    step5 = f'terastitcher --placetiles --projin="xml_displthres.xml"{eofl}'
-    step6 = f"mpirun -n {num_proc_merge} python3 ~/paraconverter2_3_2_py37.py -s=\"xml_merging.xml\" -d=\"{stitched_dir}\" --sfmt=\"TIFF (unstitched, 3D)\" --dfmt=\"TIFF (series, 2D)\" --height={metadata['height']} --width={metadata['width']} --depth={depth}{eofl}"
-    ts_commands = [f"set -e{eofl}"]
-    if channel == 0:
-        ts_commands.extend([step1,step2,step3,step4,step5,step6])
-    else:
+    step2 = f"mpirun -n {num_processes} python3 {parastitcher_path} -2 --projin=\"{metadata['stack_dir']}/xml_import.xml\" --projout=\"{metadata['stack_dir']}/xml_displcomp.xml\" --sV={metadata['sV']} --sH={metadata['sH']} --sD={metadata['sD']} --subvoldim={subvoldim} --sparse_data --exectimes --exectimesfile=\"{metadata['stack_dir']}/t_displcomp\"{eofl}"
+    step3 = f'terastitcher --displproj --projin="{metadata['stack_dir']}/xml_displcomp.xml" --projout="{metadata['stack_dir']}/xml_displproj.xml" --sparse_data{eofl}'
+    step4 = f'terastitcher --displthres --projin="{metadata['stack_dir']}/xml_displproj.xml" --projout="{metadata['stack_dir']}/xml_displthres.xml" --threshold=0.3 --sparse_data{eofl}'
+    step5 = f'terastitcher --placetiles --projin="{metadata['stack_dir']}/xml_displthres.xml"{eofl}'
+    step6 = f"mpirun -n {num_proc_merge} python3 {paraconverter_path} -s=\"{metadata['stack_dir']}/xml_merging.xml\" -d=\"{stitched_dir}\" --sfmt=\"TIFF (unstitched, 3D)\" --dfmt=\"TIFF (series, 2D)\" --height={metadata['height']} --width={metadata['width']} --depth={depth}{eofl}"
+    ts_commands = []
+    if stitch_only:
         ts_commands.extend([step1,step6])
+    else:
+        ts_commands.extend([step1,step2,step3,step4,step5,step6])
 
     with open(fname_ts, 'w') as fp:
         fp.writelines(ts_commands)
+
+    return ts_commands
 
 
 def get_metadata(path_to_config):
@@ -145,32 +151,55 @@ def get_scanned_cells(fname_scanned_cells):
             scanned_matrix.append(x)
     return scanned_matrix
 
-def main():
+
+def generate_stitching_commmands(
+    stitched_dir,
+    stack_dir,
+    metadata_s3_bucket,
+    metadata_s3_path,
+    stitch_only=False
+):
+
+
+    # download COLM metadata files
+    scanned_cells_path = f'{stack_dir}/Scanned Cells.txt'
+    config_file_path = f'{stack_dir}/Experiment.ini'
+    s3 = boto3.resource('s3')
+    s3.Object(metadata_s3_bucket,f'{metadata_s3_path}/Scanned Cells.txt').download_file(scanned_cells_path)
+    s3.Object(metadata_s3_bucket,f'{metadata_s3_path}/Experiment.ini').download_file(config_file_path)
+
+    # get metadata
+    metadata = get_metadata(config_file_path)
+    metadata['stack_dir'] = stack_dir
+
+    # load scanned cells to indicate which locations contain data
+    scanned_matrix = get_scanned_cells(scanned_cells_path)
+
+    # write xml_import file for terastitcher
+    fname_importxml = f'{stack_dir}/xml_import.xml'
+    write_import_xml(fname_importxml, scanned_matrix, metadata)
+
+
+    fname_ts = f'{stack_dir}/terastitcher_commands.sh'
+    ts_commands = write_terastitcher_commands(fname_ts, metadata, stitched_dir, stitch_only)
+
+    return metadata, ts_commands
+
+
+if __name__ == "__main__":
     parser = argparse.ArgumentParser('Create xml_import.xml file and terastitcher_commands.sh from Experiment.ini file')
     parser.add_argument('--stitched_dir', help='Directory to  store stitched tifs.', type=str, default='/home/ubuntu/ssd2/stitched_data')
     parser.add_argument('--stack_dir', help='Path to VW0 directory with tiles stored in LOC* folders.',  type=str, default='/home/ubuntu/ssd1/VW0')
     parser.add_argument('--config_file', help='Path to Experiment.ini file',  type=str, default='/home/ubuntu/ssd1/Experiment.ini')
     parser.add_argument('--scanned_cells', help='Path to Scanned Cells.txt file',  type=str, default='/home/ubuntu/ssd1/Scanned Cells.txt')
-    parser.add_argument('--channel', help='Channel number. If channel 0, displacements are  computed.  Otherwise, displacements computed from channel 0 are used to stitch other channels',  type=int, default=0)
+    parser.add_argument('--stitch_only', help='If true, only run the stitching commands from existing xml_merging.xml file',  type=bool, default=False)
 
     args = parser.parse_args()
 
-    # get metadata
-    metadata = get_metadata(args.config_file)
-    metadata['stack_dir'] = args.stack_dir
-
-    # load scanned cells to indicate which locations contain data
-    scanned_matrix = get_scanned_cells(args.scanned_cells)
-    # print(scanned_matrix)
-
-    # write xml_import file for terastitcher
-    fname_importxml =  f'{args.stack_dir}/xml_import.xml'
-    write_import_xml(fname_importxml,scanned_matrix,metadata)
-
-
-    fname_ts = f'{args.stack_dir}/terastitcher_commands.sh'
-    write_terastitcher_commands(fname_ts,metadata,args.channel,args.stitched_dir)
-
-
-if __name__ == "__main__":
-    main()
+    generate_stitching_commmands(
+        args.stitched_dir,
+        args.stack_dir,
+        args.config_file,
+        args.scanned_cells,
+        args.stitch_only
+    )

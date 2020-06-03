@@ -129,7 +129,6 @@ def correct_tile(s3, raw_tile_bucket, raw_tile_path, bias, outdir):
     tf.imwrite(out_path,data=corrected_tile.astype('uint16'), compress=3, append=False)
 
 def correct_tiles(tiles, raw_tile_bucket, bias, outdir):
-    # global pbar_correct_tiles
     session = boto3.Session()
     s3 = session.resource('s3')
     
@@ -168,14 +167,15 @@ def correct_raw_data(
     in_bucket_path,
     channel,
     auto_channel,
-    experiment_name,
     outdir,
     subsample_factor=5,
-    skip_bias_correction=False
+    skip_bias_correction=False,
+
 ):
 
-    in_bucket_name = in_bucket_path.split('s3://')[-1].split('/')[0]
-    in_path = '/'.join(in_bucket_path.split('s3://')[-1].split('/')[1:])
+    input_s3_url = S3Url(input_s3_path.strip('/'))
+    in_bucket_name = input_s3_url.bucket
+    in_path = input_s3_url.key
     total_n_jobs = joblib.cpu_count()
 
     # get list of all tiles to correct for  given channel
@@ -221,6 +221,9 @@ def correct_raw_data(
 
 
     
+        # save bias tile to local directory
+        tf.imsave(f'{outdir}/CHN0{channel}_bias.tiff',bias)
+
         # save bias tile to S3
         s3 = boto3.resource('s3')
         img = Image.fromarray(bias)
@@ -258,7 +261,6 @@ if __name__ == "__main__":
     parser.add_argument('--bias_bucket_name', help='Name of S3 bucket where bias correction will live.', type=str)
     parser.add_argument('--channel', help='Channel number to process. accepted values are 0, 1, or 2', type=str)
     parser.add_argument('--auto_channel', help='Autofluorescence Channel number for computing bias. accepted values are 0, 1, or 2', type=str)
-    parser.add_argument('--experiment_name', help='Name of experiment used to name newly created AWS resources for this job.', type=str)
     parser.add_argument('--outdir', help='Path to output directory to store corrected tiles. VW0 directory will  be saved here. Default: ~/', default='/home/ubuntu/' ,type=str)
     parser.add_argument('--subsample_factor', help='Factor to subsample the tiles by to compute the bias. Default is subsample by 5 which means every 5th tile  will be used.', type=int, default=5)
     parser.add_argument('--skip_bias_correction', help='If included, no bias correction will be done', type=bool, default=False)
@@ -269,7 +271,6 @@ if __name__ == "__main__":
         args.in_bucket_path,
         args.channel,
         args.auto_channel,
-        args.experiment_name,
         args.outdir,
         args.subsample_factor,
         args.skip_bias_correction
