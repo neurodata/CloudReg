@@ -1,7 +1,12 @@
+try:
+    from urlparse import urlparse
+except ImportError:
+    from urllib.parse import urlparse
 import contextlib
 import joblib
 import SimpleITK as sitk
 import math
+import boto3
 
 @contextlib.contextmanager
 def tqdm_joblib(tqdm_object):
@@ -87,10 +92,6 @@ def imgResample(img, spacing, size=[], useNearest=False, origin=None, outsideVal
 
 # below code from https://stackoverflow.com/questions/42641315/s3-urls-get-bucket-name-and-path
 
-try:
-    from urlparse import urlparse
-except ImportError:
-    from urllib.parse import urlparse
 
 
 class S3Url(object):
@@ -135,3 +136,8 @@ class S3Url(object):
     @property
     def url(self):
         return self._parsed.geturl()
+
+
+def upload_file_to_s3(local_path, s3_bucket, s3_key):
+    s3 = boto3.resource('s3')
+    s3.meta.client.upload_file(local_path, s3_bucket, s3_key)

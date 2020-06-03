@@ -1,7 +1,7 @@
+import time
 import os
 from io import BytesIO
 import argparse
-
 import boto3
 from botocore.client import Config
 import numpy as np
@@ -10,14 +10,13 @@ from tqdm import tqdm
 from joblib import Parallel, delayed
 import joblib
 import math
-
 import tifffile as tf
 import SimpleITK as sitk
-
-from util import tqdm_joblib, chunks, imgResample
+from util import tqdm_joblib, chunks, imgResample, upload_file_to_s3
 
 
 config = Config(connect_timeout=5, retries={'max_attempts': 5})
+
 
 def get_list_of_files_to_process(in_bucket_name, prefix, channel):
     session = boto3.Session()
@@ -28,6 +27,7 @@ def get_list_of_files_to_process(in_bucket_name, prefix, channel):
     for i in tqdm(loc_prefixes):
         all_files.extend([f['Key'] for f in get_all_s3_objects(s3_client,Bucket=in_bucket_name,Prefix=i)])
     return all_files
+
 
 def correct_bias_field(img, mask=None, scale=1.0, niters=[50, 50, 50, 50]):
     """Correct bias field in image using the N4ITK algorithm (http://bit.ly/2oFwAun)
@@ -81,15 +81,12 @@ def correct_bias_field(img, mask=None, scale=1.0, niters=[50, 50, 50, 50]):
     img_bc = sitk.Cast(img, sitk.sitkFloat32) * sitk.Cast(bias, sitk.sitkFloat32)
     return img_bc,bias
 
+
 def sum_tile(s3, running_sum, raw_tile_bucket, raw_tile_path):
-    # start_time = time.time()
     raw_tile_obj = s3.Object(raw_tile_bucket, raw_tile_path)
     raw_tile = np.asarray(Image.open(BytesIO(raw_tile_obj.get()["Body"].read())))
-    # print(f"PULL - time: {time.time() - start_time}, path: {raw_tile_path}")
-    # start_time = time.time()
-    # tf.imsave(out_path, data=(raw_tile * bias))
     running_sum += raw_tile
-    # print(f"SUM - time: {time.time() - start_time} s path: {raw_tile_path}")
+
 
 def sum_tiles(files, raw_tile_bucket):
     session = boto3.Session()
@@ -106,6 +103,7 @@ def sum_tiles(files, raw_tile_bucket):
         )
     return running_sum
 
+
 def correct_tile(s3, raw_tile_bucket, raw_tile_path, bias, outdir):
     out_path = get_out_path(raw_tile_path, outdir)
     raw_tile_obj = s3.Object(raw_tile_bucket, raw_tile_path)
@@ -114,8 +112,8 @@ def correct_tile(s3, raw_tile_bucket, raw_tile_path, bias, outdir):
     try:
         raw_tile = np.asarray(Image.open(BytesIO(raw_tile_obj.get()["Body"].read())))
     except e:
-        print(f"Encountered Exception. Waiting 60 seconds to retry")
-        time.sleep(60)
+        print(f"Encountered Exception. Waiting 10 seconds to retry")
+        time.sleep(10)
         s3 = boto3.resource('s3')
         raw_tile_obj = s3.Object(raw_tile_bucket, raw_tile_path)
         raw_tile = np.asarray(Image.open(BytesIO(raw_tile_obj.get()["Body"].read())))
@@ -170,7 +168,7 @@ def correct_raw_data(
     outdir,
     subsample_factor=5,
     skip_bias_correction=False,
-
+    log_s3_path=None
 ):
 
     input_s3_url = S3Url(input_s3_path.strip('/'))
@@ -225,15 +223,16 @@ def correct_raw_data(
         tf.imsave(f'{outdir}/CHN0{channel}_bias.tiff',bias)
 
         # save bias tile to S3
-        s3 = boto3.resource('s3')
-        img = Image.fromarray(bias)
-        fp = BytesIO()
-        img.save(fp,format='TIFF')
-        # reset pointer to beginning  of file
-        fp.seek(0)
-        bias_path = f'{in_path}/CHN0{auto_channel}'
-        s3.Object(bias_bucket_name, bias_path).upload_fileobj(fp)
-        print(f"total time taken for creating bias tile: {time.time() - s} s")
+        if log_s3_path:
+            s3 = boto3.resource('s3')
+            img = Image.fromarray(bias)
+            fp = BytesIO()
+            img.save(fp,format='TIFF')
+            # reset pointer to beginning  of file
+            fp.seek(0)
+            log_s3_url = S3Url(log_s3_path.strip('/'))
+            bias_path = f'{log_s3_url.key}/CHN0{auto_channel}'
+            s3.Object(log_s3_url.bucket, bias_path).upload_fileobj(fp)
 
     else:
 
@@ -275,4 +274,4 @@ if __name__ == "__main__":
         args.subsample_factor,
         args.skip_bias_correction
     )
-   
+
