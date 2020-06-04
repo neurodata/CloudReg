@@ -5,9 +5,10 @@ import argparse
 from psutil import virtual_memory
 import joblib
 import boto3
+import os
 
-parastitcher_path = '~/Parastitcher_for_py37.py'
-paraconverter_path = '~/paraconverter2_3_2_py37.py'
+parastitcher_path = f'{os.getcwd()}/parastitcher.py'
+paraconverter_path = f'{os.getcwd()}/paraconverter.py'
 
 
 def write_import_xml(fname_importxml,scanned_matrix,metadata):

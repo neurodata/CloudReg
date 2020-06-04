@@ -22,7 +22,7 @@ def colm_pipeline(
     log_s3_path=None
 ):
     """
-    input_s3_path: S3 path to raw COLM data. Should be of the form s3://<bucket>/<experiment>/VW0
+    input_s3_path: S3 path to raw COLM data. Should be of the form s3://<bucket>/<experiment>
     output_s3_path: S3 path to store precomputed volume. Precomputed volumes for each channel will be stored under this path. Should be of the form s3://<bucket>/<path_to_precomputed>
     channel_of_interest: Channel number to operate on. Should be a single integer.
     autofluorescence_channel: Autofluorescence channel number. Should be a single integer.
@@ -37,14 +37,14 @@ def colm_pipeline(
 
     # pull raw data from S3, bias correct, and save to local directory
     # save bias correction tile to log_s3_path
-    vw0_path = f'{input_s3_url.url}/VW0/'
-    correct_raw_data(
-        vw0_path,
-        channel_of_interest,
-        autofluorescence_channel,
-        raw_data_path,
-        log_s3_path=log_s3_path
-    )
+    # vw0_path = f'{input_s3_url.url}/VW0/'
+    # correct_raw_data(
+    #     vw0_path,
+    #     channel_of_interest,
+    #     autofluorescence_channel,
+    #     raw_data_path,
+    #     log_s3_path=log_s3_path
+    # )
     
     # generate commands to stitch data using Terastitcher
     stitch_only = False if channel_of_interest == 0 else True
@@ -58,6 +58,7 @@ def colm_pipeline(
 
     # run the Terastitcher commands
     for i in commands:
+        print(i)
         subprocess.run(
             shlex.split(i),
         )
@@ -65,7 +66,7 @@ def colm_pipeline(
     # upload xml results to log_s3_path if not None
     if log_s3_path:
         log_s3_url = S3Url(log_s3_path.strip('/'))
-        files_to_save = glob.glob(f'{raw_data_path}/*.xml')
+        files_to_save = glob(f'{raw_data_path}/*.xml')
         for i in tqdm(files_to_save,desc='saving xml files to S3'):
             out_path = i.split('/')[-1]
             upload_file_to_s3(i, log_s3_url.bucket, f'{log_s3_url.key}/{out_path}')
@@ -80,12 +81,12 @@ def colm_pipeline(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser('Run COLM pipeline including bias correction, stitching, upoad to S3')
-    parser.add_argument('input_s3_path', help='S3 path to input colm data. Should be of the form s3://<bucket>/<experiment>/VW0', type=str)
+    parser.add_argument('input_s3_path', help='S3 path to input colm data. Should be of the form s3://<bucket>/<experiment>', type=str)
     parser.add_argument('output_s3_path', help='S3 path to store precomputed volume. Precomputed volumes for each channel will be stored under this path. Should be of the form s3://<bucket>/<path_to_precomputed>',  type=str)
     parser.add_argument('channel_of_interest', help='Channel number to operate on. Should be a single integer',  type=int)
     parser.add_argument('autofluorescence_channel', help='Autofluorescence channel number.',  type=int)
-    parser.add_argument('--raw_data_path', help='Local path where corrected raw data will be stored.',  type=str, default='/home/ubuntu/ssd1/VW0')
-    parser.add_argument('--stitched_data_path', help='Local path where stitched slices will be stored.',  type=str, default='/home/ubuntu/ssd2/')
+    parser.add_argument('--raw_data_path', help='Local path where corrected raw data will be stored.',  type=str, default='/home/ubuntu/ssd1')
+    parser.add_argument('--stitched_data_path', help='Local path where stitched slices will be stored.',  type=str, default='/home/ubuntu/ssd2')
     parser.add_argument('--log_s3_path', help='S3 path at which pipeline intermediates can be stored including bias correctin tile.',  type=str, default=None)
 
     args = parser.parse_args()

@@ -141,3 +141,19 @@ class S3Url(object):
 def upload_file_to_s3(local_path, s3_bucket, s3_key):
     s3 = boto3.resource('s3')
     s3.meta.client.upload_file(local_path, s3_bucket, s3_key)
+
+def s3_object_exists(bucket, key):
+    s3 = boto3.resource('s3')
+
+    try:
+        s3.Object(bucket, key).load()
+    except botocore.exceptions.ClientError as e:
+        if e.response['Error']['Code'] == "404":
+            # The object does not exist.
+            return False
+        else:
+            # Something else has gone wrong.
+            raise
+    else:
+        # The object does exist.
+        return True

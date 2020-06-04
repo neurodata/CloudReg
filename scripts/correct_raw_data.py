@@ -7,12 +7,11 @@ from botocore.client import Config
 import numpy as np
 from PIL import Image
 from tqdm import tqdm
-from joblib import Parallel, delayed
-import joblib
+from joblib import Parallel, delayed, cpu_count
 import math
 import tifffile as tf
 import SimpleITK as sitk
-from util import tqdm_joblib, chunks, imgResample, upload_file_to_s3
+from util import tqdm_joblib, chunks, imgResample, upload_file_to_s3, S3Url, s3_object_exists
 
 
 config = Config(connect_timeout=5, retries={'max_attempts': 5})
@@ -171,84 +170,58 @@ def correct_raw_data(
     auto_channel,
     outdir,
     subsample_factor=5,
-    skip_bias_correction=False,
     log_s3_path=None
 ):
 
-    input_s3_url = S3Url(input_s3_path.strip('/'))
+    input_s3_url = S3Url(in_bucket_path.strip('/'))
     in_bucket_name = input_s3_url.bucket
     in_path = input_s3_url.key
-    total_n_jobs = joblib.cpu_count()
+    total_n_jobs = cpu_count()
 
     # get list of all tiles to correct for  given channel
     all_files = get_list_of_files_to_process(in_bucket_name,in_path,channel)
     total_files = len(all_files)
-    
-    if not skip_bias_correction:
-    
+
+    bias_path = f'{outdir}/CHN0{channel}_bias.tiff'
+    if os.path.exists(bias_path):
+        bias = tf.imread(bias_path)
+    else: 
         # get list of all tiles to process for bias tile. use autofluorescence channel
         all_files_auto = get_list_of_files_to_process(in_bucket_name,in_path,auto_channel)
         total_files_auto = len(all_files_auto)
         # subsample tiles
         files_cb = all_files_auto[::subsample_factor]
         num_files  = len(files_cb)
-    
+
         # compute running sums in parallel
         sums = Parallel(total_n_jobs, verbose=10)(delayed(sum_tiles)(f, in_bucket_name) for f in chunks(files_cb,math.ceil(num_files//(total_n_jobs))+1))
         sums = [i[:,:,None] for i in sums]
         sum_tile = np.squeeze(np.sum(np.concatenate(sums,axis=2),axis=2))/num_files
         sum_tile = sitk.GetImageFromArray(sum_tile)
-    
+
         # get the bias correction tile using N4ITK
         bias = sitk.GetArrayFromImage(correct_bias_field(sum_tile,scale=1.0)[-1])
 
-        # if signal channel, compute mean bias correction with signal tiles
-        #  scale autofluorescence bias correction so it matches mean of signal
-        # bias correction
-        # then use scaled autofluorescence correction for all tiles
-        if channel != auto_channel:
-            files_cb = all_files[::subsample_factor]
-            num_files  = len(files_cb)
-            # compute running sums in parallel
-            sums = Parallel(total_n_jobs, verbose=10)(delayed(sum_tiles)(f, in_bucket_name) for f in chunks(files_cb,math.ceil(num_files//(total_n_jobs))+1))
-            sums = [i[:,:,None] for i in sums]
-            sum_tile = np.squeeze(np.sum(np.concatenate(sums,axis=2),axis=2))/num_files
-            sum_tile = sitk.GetImageFromArray(sum_tile)
-    
-            # get the bias correction tile using N4ITK
-            bias2 = sitk.GetArrayFromImage(correct_bias_field(sum_tile,scale=1.0)[-1])
-        
-            bias *= np.mean(bias2)/np.mean(bias) 
-
-
-
-    
         # save bias tile to local directory
-        tf.imsave(f'{outdir}/CHN0{channel}_bias.tiff',bias)
+        tf.imsave(bibas_path,bias)
 
-        # save bias tile to S3
-        if log_s3_path:
-            s3 = boto3.resource('s3')
-            img = Image.fromarray(bias)
-            fp = BytesIO()
-            img.save(fp,format='TIFF')
-            # reset pointer to beginning  of file
-            fp.seek(0)
-            log_s3_url = S3Url(log_s3_path.strip('/'))
-            bias_path = f'{log_s3_url.key}/CHN0{auto_channel}'
-            s3.Object(log_s3_url.bucket, bias_path).upload_fileobj(fp)
-
-    else:
-
+    # save bias tile to S3
+    if log_s3_path:
         s3 = boto3.resource('s3')
-        raw_tile_obj = s3.Object(in_bucket_name,all_files[0])
-        raw_tile = np.asarray(Image.open(BytesIO(raw_tile_obj.get()["Body"].read())))
-        bias = np.ones(raw_tile.shape)
+        img = Image.fromarray(bias)
+        fp = BytesIO()
+        img.save(fp,format='TIFF')
+        # reset pointer to beginning  of file
+        fp.seek(0)
+        log_s3_url = S3Url(log_s3_path.strip('/'))
+        bias_path = f'{log_s3_url.key}/CHN0{auto_channel}_bias.tiff'
+        s3.Object(log_s3_url.bucket, bias_path).upload_fileobj(fp)
 
     # correct all the files and save them
-    work = chunks(all_files, math.ceil(total_files/float(joblib.cpu_count()))+1)
-    with tqdm_joblib(tqdm(desc="Correcting tiles", total=len(work))) as progress_bar:
-        Parallel(n_jobs=-1)(
+    files_per_proc = math.ceil(total_files/total_n_jobs)+1
+    work = chunks(all_files, files_per_proc)
+    with tqdm_joblib(tqdm(desc="Correcting tiles", total=total_n_jobs)) as progress_bar:
+        Parallel(n_jobs=total_n_jobs)(
             delayed(correct_tiles)(
                 files, 
                 in_bucket_name, 
