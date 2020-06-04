@@ -64,9 +64,9 @@ def write_terastitcher_commands(fname_ts, metadata, stitched_dir, stitch_only):
     print(f"num processes to use for stitching is: {num_processes}")
     step1 = f"terastitcher --test --projin={metadata['stack_dir']}/xml_import.xml --imout_depth=16 --sparse_data{eofl}"
     step2 = f"mpirun -n {num_processes} python3 {parastitcher_path} -2 --projin=\"{metadata['stack_dir']}/xml_import.xml\" --projout=\"{metadata['stack_dir']}/xml_displcomp.xml\" --sV={metadata['sV']} --sH={metadata['sH']} --sD={metadata['sD']} --subvoldim={subvoldim} --sparse_data --exectimes --exectimesfile=\"{metadata['stack_dir']}/t_displcomp\"{eofl}"
-    step3 = f'terastitcher --displproj --projin="{metadata['stack_dir']}/xml_displcomp.xml" --projout="{metadata['stack_dir']}/xml_displproj.xml" --sparse_data{eofl}'
-    step4 = f'terastitcher --displthres --projin="{metadata['stack_dir']}/xml_displproj.xml" --projout="{metadata['stack_dir']}/xml_displthres.xml" --threshold=0.3 --sparse_data{eofl}'
-    step5 = f'terastitcher --placetiles --projin="{metadata['stack_dir']}/xml_displthres.xml"{eofl}'
+    step3 = f"terastitcher --displproj --projin=\"{metadata['stack_dir']}/xml_displcomp.xml\" --projout=\"{metadata['stack_dir']}/xml_displproj.xml\" --sparse_data{eofl}"
+    step4 = f"terastitcher --displthres --projin=\"{metadata['stack_dir']}/xml_displproj.xml\" --projout=\"{metadata['stack_dir']}/xml_displthres.xml\" --threshold=0.3 --sparse_data{eofl}"
+    step5 = f"terastitcher --placetiles --projin=\"{metadata['stack_dir']}/xml_displthres.xml\"{eofl}"
     step6 = f"mpirun -n {num_proc_merge} python3 {paraconverter_path} -s=\"{metadata['stack_dir']}/xml_merging.xml\" -d=\"{stitched_dir}\" --sfmt=\"TIFF (unstitched, 3D)\" --dfmt=\"TIFF (series, 2D)\" --height={metadata['height']} --width={metadata['width']} --depth={depth}{eofl}"
     ts_commands = []
     if stitch_only:
@@ -184,6 +184,12 @@ def generate_stitching_commmands(
     ts_commands = write_terastitcher_commands(fname_ts, metadata, stitched_dir, stitch_only)
 
     return metadata, ts_commands
+
+
+class COLMMetadata():
+
+    def __init__():
+        pass
 
 
 if __name__ == "__main__":
