@@ -5,66 +5,8 @@ import numpy as np
 from cloudvolume import CloudVolume
 import tinybrain
 from joblib import Parallel, delayed
-import math
 
-
-def imgResample(img, spacing, size=[], useNearest=False, origin=None, outsideValue=0):
-    """Resample image to certain spacing and size.
-
-    Parameters:
-    ----------
-    img : {SimpleITK.SimpleITK.Image}
-        Input 3D image.
-    spacing : {list}
-        List of length 3 indicating the voxel spacing as [x, y, z]
-    size : {list}, optional
-        List of length 3 indicating the number of voxels per dim [x, y, z] (the default is [], which will use compute the appropriate size based on the spacing.)
-    useNearest : {bool}, optional
-        If True use nearest neighbor interpolation. (the default is False, which will use linear interpolation.)
-    origin : {list}, optional
-        The location in physical space representing the [0,0,0] voxel in the input image. (the default is [0,0,0])
-    outsideValue : {int}, optional
-        value used to pad are outside image (the default is 0)
-
-    Returns
-    -------
-    SimpleITK.SimpleITK.Image
-        Resampled input image.
-    """
-
-    if origin is None: origin = [0]*3
-    if len(spacing) != img.GetDimension():
-        raise Exception(
-            "len(spacing) != " + str(img.GetDimension()))
-
-    # Set Size
-    if size == []:
-        inSpacing = img.GetSpacing()
-        inSize = img.GetSize()
-        size = [int(math.ceil(inSize[i] * (inSpacing[i] / spacing[i])))
-                for i in range(img.GetDimension())]
-    else:
-        if len(size) != img.GetDimension():
-            raise Exception(
-                "len(size) != " + str(img.GetDimension()))
-
-    # Resample input image
-    interpolator = [sitk.sitkLinear, sitk.sitkNearestNeighbor][useNearest]
-    identityTransform = sitk.Transform()
-    identityDirection = list(
-        sitk.AffineTransform(
-            img.GetDimension()).GetMatrix())
-
-    return sitk.Resample(
-        img,
-        size,
-        identityTransform,
-        interpolator,
-        origin,
-        spacing,
-        img.GetDirection(),
-        outsideValue)
-
+from util import imgResample
 
 def get_bias_field(img, mask=None, scale=1.0, niters=[50, 50, 50, 50]):
     """Correct bias field in image using the N4ITK algorithm (http://bit.ly/2oFwAun)
@@ -118,9 +60,6 @@ def get_bias_field(img, mask=None, scale=1.0, niters=[50, 50, 50, 50]):
     return bias
 
 
-def get_vol_at_mip(precomputed_path, mip, parallel=True):
-    return CloudVolume(precomputed_path,mip=mip,parallel=parallel)
-
 
 def process_slice(bias_slice,z,data_orig_path,data_bc_path):
     data_vol = CloudVolume(data_orig_path,parallel=False,progress=False,fill_missing=True)
@@ -138,7 +77,7 @@ def process_slice(bias_slice,z,data_orig_path,data_bc_path):
         data_vols_bc[i+1][:,:,z] = img_pyramid[i].astype('uint16')
 
 
-def main():
+def correct_stitched_data():
     parser = argparse.ArgumentParser('Correct whole brain bias field in image at native resolution.')
     parser.add_argument('data_s3_path',help='full s3 path to data of interest as precomputed volume. must be of the form `s3://bucket-name/path/to/channel`')
     parser.add_argument('out_s3_path',help='S3 path to save output results')
@@ -168,4 +107,4 @@ def main():
                        for z,bias_slice in tqdm(enumerate(bias_slices),total=len(bias_slices)))
 
 if __name__ == "__main__":
-    main()
+    correct_stitched_data()
