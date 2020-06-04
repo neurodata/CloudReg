@@ -8,6 +8,7 @@ import subprocess
 import shlex
 import numpy as np
 from glob import glob
+from tqdm import tqdm
 
 
 def colm_pipeline(
@@ -65,7 +66,8 @@ def colm_pipeline(
         log_s3_url = S3Url(log_s3_path.strip('/'))
         files_to_save = glob.glob(f'{raw_data_path}/*.xml')
         for i in tqdm(files_to_save,desc='saving xml files to S3'):
-            upload_file_to_s3(i, log_s3_url.bucket, f'{log_s3_url.key}/{i.split('/')[-1]}')
+            out_path = i.split('/')[-1]
+            upload_file_to_s3(i, log_s3_url.bucket, f'{log_s3_url.key}/{out_path}')
 
 
     # downsample and upload stitched data to S3
