@@ -151,17 +151,19 @@ def get_out_path(in_path, outdir):
     os.makedirs(head, exist_ok=True)  # succeeds even if directory exists.
     return out_path
 
-def get_all_s3_objects(s3, **base_kw:
+
+def get_all_s3_objects(s3, **base_kwargs):
     continuation_token = None
     while True:
-        list_kw= dict(MaxKeys=1000, **base_kw
+        list_kwargs = dict(MaxKeys=1000, **base_kwargs)
         if continuation_token:
-            list_kw'ContinuationToken'] = continuation_token
-        response = s3.list_objects_v2(**list_kw
+            list_kwargs['ContinuationToken'] = continuation_token
+        response = s3.list_objects_v2(**list_kwargs)
         yield from response.get('Contents', [])
         if not response.get('IsTruncated'):  # At the end of the list?
             break
         continuation_token = response.get('NextContinuationToken')
+
 
 def correct_raw_data(
     in_bucket_path,

@@ -5,7 +5,6 @@ from PIL import Image
 import joblib
 from glob import glob
 import argparse
-import bs4
 import PIL
 from psutil import virtual_memory
 

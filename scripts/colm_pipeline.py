@@ -1,4 +1,8 @@
-from . import correct_raw_data, create_precomputed_volume, generate_stitching_commands
+from correct_raw_data import correct_raw_data
+from create_precomputed_volume import create_precomputed_volume
+from generate_stitching_commands import generate_stitching_commands
+from correct_bias_whole_brain import correct_bias_whole_brain
+#from . import correct_raw_data, create_precomputed_volume, generate_stitching_commands
 from util import S3Url, upload_file_to_s3
 import subprocess
 import shlex
