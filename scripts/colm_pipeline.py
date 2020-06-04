@@ -11,7 +11,6 @@ def colm_pipeline(
     output_s3_path,
     channel_of_interest,
     autofluorescence_channel,
-    experiment_name,
     raw_data_path,
     stitched_data_path,
     log_s3_path=None
@@ -21,7 +20,6 @@ def colm_pipeline(
     output_s3_path: 
     channel_of_interest:
     autofluorescence_channel:
-    experiment_name:
     raw_data_path: 
     stitched_data_path: 
     log_s3_path:
@@ -71,4 +69,25 @@ def colm_pipeline(
         stitched_data_path,
         np.array(metadata['voxel_size']),
         output_s3_path
+    )
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser('Run COLM pipeline including bias correction, stitching, upoad to S3')
+    parser.add_argument('input_s3_path', help='S3 path to input colm data. Should be of the form s3://<bucket>/<experiment>/VW0', type=str)
+    parser.add_argument('output_s3_path', help='S3 path to store precomputed volume. Precomputed volumes for each channel will be stored under this path. Should be of the form s3://<bucket>/<path_to_precomputed>',  type=str)
+    parser.add_argument('channel_of_interest', help='Channel number to operate on. Should be a single integer',  type=int)
+    parser.add_argument('autofluorescence_channel', help='Autofluorescence channel number.',  type=int)
+    parser.add_argument('--raw_data_path', help='',  type=str, default='/home/ubuntu/ssd1/VW0')
+    parser.add_argument('--stitched_data_path', help='',  type=str, default='/home/ubuntu/ssd2/')
+    parser.add_argument('--log_s3_path', help='S3 path at which pipeline intermediates can be stored including bias correctin tile.',  type=str, default=None)
+
+
+    colm_pipeline(
+        args.input_s3_path,
+        args.output_s3_path,
+        args.channel_of_interest,
+        args.autofluorescence_channel,
+        args.raw_data_path,
+        args.stitched_data_path,
+        args.log_s3_path
     )

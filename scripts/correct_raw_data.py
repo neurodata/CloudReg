@@ -126,6 +126,7 @@ def correct_tile(s3, raw_tile_bucket, raw_tile_path, bias, outdir):
     # corrected_tile = (corrected_tile/(2**12 - 1)) * np.iinfo('uint16').max
     tf.imwrite(out_path,data=corrected_tile.astype('uint16'), compress=3, append=False)
 
+
 def correct_tiles(tiles, raw_tile_bucket, bias, outdir):
     session = boto3.Session()
     s3 = session.resource('s3')
@@ -139,10 +140,11 @@ def correct_tiles(tiles, raw_tile_bucket, bias, outdir):
             outdir
         )
 
+
 def get_out_path(in_path, outdir):
     head,fname = os.path.split(in_path)
     head_tmp = head.split('/')
-    head = f'{outdir}' + '/'.join(head_tmp[-2:])
+    head = f'{outdir}' + '/'.join(head_tmp[-1:])
     idx = fname.find('.')
     fname_new = fname[:idx] + '_corrected.tiff'
     out_path = f'{head}/{fname_new}'
