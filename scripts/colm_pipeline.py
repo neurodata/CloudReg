@@ -88,6 +88,7 @@ if __name__ == "__main__":
     parser.add_argument('--stitched_data_path', help='',  type=str, default='/home/ubuntu/ssd2/')
     parser.add_argument('--log_s3_path', help='S3 path at which pipeline intermediates can be stored including bias correctin tile.',  type=str, default=None)
 
+    args = parser.parse_args()
 
     colm_pipeline(
         args.input_s3_path,
