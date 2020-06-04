@@ -22,13 +22,13 @@ def colm_pipeline(
     log_s3_path=None
 ):
     """
-    input_s3_path: 
-    output_s3_path: 
-    channel_of_interest:
-    autofluorescence_channel:
-    raw_data_path: 
-    stitched_data_path: 
-    log_s3_path:
+    input_s3_path: S3 path to raw COLM data. Should be of the form s3://<bucket>/<experiment>/VW0
+    output_s3_path: S3 path to store precomputed volume. Precomputed volumes for each channel will be stored under this path. Should be of the form s3://<bucket>/<path_to_precomputed>
+    channel_of_interest: Channel number to operate on. Should be a single integer.
+    autofluorescence_channel: Autofluorescence channel number. Should be a single integer.
+    raw_data_path: Local path where corrected raw data will be stored.
+    stitched_data_path: Local path where stitched slices will be stored.
+    log_s3_path: S3 path at which pipeline intermediates can be stored including bias correction tile and xml files from Terastitcher.
 
     """
     # get the metadata file paths specific for COLM
@@ -84,8 +84,8 @@ if __name__ == "__main__":
     parser.add_argument('output_s3_path', help='S3 path to store precomputed volume. Precomputed volumes for each channel will be stored under this path. Should be of the form s3://<bucket>/<path_to_precomputed>',  type=str)
     parser.add_argument('channel_of_interest', help='Channel number to operate on. Should be a single integer',  type=int)
     parser.add_argument('autofluorescence_channel', help='Autofluorescence channel number.',  type=int)
-    parser.add_argument('--raw_data_path', help='',  type=str, default='/home/ubuntu/ssd1/VW0')
-    parser.add_argument('--stitched_data_path', help='',  type=str, default='/home/ubuntu/ssd2/')
+    parser.add_argument('--raw_data_path', help='Local path where corrected raw data will be stored.',  type=str, default='/home/ubuntu/ssd1/VW0')
+    parser.add_argument('--stitched_data_path', help='Local path where stitched slices will be stored.',  type=str, default='/home/ubuntu/ssd2/')
     parser.add_argument('--log_s3_path', help='S3 path at which pipeline intermediates can be stored including bias correctin tile.',  type=str, default=None)
 
     args = parser.parse_args()
