@@ -152,7 +152,7 @@ def get_scanned_cells(fname_scanned_cells):
     return scanned_matrix
 
 
-def generate_stitching_commmands(
+def generate_stitching_commands(
     stitched_dir,
     stack_dir,
     metadata_s3_bucket,
@@ -202,7 +202,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    generate_stitching_commmands(
+    generate_stitching_commands(
         args.stitched_dir,
         args.stack_dir,
         args.config_file,
