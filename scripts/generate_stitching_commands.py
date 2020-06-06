@@ -7,8 +7,8 @@ import joblib
 import boto3
 import os
 
-parastitcher_path = f'{os.getcwd()}/parastitcher.py'
-paraconverter_path = f'{os.getcwd()}/paraconverter.py'
+parastitcher_path = f'{os.path.dirname(os.path.realpath(__file__))}/parastitcher.py'
+paraconverter_path = f'{os.path.dirname(os.path.realpath(__file__))}/paraconverter.py'
 
 
 def write_import_xml(fname_importxml,scanned_matrix,metadata):

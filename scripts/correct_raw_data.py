@@ -143,7 +143,7 @@ def correct_tiles(tiles, raw_tile_bucket, bias, outdir):
 def get_out_path(in_path, outdir):
     head,fname = os.path.split(in_path)
     head_tmp = head.split('/')
-    head = f'{outdir}' + '/'.join(head_tmp[-1:])
+    head = f'{outdir}/' + '/'.join(head_tmp[-1:])
     idx = fname.find('.')
     fname_new = fname[:idx] + '_corrected.tiff'
     out_path = f'{head}/{fname_new}'
@@ -203,7 +203,7 @@ def correct_raw_data(
         bias = sitk.GetArrayFromImage(correct_bias_field(sum_tile,scale=1.0)[-1])
 
         # save bias tile to local directory
-        tf.imsave(bibas_path,bias)
+        tf.imsave(bias_path,bias)
 
     # save bias tile to S3
     if log_s3_path:

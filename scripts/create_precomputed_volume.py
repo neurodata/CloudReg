@@ -1,16 +1,20 @@
 import math
 from cloudvolume import CloudVolume
 import numpy as np
-from PIL import Image
 import joblib
+from joblib import Parallel, delayed
 from glob import glob
 import argparse
 import PIL
+from PIL import Image
 from psutil import virtual_memory
+from tqdm import tqdm
 
 import tinybrain
 
 from concurrent.futures.process import ProcessPoolExecutor
+
+from util import tqdm_joblib
 
 PIL.Image.MAX_IMAGE_PIXELS = None
 
@@ -38,7 +42,7 @@ def create_cloud_volume(
         volume_size     = img_size, # e.g. a cubic millimeter dataset
     )
     vol = CloudVolume(precomputed_path,info=info,parallel=parallel)
-    [vol.add_scale((2**i,2**i,1),chunk_size=chunk_size) for i in range(num_hierarchy_levels)]
+    [vol.add_scale((2**i,2**i,1),chunk_size=chunk_size) for i in range(num_downsampling_levels)]
 
     vol.commit_info()
     return vol
@@ -82,18 +86,26 @@ def create_precomputed_volume(
     num_mips=6
 ):
 
-    files_slices = list(enumerate(np.sort(glob(f'{input_path}/*.{extension}')).tolist()))
+    files_slices = list(enumerate(np.sort(glob(f'{input_path}/*/*.{extension}')).tolist()))
     zs = [i[0] for i in files_slices]
     files = np.array([i[1] for i in files_slices])
 
     img_size = get_image_dims(files)
-    vol = create_cloud_volume(precomputed_path,img_size,voxel_size,parallel=False,num_downsampling_levels=num_mips)
+    # convert voxel size from um to nm
+    vol = create_cloud_volume(precomputed_path,img_size,voxel_size*1000,parallel=False,num_downsampling_levels=num_mips)
 
     # num procs to use based on available memory
     num_procs = min(math.floor(virtual_memory().total/(img_size[0]*img_size[1] * 8)), joblib.cpu_count())
 
-    with ProcessPoolExecutor(num_procs) as p:
-        p.map(process, zs, files, [vol.layer_cloudpath]*len(files), [num_mips]*len(files))
+    with tqdm_joblib(tqdm(desc="Creating precomputed volume", total=len(files))) as progress_bar:
+        Parallel(num_procs)(
+            delayed(process)(
+                z,
+                f,
+                vol.layer_cloudpath,
+                num_mips
+            ) for z,f in zip(zs,files)
+        )
 
 
 if __name__ == "__main__":

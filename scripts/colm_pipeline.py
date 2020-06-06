@@ -37,16 +37,16 @@ def colm_pipeline(
 
     # pull raw data from S3, bias correct, and save to local directory
     # save bias correction tile to log_s3_path
-    # vw0_path = f'{input_s3_url.url}/VW0/'
-    # correct_raw_data(
-    #     vw0_path,
-    #     channel_of_interest,
-    #     autofluorescence_channel,
-    #     raw_data_path,
-    #     log_s3_path=log_s3_path
-    # )
+    vw0_path = f'{input_s3_url.url}/VW0/'
+    correct_raw_data(
+        vw0_path,
+        channel_of_interest,
+        autofluorescence_channel,
+        raw_data_path,
+        log_s3_path=log_s3_path
+    )
     
-    # generate commands to stitch data using Terastitcher
+    # # generate commands to stitch data using Terastitcher
     stitch_only = False if channel_of_interest == 0 else True
     metadata, commands = generate_stitching_commands(
         stitched_data_path,
@@ -56,14 +56,14 @@ def colm_pipeline(
         stitch_only
     )
 
-    # run the Terastitcher commands
+    # # run the Terastitcher commands
     for i in commands:
         print(i)
         subprocess.run(
-            shlex.split(i),
+            shlex.split(i)
         )
     
-    # upload xml results to log_s3_path if not None
+    # # upload xml results to log_s3_path if not None
     if log_s3_path:
         log_s3_url = S3Url(log_s3_path.strip('/'))
         files_to_save = glob(f'{raw_data_path}/*.xml')
