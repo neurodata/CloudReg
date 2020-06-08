@@ -1,6 +1,6 @@
-# MBAC (Mouse Brain Atlas in the Cloud )
+# CloudReg
 
-MBAC is a cloud-enabled pipeline for scalable registration, built for mouse light-sheet microscopy
+CloudReg is a cloud-enabled pipeline for scalable registration, originally built for mouse light-sheet microscopy, but now with functionality to support many different volumetric registration challenges in the cloud.
 
 - [Data management](#data)
 - [Preprocessing](#peprocessing)
