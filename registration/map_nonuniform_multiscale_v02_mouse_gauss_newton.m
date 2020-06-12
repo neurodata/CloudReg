@@ -22,28 +22,22 @@ addpath ./Functions/textprogressbar/
 
 %indir = '/data/vikram/registration_daniel_matlab/Gad2_VGat_Brain12_20190308_downsampled/';
 
-fixed_scale = 0; % I used 1.15, works with gauss newton uniform scale, turns off when set to 0
-missing_data_correction = 1;
+fixed_scale = 1.2; % I used 1.15, works with gauss newton uniform scale, turns off when set to 0
+missing_data_correction = 0;
 
 downloop_start = 1
 for downloop = downloop_start : 2
     p = '/home/ubuntu/'
     % input this output prefix
-    prefix = [p 'gad2_7267_registration/'];
-    target_name = [p 'Gad2_7267_ch1.tif'];
+    prefix = [p 'gad2_812_registration/'];
+    target_name = [p 'Gad2_812_ch1.tif'];
 
     in_prefix = [p '/MBAC/registration/atlases/'];
     
     % pixel size is required here as the tif data structure does not store it
 %    dxJ0 = [11.68, 11.68, 5.0];
     dxJ0 = [9.36 9.36  5];
-%    dxJ0 = [5.0 37.44 37.44];
 
-%    if downloop == 1
-%        template_name = strcat(in_prefix,'/average_template_200.nrrd');
-%        label_name = strcat(in_prefix, '/annotation_200.nrrd');
-%        
-%    elseif downloop == 2
     if downloop == 1
         template_name = strcat(in_prefix,'/average_template_100.nrrd');
         label_name = strcat(in_prefix, '/annotation_100.nrrd');
@@ -52,9 +46,6 @@ for downloop = downloop_start : 2
         template_name = strcat(in_prefix,'/average_template_50.nrrd');
         label_name = strcat(in_prefix, '/annotation_50.nrrd');
         
-%    elseif downloop == 3
-%        template_name = strcat(in_prefix,'/average_template_50.nrrd');
-%        label_name = strcat(in_prefix, '/annotation_50.nrrd');
     end
     
     
@@ -63,10 +54,12 @@ for downloop = downloop_start : 2
     if downloop == 1
         vname = ''; % input mat file to restore v, empty string if not restoring
         Aname = ''; % input mat file to restore A, empty string if not restoring
+        coeffsname = ''; % input mat file to restore A, empty string if not restoring
     else
         [a,b,c] = fileparts(prefix);
         vname = [a,filesep, b,['downloop_' num2str(downloop-1) '_'], c , 'v.mat'];
         Aname = [a,filesep, b,['downloop_' num2str(downloop-1) '_'], c , 'A.mat'];
+        coeffsname = [a,filesep, b,['downloop_' num2str(downloop-1) '_'], c , 'coeffs.mat'];
 
     end
     % add down loop to prefix
@@ -635,7 +628,7 @@ for downloop = downloop_start : 2
     
  
     % add translation in X,Y and Z axes
-    A = [eye(3),[0;-300;0];[0,0,0,1]]*A;
+    A = [eye(3),[0;-500;0];[0,0,0,1]]*A;
     if fixed_scale
         A = diag([fixed_scale,fixed_scale,fixed_scale,1])*A;
     end
@@ -672,7 +665,7 @@ for downloop = downloop_start : 2
     It(:,:,:,1) = I;
     
     
-    if downloop >= 1
+    if downloop == 1
         % actually
         % we need an initial linear transformation to compute our first weight
         Jq = quantile(J(:),[0.1 0.9]);
@@ -693,6 +686,7 @@ for downloop = downloop_start : 2
 %#        F4 = griddedInterpolant({yJ_downloop1,xJ_downloop1,zJ_downloop1},squeeze(coeffs(:,:,:,4)),'linear','nearest');
 %#        coeffs = cat(4,F1(),F2(),F3(),F4())
 %        F = griddedInterpolant({yJ_downloop1,xJ_downloop1,zJ_downloop1},coeffs,'linear','nearest');
+	coeffs  = load(coeffsname)
         coeffs_1 = upsample(coeffs(:,:,:,1),[size(J,1),size(J,2),size(J,3)]);
         coeffs_2 = upsample(coeffs(:,:,:,2),[size(J,1),size(J,2),size(J,3)]);
         coeffs_3 = upsample(coeffs(:,:,:,3),[size(J,1),size(J,2),size(J,3)]);
@@ -1181,6 +1175,8 @@ end
         
     end
     save([prefix 'v.mat'],'vtx','vty','vtz','-v7.3')
+    % save  coeffs
+    save([prefix 'coeffs.mat'],'coeffs','-v7.3')
     toc
     
     

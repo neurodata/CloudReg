@@ -147,6 +147,7 @@ function [] = transform_data(path_to_source,source_voxel_size,path_to_affine,pat
     end
 
     textprogressbar('-- done integrating velocity field')
+    clear F
 
     if strcmpi(transformation_direction,'atlas')
 
