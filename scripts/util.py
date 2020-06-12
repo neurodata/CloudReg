@@ -142,6 +142,11 @@ def upload_file_to_s3(local_path, s3_bucket, s3_key):
     s3 = boto3.resource('s3')
     s3.meta.client.upload_file(local_path, s3_bucket, s3_key)
 
+    
+def download_file_from_s3(s3_bucket, s3_key, local_path):
+    s3 = boto3.resource('s3')
+    s3.meta.client.download_file(s3_bucket, s3_key, local_path)
+
 def s3_object_exists(bucket, key):
     s3 = boto3.resource('s3')
 

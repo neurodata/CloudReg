@@ -3,7 +3,8 @@ from create_precomputed_volume import create_precomputed_volume
 from generate_stitching_commands import generate_stitching_commands
 from correct_stitched_data import correct_stitched_data
 #from . import correct_raw_data, create_precomputed_volume, generate_stitching_commands
-from util import S3Url, upload_file_to_s3
+from util import S3Url, upload_file_to_s3, download_file_from_s3
+import boto3
 import subprocess
 import shlex
 import numpy as np
@@ -48,6 +49,10 @@ def colm_pipeline(
     
     # # generate commands to stitch data using Terastitcher
     stitch_only = False if channel_of_interest == 0 else True
+    if stitch_only and not log_s3_path:
+        raise("If using previous stitching results, must specify log_s3_path")
+    else:
+        
     metadata, commands = generate_stitching_commands(
         stitched_data_path,
         raw_data_path,
@@ -78,6 +83,16 @@ def colm_pipeline(
         np.array(metadata['voxel_size']),
         output_s3_path
     )
+
+def download_terastitcher_files(s3_path, local_path):
+    s3 = boto3.resource('s3')
+    # download xml results to log_s3_path
+    log_s3_url = S3Url(s3_path.strip('/'))
+    files_to_save = glob(f'{local_path}/*.xml')
+    s3_files = s3.meta.client.list_objects_v2(log_s3_url.bucket, Prefix='xml')
+    for i in tqdm(files_to_save,desc='downloading xml files from S3'):
+        out_path = i.split('/')[-1]
+        download_file_from_s3(i, log_s3_url.bucket, f'{log_s3_url.key}/{out_path}')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser('Run COLM pipeline including bias correction, stitching, upoad to S3')
