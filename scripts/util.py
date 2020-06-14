@@ -162,3 +162,13 @@ def s3_object_exists(bucket, key):
     else:
         # The object does exist.
         return True
+
+def download_terastitcher_files(s3_path, local_path):
+    s3 = boto3.resource('s3')
+    # download xml results to local_path
+    log_s3_url = S3Url(s3_path.strip('/'))
+    files_to_save = glob(f'{local_path}/*.xml')
+    s3_files = s3.meta.client.list_objects_v2(log_s3_url.bucket, Prefix='xml')
+    for i in tqdm(files_to_save,desc='downloading xml files from S3'):
+        out_path = i.split('/')[-1]
+        download_file_from_s3(i, log_s3_url.bucket, f'{log_s3_url.key}/{out_path}')

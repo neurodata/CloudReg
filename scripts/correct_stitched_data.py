@@ -77,21 +77,15 @@ def process_slice(bias_slice,z,data_orig_path,data_bc_path):
         data_vols_bc[i+1][:,:,z] = img_pyramid[i].astype('uint16')
 
 
-def correct_stitched_data():
-    parser = argparse.ArgumentParser('Correct whole brain bias field in image at native resolution.')
-    parser.add_argument('data_s3_path',help='full s3 path to data of interest as precomputed volume. must be of the form `s3://bucket-name/path/to/channel`')
-    parser.add_argument('out_s3_path',help='S3 path to save output results')
-    parser.add_argument('--num_procs',help='number of processes to use', default=15, type=int)
-    args = parser.parse_args()
-
+def correct_stitched_data(data_s3_path, out_s3_path, num_procs=12):
     # create vol
-    vol = CloudVolume(args.data_s3_path)
+    vol = CloudVolume(data_s3_path)
     mip = 0
     for i in range(len(vol.scales)):
         # get low res image smaller than 10 um
         if vol.scales[i]['resolution'][0] < 10000:
             mip = i
-    vol_ds = CloudVolume(args.data_s3_path,mip,parallel=True,fill_missing=True)
+    vol_ds = CloudVolume(data_s3_path,mip,parallel=True,fill_missing=True)
 
     # create new vol if it doesnt exist
     vol_bc = CloudVolume(args.out_s3_path,info=vol.info.copy())
@@ -103,8 +97,23 @@ def correct_stitched_data():
 
     bias = get_bias_field(data,scale=0.125)
     bias_slices = [bias[:,:,i] for i in range(bias.GetSize()[-1])]
-    Parallel(args.num_procs)(delayed(process_slice)(bias_slice,z,args.data_s3_path,args.out_s3_path) 
-                       for z,bias_slice in tqdm(enumerate(bias_slices),total=len(bias_slices)))
+    Parallel(args.num_procs)(
+        delayed(process_slice)(
+            bias_slice,
+            z,
+            args.data_s3_path,
+            args.out_s3_path
+        ) for z,bias_slice in tqdm(enumerate(bias_slices),total=len(bias_slices)))
 
 if __name__ == "__main__":
-    correct_stitched_data()
+    parser = argparse.ArgumentParser('Correct whole brain bias field in image at native resolution.')
+    parser.add_argument('data_s3_path',help='full s3 path to data of interest as precomputed volume. must be of the form `s3://bucket-name/path/to/channel`')
+    parser.add_argument('out_s3_path',help='S3 path to save output results')
+    parser.add_argument('--num_procs',help='number of processes to use', default=15, type=int)
+    args = parser.parse_args()
+
+    correct_stitched_data(
+        args.data_s3_path,
+        args.out_s3_path,
+        args.num_procs
+    )

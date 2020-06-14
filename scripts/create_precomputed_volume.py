@@ -97,15 +97,21 @@ def create_precomputed_volume(
     # num procs to use based on available memory
     num_procs = min(math.floor(virtual_memory().total/(img_size[0]*img_size[1] * 8)), joblib.cpu_count())
 
-    with tqdm_joblib(tqdm(desc="Creating precomputed volume", total=len(files))) as progress_bar:
-        Parallel(num_procs)(
-            delayed(process)(
-                z,
-                f,
-                vol.layer_cloudpath,
-                num_mips
-            ) for z,f in zip(zs,files)
-        )
+    try:
+        with tqdm_joblib(tqdm(desc="Creating precomputed volume", total=len(files))) as progress_bar:
+            Parallel(num_procs)(
+                delayed(process)(
+                    z,
+                    f,
+                    vol.layer_cloudpath,
+                    num_mips,
+                    # timeout in case cloudvolume hangs while uploading
+                    # timeout of 15 min 
+                    timeout=900
+                ) for z,f in zip(zs,files)
+            )
+    except TimeoutError as e:
+        print("timed out on a slice. moving on to the next step of pipeline")
 
 
 if __name__ == "__main__":

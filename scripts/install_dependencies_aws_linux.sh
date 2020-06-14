@@ -1,0 +1,7 @@
+bash install_terastitcher.sh
+sudo apt update
+sudo apt install python3 python3-pip
+pip3 install virtualenv
+python3 -m virtualenv -p python3 ~/colm_pipeline_env
+. ~/colm_pipeline_env/bin/activate
+pip install -r requirements.txt
