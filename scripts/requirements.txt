@@ -2,5 +2,4 @@ boto3
 cloud-volume
 tinybrain
 tqdm
-SimpleITK==2.0rc1
 joblib
