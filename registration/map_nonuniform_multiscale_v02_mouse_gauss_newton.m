@@ -2,7 +2,6 @@ clear all;
 close all;
 fclose all;
 
-
 addpath ./Functions/
 addpath ./Functions/plotting/
 addpath ./Functions/nrrd/
@@ -12,17 +11,10 @@ addpath ./Functions/spatially_varying_polynomial/
 addpath ./Functions/textprogressbar/
 
 %%
-% note that this code should be run twice
-% the first time at 100 micron
-% then the second time at 50 micron
-% outputs for Vikram
-% we need to transform data to match the 10 micron atlas
 %template_name_10 = '/data/vikram/registration_daniel_matlab/average_template_10.nrrd/';
 %label_name_10 = '/data/vikram/registration_daniel_matlab/annotation_10.nrrd';
 
-%indir = '/data/vikram/registration_daniel_matlab/Gad2_VGat_Brain12_20190308_downsampled/';
-
-fixed_scale = 1.2; % I used 1.15, works with gauss newton uniform scale, turns off when set to 0
+fixed_scale = 1.2;
 missing_data_correction = 0;
 
 downloop_start = 1

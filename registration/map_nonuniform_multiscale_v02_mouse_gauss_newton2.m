@@ -11,23 +11,68 @@ addpath ./Functions/downsample/
 addpath ./Functions/spatially_varying_polynomial/
 addpath ./Functions/textprogressbar/
 
-%%
-% note that this code should be run twice
-% the first time at 100 micron
-% then the second time at 50 micron
-% outputs for Vikram
-% we need to transform data to match the 10 micron atlas
-%template_name_10 = '/data/vikram/registration_daniel_matlab/average_template_10.nrrd/';
-%label_name_10 = '/data/vikram/registration_daniel_matlab/annotation_10.nrrd';
-
-%indir = '/data/vikram/registration_daniel_matlab/Gad2_VGat_Brain12_20190308_downsampled/';
-
-fixed_scale = 1.2; % I used 1.15, works with gauss newton uniform scale, turns off when set to 0
+%%%% params for preprocessing
 missing_data_correction = 0;
 bias_correction = 1;
 grid_correction = 1;
+%%%% end params for preprocessing
 
-downloop_start = 2;
+%%%% params for registration
+fixed_scale = 1.2;
+do_GN = 1; % do gauss newton
+uniform_scale_only = 1; % for uniform scaling
+
+nT = 10; % number of timesteps over which to integrate flow
+sigmaM = std(J(:)); % weight of matching in cost function
+sigmaC = 5.0;
+CA = 1; % estimate
+CB = -1;
+
+% order for contrast mapping
+% order 4 means cubic polynomial + constant
+order = 4;
+nM = 1;
+nMaffine = 1; % number of m steps per e step durring affine only
+
+% number of affine only iterations
+naffine = 0;
+
+% smoothness length scale for velocity field
+% larger means smoother velocity field
+a = 500;
+
+% gauss newton affine step size
+eA = 0.2;
+
+% velocity field update step size
+eV = 1e6;
+if downloop > 1
+    eV = eV/2
+end
+
+% weight of regularization 
+sigmaR = 5e3;
+sigmaR = sigmaR*2;
+
+% background weight
+sigmaB = sigmaM * 2;
+% artifact weight
+sigmaA = sigmaM * 5;
+% prior on brain, artifact, background (in that order)
+prior = [0.79, 0.2, 0.01];
+
+
+% total number of iterations
+niter = 5000;
+if downloop > 1
+    niter = 500;
+end
+
+rigid_only  = 0; % constrain affine to be rigid
+%%%% end parameters
+
+
+downloop_start = 1;
 for downloop = downloop_start : 2
     p = '/home/ubuntu/'
     % input this output prefix
@@ -37,7 +82,6 @@ for downloop = downloop_start : 2
     in_prefix = [p '/MBAC/registration/atlases/'];
     
     % pixel size is required here as the tif data structure does not store it
-%    dxJ0 = [11.68, 11.68, 5.0];
     dxJ0 = [9.36 9.36  5];
 
     if downloop == 1
@@ -51,17 +95,19 @@ for downloop = downloop_start : 2
     end
     
     
-    
     % process some input strings for compatibility with downloop
     if downloop == 1
         vname = ''; % input mat file to restore v, empty string if not restoring
         Aname = ''; % input mat file to restore A, empty string if not restoring
+        coeffsname = ''; % input mat file to restore A, empty string if not restoring
     else
         [a,b,c] = fileparts(prefix);
         vname = [a,filesep, b,['downloop_' num2str(downloop-1) '_'], c , 'v.mat'];
         Aname = [a,filesep, b,['downloop_' num2str(downloop-1) '_'], c , 'A.mat'];
+        coeffsname = [a,filesep, b,['downloop_' num2str(downloop-1) '_'], c , 'coeffs.mat'];
 
     end
+
     % add down loop to prefix
     [a,b,c] = fileparts(prefix);
     prefix = [a,filesep, b,['downloop_' num2str(downloop) '_'], c];
@@ -76,11 +122,7 @@ for downloop = downloop_start : 2
     %%
     % allen atlas
     [I,meta] = nrrdread(template_name);
-%    I = niftiread(template_name);
-%    meta = niftiinfo(template_name);
     I = double(I);
-    %  convert pixel dimensions from  mm to um
-%    dxI = meta.PixelDimensions * 1000.0
     dxI = diag(sscanf(meta.spacedirections,'(%d,%d,%d) (%d,%d,%d) (%d,%d,%d)',[3,3]))';
     
     
@@ -120,9 +162,7 @@ for downloop = downloop_start : 2
     
     
     %%
-    % vikram mouse
     info = imfinfo(target_name);
-    %%
     % downsample to about same res as atlas
     down = round(dxI./dxJ0);
     textprogressbar('reading target: ');
@@ -175,25 +215,6 @@ for downloop = downloop_start : 2
     yJ = yJ - mean(yJ);
     zJ = zJ - mean(zJ);
 
-
-    % this isn't used anymore
-    % because we  want to initialize high res
-    %  coeffs  with low res coeffs
-    %  10/2/19 -- VC
-%    if downloop == 1
-%        xJ_downloop1 = xJ;
-%        yJ_downloop1 = yJ;
-%        zJ_downloop1 = zJ;
-%    end
-
-
-    
-    % J = avw.img;
-    % J(isnan(J)) = 0;
-    % danfigure(2);
-    % sliceView(xJ,yJ,zJ,J)
-    % [XJ,YJ,ZJ] = meshgrid(xJ,yJ,zJ);
-
     nplot = 5;
 
     J0 = J; % save it
@@ -221,23 +242,14 @@ for downloop = downloop_start : 2
     %%
     % grid correction
     if grid_correction
-        Jsum = sum(J0_orig,3);
-        % blur
         grid_correction_blur_width = 150;
-        [XJgrid,YJgrid] = meshgrid(xJ,yJ);
-        
-        K = exp(-(XJgrid.^2 + YJgrid.^2)/2/(grid_correction_blur_width)^2);
-        K = K / sum(K(:));
-        Ks = ifftshift(K);
-        Kshat = fftn(Ks);
-        Jb = ifftn(fftn(Jsum).*Kshat,'symmetric');
-        figure;imagesc(Jb)
-        Jtest = bsxfun(@times, J0_orig, Jb./(Jsum+1));
-        figure;
-        imagesc(xJ,yJ,Jtest(:,:,round(size(Jtest,3)/2)));
-        axis image
-        J0 = Jtest;
-        
+        J0 = correct_grid(
+            J0_orig,
+            xJ,
+            yJ,
+            3,
+            grid_correction_blur_width
+        )
         
         danfigure(3);
         sliceView(xJ,yJ,zJ,J0);
@@ -254,7 +266,6 @@ for downloop = downloop_start : 2
     range = [min(J(:)), max(J(:))];
     range = mean(range) + [-1,1]*diff(range)/2*1.25;
     
-    nb = 200; % pretty good
     nb = 300; % better
     
     bins = linspace(range(1),range(2),nb);
@@ -291,9 +302,6 @@ for downloop = downloop_start : 2
     
     
     [XJ,YJ,ZJ] = meshgrid(xJp,yJp,zJp);
-    % K = exp(-(XJ.^2 + YJ.^2 + ZJ.^2)/2/(dxJ(1)*15)^2);
-    % width = 750; % this value gives goood results
-    % width = 500;
     width = 1000;
     K = exp(-(XJ.^2 + YJ.^2 + ZJ.^2)/2/(width)^2);
     K = K / sum(K(:));
@@ -314,7 +322,7 @@ for downloop = downloop_start : 2
 	    if missing_data_correction
 	        niterhom = 20;
 	    else
-	        niterhom = 10; % a little more for more inhomogeneity correction
+	        niterhom = 10;
 	    end
 	    textprogressbar('correcting inhomogeneity: ');
 	    for it = 1 : niterhom
@@ -380,11 +388,6 @@ for downloop = downloop_start : 2
     end
 
     %%
-    close all;
-
-	    
-    
-    %%
     % set up target grid points included padded grid points for better boundary
     % conditions
     [XJ,YJ,ZJ] = meshgrid(xJ,yJ,zJ);
@@ -401,81 +404,13 @@ for downloop = downloop_start : 2
     %%
     % now we map them!
     %%
-    nT = 5;
-    dt = 1/nT;
-    sigmaM = std(J(:));
-    %sigmaA = sigmaM*10; % artifact
-    CA = 1; % estimate
-    % I want to make it less, its actually quite low
-    sigmaB = sigmaM/2;
-    CB = -1;
-    %WJ = 1;
-    sigmaC = 5.0;
-    % try more
-%    sigmaC = 10.0;
-%    % vikram testing out even more
-%    sigmaC = 20.0;
     
-    
-    
-    danfigure(1);
-    sliceView(xI,yI,zI,I)
-    climI = get(gca,'clim');
-    danfigure(2);
-    sliceView(xJ,yJ,zJ,J)
-    climJ = get(gca,'clim');
-    % May 2019
-    order = 4;
-    nM = 1;
-    nMaffine = 1; % number of m steps per e step durring affine only
-
-    % number of affine only iterations
-    naffine = 0;
-    
-    
-    % total number of iterations
-    niter = 5000;
-    if downloop > 1
-        niter = 500;
-    end
-%    niter_a5 = 1000;
-%    niter_a4 = 500;
-    %if dxI < 50
-    %    niter = 500; % if high resolution do fewer iterations
-    %end
-    
-    % % test!
-    % niter = 10;
-    % if dxI(1) < 100
-    %     niter = 1; % if high resolution do fewer iterations
-    % end
-    
-    
-    % above sigma was too small, need more deformation
-    % sigmaR = 5e3;
-    
-    % kernel width
-    a = 500;
-    % try different smoothness scale for
-    % higher resolution to account for serious
-    % local deformation
-
-%    if downloop >= 2
-%        a = 250
-%    end
     p = 2;
-    % apre = 1000;
-    % make this a function of voxel size
-    % to speed up optimization
-    % 10/2/19 -- VC
     apre = 1000;
     ppre = 2;
-    %aC = 2000; % I think this should be bigger, about 20 voxels, I think 2000 is too big
-    %aC = 1000;
-%    aC = 7.5*dxI(1); % try a little smaller
     aC = 750; % try a little smaller
-    %aC = 750*2; % try bigger for rat, maybe 2x
     pC = 2;
+    
     
     LL = (1 - 2 * a^2 * ( (cos(2*pi*dxI(1)*FXI) - 1)/dxI(1)^2 + (cos(2*pi*dxI(2)*FYI) - 1)/dxI(2)^2 + (cos(2*pi*dxI(3)*FZI) - 1)/dxI(3)^2 )).^(2*p);
     Khat = 1.0./LL;
@@ -488,36 +423,6 @@ for downloop = downloop_start : 2
     LLC = LC.^2;
     iLC = 1.0/LC;
     KhatC = 1.0./LLC;
-    
-    
-    
-    eT = 2e-6;
-    eL = 1e-13; % okay seems fine
-    post_affine_reduce = 0.1;
-    
-    %eV = 1e6;
-    eV = 1e6;
-    if downloop > 1
-        eV = eV/2
-    end
-    
-    
-    sigmaR = 5e3;
-    sigmaR = sigmaR*2;
-
-    
-    % decrease sigmaA from x10 to x2
-%    sigmaA = sigmaM*2;
-    sigmaB = sigmaM * 2;
-    sigmaA = sigmaM * 5;
-    prior = [0.89,0.1,0.01];
-    prior = [0.79, 0.2, 0.01];
-    prior = prior / sum(prior);
-	
-
-
-    % try more timesteps because deformation is getting big
-    nT = 10;
     
     
     
@@ -601,41 +506,6 @@ for downloop = downloop_start : 2
     vty = zeros([size(I),nT]);
     vtz = zeros([size(I),nT]);
     
-%     % local rotation
-%     theta = 50;
-%     
-%     bx = -3000;
-%     by = -1000;
-%     
-% %    cx = -2000;
-%     cx = 500;
-%     cy = 3500;
-%     
-%     rotmat = [cos(theta),-sin(theta);
-%         sin(theta),cos(theta)];
-%     ROTX = cos(theta*pi/180)*(XI-cx) + sin(theta*pi/180)*(YI-cy) - (XI-cx);
-%     ROTY = -sin(theta*pi/180)*(XI-cx) + cos(theta*pi/180)*(YI-cy) - (YI-cy);
-%     blob_width = 3000;
-%     blob = exp(-((XI - bx).^2 + (YI-by).^2 + (ZI.^2))/2/(blob_width)^2);
-%     %x_idx = (XI - bx) > 0;
-%     % testing uniform rotation
-%     %blob = zeros(size(XI));
-%     %blob(x_idx) = 0.5;
-%     for t = 1 : nT
-%         vty(:,:,:,t) = ROTY.*blob;
-%         vtx(:,:,:,t) = ROTX.*blob;
-%     end
-
-%    % initial local translation
-%   blob_width = 3000;
-%   blob_displacement = 3000;
-%   bx2 = -5000;
-%   by2 = 0;
-%   initial_y_disp = exp(-((XI - bx2).^2 + (YI - by2).^2 + (ZI).^2)/2/(blob_width)^2) * blob_displacement;
-%   for t = 1 : nT
-%       vty(:,:,:,t) = vty(:,:,:,t) + initial_y_disp;
-%   end
-    
  
     % add translation in X,Y and Z axes
     A = [eye(3),[500;-100;0];[0,0,0,1]]*A;
@@ -675,7 +545,7 @@ for downloop = downloop_start : 2
     It(:,:,:,1) = I;
     
     
-    if downloop >= 1
+    if downloop == 1
         % actually
         % we need an initial linear transformation to compute our first weight
         Jq = quantile(J(:),[0.1 0.9]);
@@ -689,13 +559,7 @@ for downloop = downloop_start : 2
         % make the coeffs a function of space
         coeffs = reshape(coeffs,1,1,1,[]) .*  ones([size(J),order]);
     else
-        %XJ_dl1,YJ_dl1,ZJ_dl1 = meshgrid(xJ_downloop1,yJ_downloop1,zJ_downloop1)
-%#        F1 = griddedInterpolant({yJ_downloop1,xJ_downloop1,zJ_downloop1},squeeze(coeffs(:,:,:,1)),'linear','nearest');
-%#        F2 = griddedInterpolant({yJ_downloop1,xJ_downloop1,zJ_downloop1},squeeze(coeffs(:,:,:,2)),'linear','nearest');
-%#        F3 = griddedInterpolant({yJ_downloop1,xJ_downloop1,zJ_downloop1},squeeze(coeffs(:,:,:,3)),'linear','nearest');
-%#        F4 = griddedInterpolant({yJ_downloop1,xJ_downloop1,zJ_downloop1},squeeze(coeffs(:,:,:,4)),'linear','nearest');
-%#        coeffs = cat(4,F1(),F2(),F3(),F4())
-%        F = griddedInterpolant({yJ_downloop1,xJ_downloop1,zJ_downloop1},coeffs,'linear','nearest');
+        coeffs  = load(coeffsname)
         coeffs_1 = upsample(coeffs(:,:,:,1),[size(J,1),size(J,2),size(J,3)]);
         coeffs_2 = upsample(coeffs(:,:,:,2),[size(J,1),size(J,2),size(J,3)]);
         coeffs_3 = upsample(coeffs(:,:,:,3),[size(J,1),size(J,2),size(J,3)]);
@@ -858,6 +722,7 @@ end
         doENumber = nMaffine;
         if it > naffine; doENumber = nM; end
         if ~mod(it-1,doENumber)
+            prior = prior / sum(prior);
             WM = 1/sqrt(2*pi*(sigmaM^2)).*exp(-1.0/2.0/sigmaM^2*err.^2) * prior(1);
             WA = 1/sqrt(2*pi*sigmaA^2)*exp(-1.0/2.0/sigmaA^2*(CA - J).^2) * prior(2);
             WB = 1/sqrt(2*pi*sigmaB^2)*exp(-1.0/2.0/sigmaB^2*(CB - J).^2) * prior(3);
@@ -925,9 +790,6 @@ end
         % gradient
         [AphiI_x,AphiI_y,AphiI_z] = gradient(AphiI,dxJ(1),dxJ(2),dxJ(3));
         grad = zeros(4,4);
-        do_GN = 1; % do gauss newton
-        rigid_only  = 0; % constrain affine to be rigid
-	    uniform_scale_only = 1; % for uniform scaling
         % NOTE
         % without Gauss Newton, the affine transformation will be updated with
         % rigid transforms.  If the initial guess is nonrigid, it wli lremain
@@ -935,21 +797,21 @@ end
         % with GN, the affine transformation will be projected onto rigid
         % transforms, you will lose any nonrigid initialization
         if ~do_GN % do gradient descent
-        [AphiI_x,AphiI_y,AphiI_z] = gradient(AphiI,dxJ(1),dxJ(2),dxJ(3));
-        grad = zeros(4,4);
-        for r = 1 : 3
-            for c = 1 : 4
-                dA = (double((1:4)'==r)) * double(((1:4)==c));
-                AdAB = A * dA * B;
-                AdABX = AdAB(1,1)*XJ + AdAB(1,2)*YJ + AdAB(1,3)*ZJ + AdAB(1,4);
-                AdABY = AdAB(2,1)*XJ + AdAB(2,2)*YJ + AdAB(2,3)*ZJ + AdAB(2,4);
-                AdABZ = AdAB(3,1)*XJ + AdAB(3,2)*YJ + AdAB(3,3)*ZJ + AdAB(3,4);
-                grad(r,c) = -sum(sum(sum(errWDf.*(AphiI_x.*AdABX + AphiI_y.*AdABY + AphiI_z.*AdABZ))))*prod(dxJ)/sigmaM^2;
+            [AphiI_x,AphiI_y,AphiI_z] = gradient(AphiI,dxJ(1),dxJ(2),dxJ(3));
+            grad = zeros(4,4);
+            for r = 1 : 3
+                for c = 1 : 4
+                    dA = (double((1:4)'==r)) * double(((1:4)==c));
+                    AdAB = A * dA * B;
+                    AdABX = AdAB(1,1)*XJ + AdAB(1,2)*YJ + AdAB(1,3)*ZJ + AdAB(1,4);
+                    AdABY = AdAB(2,1)*XJ + AdAB(2,2)*YJ + AdAB(2,3)*ZJ + AdAB(2,4);
+                    AdABZ = AdAB(3,1)*XJ + AdAB(3,2)*YJ + AdAB(3,3)*ZJ + AdAB(3,4);
+                    grad(r,c) = -sum(sum(sum(errWDf.*(AphiI_x.*AdABX + AphiI_y.*AdABY + AphiI_z.*AdABZ))))*prod(dxJ)/sigmaM^2;
+                end
             end
-        end
-        if rigid_only
-            grad(1:3,1:3) = grad(1:3,1:3) - grad(1:3,1:3)';
-        end
+            if rigid_only
+                grad(1:3,1:3) = grad(1:3,1:3) - grad(1:3,1:3)';
+            end
         else % do Gauss Newton optimization
             [fAphiI_x,fAphiI_y,fAphiI_z] = gradient(fAphiI,dxJ(1),dxJ(2),dxJ(3));
             Jerr = zeros(size(J,1),size(J,2),size(J,3),12);
@@ -1079,16 +941,17 @@ end
         
         % update A
         if ~do_GN % if gradient descent
-        e = [ones(3)*eL,ones(3,1)*eT;0,0,0,0];
-        if it > naffine
-            % smaller step size now!
-            e = e * post_affine_reduce;
-        end
-        A = A * expm(-e.*grad);
-    %     e.*grad % I printed to check size of gradient
+            eT = 2e-6;
+            eL = 1e-13; % okay seems fine
+            post_affine_reduce = 0.1;
+            e = [ones(3)*eL,ones(3,1)*eT;0,0,0,0];
+            if it > naffine
+                % smaller step size now!
+                e = e * post_affine_reduce;
+            end
+            A = A * expm(-e.*grad);
         else % do gauss newton
             Ai = inv(A);
-            eA = 0.2;
             Ai(1:3,1:4) = Ai(1:3,1:4) - eA * step;
             A = inv(Ai);
             if rigid_only
@@ -1096,16 +959,16 @@ end
                 [U,S,V] = svd(A(1:3,1:3));
                 A(1:3,1:3) = U * V';
             end
-	    if uniform_scale_only
+            if uniform_scale_only
                 [U,S,V] = svd(A(1:3,1:3));
-		s = diag(S);
-		s = exp(mean(log(s))) * ones(size(s));
-		if fixed_scale ~= 0
-		    s = [1,1,1]*fixed_scale;
-		end
+                s = diag(S);
+                s = exp(mean(log(s))) * ones(size(s));
+                if fixed_scale ~= 0
+                    s = [1,1,1]*fixed_scale;
+                end
                 A(1:3,1:3) = U * diag(s) *  V';
 		
-	    end
+            end
         end
         
         danfigure(8);
@@ -1186,18 +1049,6 @@ end
     save([prefix 'v.mat'],'vtx','vty','vtz','-v7.3')
     toc
     
-    
-    % % apply phi to the atlas (by composing with phiinv)
-    % % then apply affine transformation A to the atlas (by composing with inv(A))
-    % % the atlas voxels are at the points XI,YI,ZI
-    % save('phiinv.mat','phiinvx','phiinvy','phiinvz');
-    % % phi1tinv
-    % save('phi1tinv.mat','phi1tinvx','phi1tinvy','phi1tinvz');
-    % % images
-    % save('I.mat','I','XI','YI','ZI')
-    % save('J.mat','J','XJ','YJ','ZJ')
-    
-    
     %%
     % pull back the target
     
@@ -1261,145 +1112,6 @@ end
     avw.hdr.dime.pixdim([3,2,4]) = dxJ;
     avw.img = Ji;
     avw_img_write(avw,[prefix 'target_to_atlas_low_res_pad.img'])
-    
-    
-    
-    if downloop == 1
-        continue
-    end
-    %%
-    
-    % outputs for Vikram
-    % we need to transform data to match the 10 micron atlas
-    %template_name_10 = '/cis/home/dtward/Documents/ARA/Mouse_CCF/average_template_10.nrrd';
-    %label_name_10 = '/cis/home/dtward/Documents/ARA/Mouse_CCF/annotation_10_2017.nrrd';
-    %[L10,meta] = nrrdread(label_name_10);
-    % below workaround because encountered  gunzip error 'unexpected end of file'
-    %meta = nhdr_nrrd_read(label_name_10,true);
-    %L10 =  meta.data
-    %dxI10 = diag(sscanf(meta.spacedirections,'(%d,%d,%d) (%d,%d,%d) (%d,%d,%d)',[3,3]))';
-    %nxI10 = [size(L10,2),size(L10,1),size(L10,3)];
-    % hard coding the voxel size and image shape
-    % for the 10um Allen Reference Atlas
-%    dxI10 = [10 10 10]
-%    nxI10 = [1320 800 1140]
-%    xI10 = (0:nxI10(1)-1)*dxI10(1);
-%    yI10 = (0:nxI10(2)-1)*dxI10(2);
-%    zI10 = (0:nxI10(3)-1)*dxI10(3);
-%    xI10 = xI10 - mean(xI10);
-%    yI10 = yI10 - mean(yI10);
-%    zI10 = zI10 - mean(zI10);
-%    
-%    
-%    
-%    
-%    % reload and re downsample data
-%    %%
-%    % downsample to about same res as atlas
-%    down = round(dxI10./dxJ0);
-%    for f = 1 : length(info)
-%        %disp(['File ' num2str(f) ' of ' num2str(length(info))])
-%        J_ = double(imread(target_name,f));
-%        if f == 1
-%            nxJ0 = [size(J_,2),size(J_,1),length(info)];
-%            nxJ = floor(nxJ0./down);
-%            J = zeros(nxJ(2),nxJ(1),nxJ(3));
-%        end
-%        % downsample J_
-%        Jd = zeros(nxJ(2),nxJ(1));
-%        for i = 1 : down(1)
-%            for j = 1 : down(2)
-%                Jd = Jd + J_(i:down(2):down(2)*nxJ(2), j:down(1):down(1)*nxJ(1))/down(1)/down(2);
-%            end
-%        end
-%        
-%        slice = floor( (f-1)/down(3) ) + 1;
-%        if slice > nxJ(3)
-%            break;
-%        end
-%        J(:,:,slice) = J(:,:,slice) + Jd/down(3);
-%        
-%        if ~mod(f-1,10)
-%            danfigure(1234);
-%            imagesc(J(:,:,slice));
-%            axis image
-%            drawnow;
-%        end
-%    end
-%    dxJ = dxJ0.*down;
-%    xJ = (0:nxJ(1)-1)*dxJ(1);
-%    yJ = (0:nxJ(2)-1)*dxJ(2);
-%    zJ = (0:nxJ(3)-1)*dxJ(3);
-%    
-%    xJ = xJ - mean(xJ);
-%    yJ = yJ - mean(yJ);
-%    zJ = zJ - mean(zJ);
-%    
-%    xJp = [xJ(1)-dxJ(1), xJ, xJ(end)+dxJ(1)];
-%    yJp = [yJ(1)-dxJ(2), yJ, yJ(end)+dxJ(2)];
-%    zJp = [zJ(1)-dxJ(3), zJ, zJ(end)+dxJ(3)];
-%    Jp = padarray(J,[1,1,1]);
-%    
-%    climJ = [min(J(:)),max(J(:))];
-%    %%
-%    % deformatlas target to atlas
-%    % first thing is to upsample Aphi to Aphi10
-%    % due to memory issues, I'm going to have to loop through slices,
-%    % so this will be a bit slow
-%    Jdef = zeros([nxI10(2) nxI10(1) nxI10(3)]);
-%    Fx = griddedInterpolant({yI,xI,zI},Aphi1tinvx,'linear','nearest');
-%    Fy = griddedInterpolant({yI,xI,zI},Aphi1tinvy,'linear','nearest');
-%    Fz = griddedInterpolant({yI,xI,zI},Aphi1tinvz,'linear','nearest');
-%    F = griddedInterpolant({yJp,xJp,zJp},Jp,'linear','nearest');
-%    [XI10_,YI10_] = meshgrid(xI10,yI10);
-%    for i = 1 : size(Jdef,3)
-%        disp(['Applying deformation slice ' num2str(i) ' of ' num2str(size(Jdef,3))]);
-%        
-%        Aphi10x = Fx(YI10_,XI10_,ones(size(XI10_))*zI10(i));
-%        Aphi10y = Fy(YI10_,XI10_,ones(size(XI10_))*zI10(i));
-%        Aphi10z = Fz(YI10_,XI10_,ones(size(XI10_))*zI10(i));
-%        
-%        
-%        Jdef(:,:,i) = F(Aphi10y,Aphi10x,Aphi10z);
-%        
-%        if ~mod(i,25)
-%            danfigure(22993);
-%            sliceView(xI,yI,zI,Jdef,5,climJ)
-%            drawnow
-%        end
-%        
-%    end
-%    
-%    %%
-%    % last write out Jdef and L as analyze
-%    % /*Acceptable values for datatype are*/
-%    % #define DT_NONE             0
-%    % #define DT_UNKNOWN          0    /*Unknown data type*/
-%    % #define DT_BINARY           1    /*Binary             ( 1 bit per voxel)*/
-%    % #define DT_UNSIGNED_CHAR    2    /*Unsigned character ( 8 bits per voxel)*/
-%    % #define DT_SIGNED_SHORT     4    /*Signed short       (16 bits per voxel)*/
-%    % #define DT_SIGNED_INT       8    /*Signed integer     (32 bits per voxel)*/
-%    % #define DT_FLOAT           16    /*Floating point     (32 bits per voxel)*/
-%    % #define DT_COMPLEX         32    /*Complex (64 bits per voxel; 2 floating point numbers)/*
-%    % #define DT_DOUBLE          64    /*Double precision   (64 bits per voxel)*/
-%    % #define DT_RGB            128    /*A Red-Green-Blue datatype*/
-%    % #define DT_ALL            255    /*Undocumented*/
-%    
-%    
-%    danfigure(22994);
-%    avw = avw_hdr_make;
-%    avw.hdr.dime.datatype = 4; % 16 bits
-%    avw.hdr.dime.bitpix = 16;
-%    avw.hdr.dime.dim(2:4) = size(Jdef);
-%    avw.hdr.dime.pixdim([3,2,4]) = [10 10 10];
-%    avw.img = Jdef;
-%    avw_img_write(avw,[prefix 'target_to_atlas.img'])
-    
-    %end
-    
-    
-    % avw.img = L10;
-    % avw_img_write(avw,[prefix 'atlas_labels.img'])
     
     
 end % of downloop
