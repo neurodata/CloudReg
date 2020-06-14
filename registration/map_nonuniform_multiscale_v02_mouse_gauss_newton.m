@@ -11,6 +11,17 @@ addpath ~/CloudReg/registration/Functions/downsample/
 addpath ~/CloudReg/registration/Functions/spatially_varying_polynomial/
 addpath ~/CloudReg/registration/Functions/textprogressbar/
 
+%%%% params for  input files
+p = '~/'
+% input this output prefix
+prefix = [p 'vglut3_539_registration/'];
+target_name = [p 'vglut3_539_ch1.tif'];
+
+%  atlas data prefix
+in_prefix = [p '/MBAC/registration/atlases/'];
+%%%% end params for input  files
+
+
 %%%% params for preprocessing
 missing_data_correction = 0;
 bias_correction = 1;
@@ -74,12 +85,6 @@ rigid_only  = 0; % constrain affine to be rigid
 
 downloop_start = 1;
 for downloop = downloop_start : 2
-    p = '/home/ubuntu/'
-    % input this output prefix
-    prefix = [p 'vglut3_539_registration/'];
-    target_name = [p 'vglut3_539_ch1.tif'];
-
-    in_prefix = [p '/MBAC/registration/atlases/'];
     
     % pixel size is required here as the tif data structure does not store it
     dxJ0 = [9.36 9.36  5];

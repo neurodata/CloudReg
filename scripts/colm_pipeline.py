@@ -101,11 +101,14 @@ def colm_pipeline(
     # REGISTRATION
     # only after stitching channel 1
     if channel_of_interest == 1:
-        pass
-    if log_s3_path:
+        matlab_registration_command = f'matlab -nodisplay -nosplash -nodesktop ~/CloudReg/registration/registration_script_mouse_GN.m'
+        subprocess.run(
+            shlex.split(matlab_registration_command)
+        )
 
-    # path_to_matlab_script =  '/data/vikram/MBAC/registration/registration_script_mouse_GN.m'
-    # matlab_registration_command = 'vmatlab -nodisplay -nosplash -nodesktop -r "run('');"'
+    if log_s3_path:
+        pass
+
 
 
 
