@@ -3,7 +3,7 @@ from create_precomputed_volume import create_precomputed_volume
 from generate_stitching_commands import generate_stitching_commands
 from correct_stitched_data import correct_stitched_data
 #from . import correct_raw_data, create_precomputed_volume, generate_stitching_commands
-from util import S3Url, upload_file_to_s3, download_file_from_s3, download_terastitcher_files
+from util import S3Url, upload_file_to_s3, download_file_from_s3, download_terastitcher_files, tqdm_joblib
 import boto3
 import subprocess
 import shlex
@@ -11,6 +11,8 @@ import numpy as np
 from glob import glob
 from tqdm import tqdm
 import argparse
+import os
+from joblib import Parallel, delayed
 
 
 def colm_pipeline(
@@ -51,8 +53,9 @@ def colm_pipeline(
     stitch_only = False if channel_of_interest == 0 else True
     if stitch_only and not log_s3_path:
         raise("If using previous stitching results, must specify log_s3_path")
-    else:
-        download_terastitcher_files(log_s3_path, raw_data_path)
+    elif stitch_only:
+        # download terastitcher files if they arent already on local storage
+        # download_terastitcher_files(log_s3_path, raw_data_path)
         
     metadata, commands = generate_stitching_commands(
         stitched_data_path,
@@ -62,15 +65,16 @@ def colm_pipeline(
         stitch_only
     )
 
-    # # run the Terastitcher commands
+    # run the Terastitcher commands
     for i in commands:
         print(i)
         subprocess.run(
             shlex.split(i)
         )
     
-    # # upload xml results to log_s3_path if not None
-    if log_s3_path:
+    # upload xml results to log_s3_path if not None
+    # and if not stitch_only
+    if log_s3_path and not stitch_only:
         log_s3_url = S3Url(log_s3_path.strip('/'))
         files_to_save = glob(f'{raw_data_path}/*.xml')
         for i in tqdm(files_to_save,desc='saving xml files to S3'):
@@ -93,9 +97,12 @@ def colm_pipeline(
         output_s3_path
     )
 
-    # run the registration
+    # REGISTRATION
+    # only after stitching channel 1
+    if channel_of_interest == 1:
     # path_to_matlab_script =  '/data/vikram/MBAC/registration/registration_script_mouse_GN.m'
     # matlab_registration_command = 'vmatlab -nodisplay -nosplash -nodesktop -r "run('');"'
+
 
 
 
@@ -103,8 +110,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser('Run COLM pipeline including bias correction, stitching, upoad to S3')
     parser.add_argument('input_s3_path', help='S3 path to input colm data. Should be of the form s3://<bucket>/<experiment>', type=str)
     parser.add_argument('output_s3_path', help='S3 path to store precomputed volume. Precomputed volumes for each channel will be stored under this path. Should be of the form s3://<bucket>/<path_to_precomputed>. The data will be saved at s3://<bucket>/<path_to_precomputed>/CHN0<channel>',  type=str)
-    parser.add_argument('channel_of_interest', help='Channel of interest in experiment',  type=int)
-    # parser.add_argument('num_channels', help='Number of channels in experiment',  type=int)
+    # parser.add_argument('channel_of_interest', help='Channel of interest in experiment',  type=int)
+    parser.add_argument('num_channels', help='Number of channels in experiment',  type=int)
     parser.add_argument('autofluorescence_channel', help='Autofluorescence channel number.',  type=int)
     parser.add_argument('--raw_data_path', help='Local path where corrected raw data will be stored.',  type=str, default='/home/ubuntu/ssd1')
     parser.add_argument('--stitched_data_path', help='Local path where stitched slices will be stored.',  type=str, default='/home/ubuntu/ssd2')
@@ -112,12 +119,20 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    colm_pipeline(
-        args.input_s3_path,
-        args.output_s3_path,
-        args.channel_of_interest,
-        args.autofluorescence_channel,
-        args.raw_data_path,
-        args.stitched_data_path,
-        args.log_s3_path
-    )
+    # for all channels in experiment
+    for i in range(args.num_channels):
+        colm_pipeline(
+            args.input_s3_path,
+            args.output_s3_path,
+            i,
+            args.autofluorescence_channel,
+            args.raw_data_path,
+            args.stitched_data_path,
+            args.log_s3_path
+        )
+        # delete all tiff files in raw_data_path
+        files_to_remove = glob.glob(f'{args.raw_data_path}/*/*.tiff')
+        with tqdm_joblib(tqdm(desc=f"Delete files from CHN0{i}", total=len(files_to_remove))) as progress_bar:
+            Parallel(-1)(os.remove)(
+                f
+            ) for f in files_to_remove
