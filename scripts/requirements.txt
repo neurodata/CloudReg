@@ -3,3 +3,4 @@ cloud-volume
 tinybrain
 tqdm
 joblib
+tifffile

@@ -54,6 +54,7 @@ def colm_pipeline(
     if stitch_only and not log_s3_path:
         raise("If using previous stitching results, must specify log_s3_path")
     elif stitch_only:
+        pass
         # download terastitcher files if they arent already on local storage
         # download_terastitcher_files(log_s3_path, raw_data_path)
         
@@ -100,6 +101,7 @@ def colm_pipeline(
     # REGISTRATION
     # only after stitching channel 1
     if channel_of_interest == 1:
+        pass
     # path_to_matlab_script =  '/data/vikram/MBAC/registration/registration_script_mouse_GN.m'
     # matlab_registration_command = 'vmatlab -nodisplay -nosplash -nodesktop -r "run('');"'
 
@@ -133,6 +135,7 @@ if __name__ == "__main__":
         # delete all tiff files in raw_data_path
         files_to_remove = glob.glob(f'{args.raw_data_path}/*/*.tiff')
         with tqdm_joblib(tqdm(desc=f"Delete files from CHN0{i}", total=len(files_to_remove))) as progress_bar:
-            Parallel(-1)(os.remove)(
-                f
-            ) for f in files_to_remove
+            Parallel(-1)(delayed(os.remove)(
+                    f
+                ) for f in files_to_remove
+            )
