@@ -102,6 +102,8 @@ def colm_pipeline(
     # only after stitching channel 1
     if channel_of_interest == 1:
         pass
+    if log_s3_path:
+
     # path_to_matlab_script =  '/data/vikram/MBAC/registration/registration_script_mouse_GN.m'
     # matlab_registration_command = 'vmatlab -nodisplay -nosplash -nodesktop -r "run('');"'
 

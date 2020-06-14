@@ -1,5 +1,4 @@
-%maxNumCompThreads(36)
-run('~/MBAC/registration/map_nonuniform_multiscale_v02_mouse_gauss_newton.m');
+run('~/CloudReg/registration/map_nonuniform_multiscale_v02_mouse_gauss_newton.m');
 atlas_prefix = './atlases/';
 atlas_path = [atlas_prefix 'ara_annotation_10um.tif'];
 atlas_voxel_size = [10.0, 10.0, 10.0]; % microns
