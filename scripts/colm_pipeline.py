@@ -3,7 +3,7 @@ from create_precomputed_volume import create_precomputed_volume
 from generate_stitching_commands import generate_stitching_commands
 from correct_stitched_data import correct_stitched_data
 #from . import correct_raw_data, create_precomputed_volume, generate_stitching_commands
-from util import S3Url, upload_file_to_s3, download_file_from_s3, download_terastitcher_files, tqdm_joblib
+from util import S3Url, upload_file_to_s3, download_file_from_s3, download_terastitcher_files, tqdm_joblib, aws_cli
 import boto3
 import subprocess
 import shlex
@@ -99,17 +99,30 @@ def colm_pipeline(
     )
 
     # REGISTRATION
-    # only after stitching channel 1
-    if channel_of_interest == 1:
-        matlab_registration_command = f'matlab -nodisplay -nosplash -nodesktop ~/CloudReg/registration/registration_script_mouse_GN.m'
+    # only after stitching autofluorescence channel
+    if channel_of_interest == autofluorescence_channel:
+        base_path = f'{raw_data_path}'
+        registration_prefix = f'{base_path}/registration/'
+        target_name = f'{base_path}/autofluorescence_data.tif'
+
+        # download downsampled autofluorescence channel
+
+
+        # run registration
+        matlab_registration_command = f'''
+            matlab -nodisplay -nosplash -nodesktop -r \"base_path={base_path};target_name={target_name};prefix={registration_prefix};run(~/CloudReg/registration/registration_script_mouse_GN.m\")
+        '''
         subprocess.run(
             shlex.split(matlab_registration_command)
         )
 
-    if log_s3_path:
-        pass
+        if log_s3_path:
+            # sync registration results to log_s3_path
+            aws_cli(['s3', 'sync', registration_prefix, log_s3_path])
 
 
+
+        
 
 
 

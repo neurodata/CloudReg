@@ -4,3 +4,4 @@ tinybrain
 tqdm
 joblib
 tifffile
+awscli

@@ -172,3 +172,26 @@ def download_terastitcher_files(s3_path, local_path):
     for i in tqdm(files_to_save,desc='downloading xml files from S3'):
         out_path = i.split('/')[-1]
         download_file_from_s3(i, log_s3_url.bucket, f'{log_s3_url.key}/{out_path}')
+    
+
+# below code from https://github.com/boto/boto3/issues/358#issuecomment-372086466
+from awscli.clidriver import create_clidriver
+
+def aws_cli(*cmd):
+    old_env = dict(os.environ)
+    try:
+
+        # Environment
+        env = os.environ.copy()
+        env['LC_CTYPE'] = u'en_US.UTF'
+        os.environ.update(env)
+
+        # Run awscli in the same process
+        exit_code = create_clidriver().main(*cmd)
+
+        # Deal with problems
+        if exit_code > 0:
+            raise RuntimeError('AWS CLI exited with code {}'.format(exit_code))
+    finally:
+        os.environ.clear()
+        os.environ.update(old_env)

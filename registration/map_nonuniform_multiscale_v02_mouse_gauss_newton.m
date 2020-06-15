@@ -12,13 +12,23 @@ addpath ~/CloudReg/registration/Functions/spatially_varying_polynomial/
 addpath ~/CloudReg/registration/Functions/textprogressbar/
 
 %%%% params for  input files
-p = '~/'
-% input this output prefix
-prefix = [p 'vglut3_539_registration/'];
-target_name = [p 'vglut3_539_ch1.tif'];
+if ~exist(base_path)
+    base_path = '~/';
+end
+% path to input tif data
+if ~exist(target_name)
+    target_name = [base_path 'autofluorescence_data.tif'];
+end
+
+% prefix at which to store registration intermediates
+if ~exist(prefix)
+    prefix = [base_path 'registration/'];
+end
 
 %  atlas data prefix
-in_prefix = [p '/MBAC/registration/atlases/'];
+if ~exist(atlas_prefix)
+    atlas_prefix = [base_path 'CloudReg/registration/atlases/'];
+end
 %%%% end params for input  files
 
 
@@ -30,11 +40,10 @@ grid_correction = 1;
 
 %%%% params for registration
 fixed_scale = 1.2;
-do_GN = 1; % do gauss newton
-uniform_scale_only = 1; % for uniform scaling
+% weight of regularization 
+sigmaR = 1e4;
 
 nT = 10; % number of timesteps over which to integrate flow
-sigmaM = std(J(:)); % weight of matching in cost function
 sigmaC = 5.0;
 CA = 1; % estimate
 CB = -1;
@@ -61,15 +70,8 @@ if downloop > 1
     eV = eV/2
 end
 
-% weight of regularization 
-sigmaR = 5e3;
-sigmaR = sigmaR*2;
 
-% background weight
-sigmaB = sigmaM * 2;
-% artifact weight
-sigmaA = sigmaM * 5;
-% prior on brain, artifact, background (in that order)
+% prior on brain, artifact, background likelihood (in that order)
 prior = [0.79, 0.2, 0.01];
 
 
@@ -79,8 +81,10 @@ if downloop > 1
     niter = 500;
 end
 
+do_GN = 1; % do gauss newton
+uniform_scale_only = 1; % for uniform scaling
 rigid_only  = 0; % constrain affine to be rigid
-%%%% end parameters
+%%%% end parameters %%%%
 
 
 downloop_start = 1;
@@ -90,12 +94,12 @@ for downloop = downloop_start : 2
     dxJ0 = [9.36 9.36  5];
 
     if downloop == 1
-        template_name = strcat(in_prefix,'/average_template_100.nrrd');
-        label_name = strcat(in_prefix, '/annotation_100.nrrd');
+        template_name = strcat(atlas_prefix,'/average_template_100.nrrd');
+        label_name = strcat(atlas_prefix, '/annotation_100.nrrd');
 
     elseif downloop == 2
-        template_name = strcat(in_prefix,'/average_template_50.nrrd');
-        label_name = strcat(in_prefix, '/annotation_50.nrrd');
+        template_name = strcat(atlas_prefix,'/average_template_50.nrrd');
+        label_name = strcat(atlas_prefix, '/annotation_50.nrrd');
         
     end
     
@@ -409,6 +413,12 @@ for downloop = downloop_start : 2
     %%
     % now we map them!
     %%
+    % weight of matching in cost function
+    sigmaM = std(J(:));
+    % background weight
+    sigmaB = sigmaM * 2;
+    % artifact weight
+    sigmaA = sigmaM * 5;
     
     p = 2;
     apre = 1000;
