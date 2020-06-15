@@ -1,6 +1,6 @@
 # CloudReg
 
-CloudReg is a cloud-enabled pipeline for scalable registration, originally built for mouse light-sheet microscopy, with many functions useful for other volumetric image registration challenges.
+CloudReg is a cloud-enabled pipeline for scalable registration, originally built for mouse light-sheet microscopy, but now with functionality to support many different volumetric registration challenges in the cloud.
 
 - [Data management](#data)
 - [Preprocessing](#peprocessing)

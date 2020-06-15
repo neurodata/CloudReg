@@ -5,3 +5,4 @@ tqdm
 joblib
 tifffile
 awscli
+mpi4py

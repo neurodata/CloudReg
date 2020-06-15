@@ -186,11 +186,8 @@ def correct_raw_data(
     if os.path.exists(bias_path):
         bias = tf.imread(bias_path)
     else: 
-        # get list of all tiles to process for bias tile. use autofluorescence channel
-        all_files_auto = get_list_of_files_to_process(in_bucket_name,in_path,auto_channel)
-        total_files_auto = len(all_files_auto)
         # subsample tiles
-        files_cb = all_files_auto[::subsample_factor]
+        files_cb = all_files[::subsample_factor]
         num_files  = len(files_cb)
 
         # compute running sums in parallel

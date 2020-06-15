@@ -42,13 +42,13 @@ def colm_pipeline(
     # pull raw data from S3, bias correct, and save to local directory
     # save bias correction tile to log_s3_path
     vw0_path = f'{input_s3_url.url}/VW0/'
-    correct_raw_data(
-        vw0_path,
-        channel_of_interest,
-        autofluorescence_channel,
-        raw_data_path,
-        log_s3_path=log_s3_path
-    )
+    # correct_raw_data(
+    #     vw0_path,
+    #     channel_of_interest,
+    #     autofluorescence_channel,
+    #     raw_data_path,
+    #     log_s3_path=log_s3_path
+    # )
     
     # # generate commands to stitch data using Terastitcher
     stitch_only = False if channel_of_interest == 0 else True
@@ -56,8 +56,8 @@ def colm_pipeline(
         raise("If using previous stitching results, must specify log_s3_path")
     elif stitch_only:
         pass
-        # download terastitcher files if they arent already on local storage
-        # download_terastitcher_files(log_s3_path, raw_data_path)
+    #     # download terastitcher files if they arent already on local storage
+    #     # download_terastitcher_files(log_s3_path, raw_data_path)
         
     metadata, commands = generate_stitching_commands(
         stitched_data_path,
@@ -67,21 +67,21 @@ def colm_pipeline(
         stitch_only
     )
 
-    # run the Terastitcher commands
-    for i in commands:
-        print(i)
-        subprocess.run(
-            shlex.split(i)
-        )
+    # # run the Terastitcher commands
+    # for i in commands:
+    #     print(i)
+    #     subprocess.run(
+    #         shlex.split(i)
+    #     )
     
-    # upload xml results to log_s3_path if not None
-    # and if not stitch_only
-    if log_s3_path and not stitch_only:
-        log_s3_url = S3Url(log_s3_path.strip('/'))
-        files_to_save = glob(f'{raw_data_path}/*.xml')
-        for i in tqdm(files_to_save,desc='saving xml files to S3'):
-            out_path = i.split('/')[-1]
-            upload_file_to_s3(i, log_s3_url.bucket, f'{log_s3_url.key}/{out_path}')
+    # # upload xml results to log_s3_path if not None
+    # # and if not stitch_only
+    # if log_s3_path and not stitch_only:
+    #     log_s3_url = S3Url(log_s3_path.strip('/'))
+    #     files_to_save = glob(f'{raw_data_path}/*.xml')
+    #     for i in tqdm(files_to_save,desc='saving xml files to S3'):
+    #         out_path = i.split('/')[-1]
+    #         upload_file_to_s3(i, log_s3_url.bucket, f'{log_s3_url.key}/{out_path}')
 
 
     # downsample and upload stitched data to S3
