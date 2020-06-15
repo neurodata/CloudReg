@@ -2,6 +2,7 @@ from correct_raw_data import correct_raw_data
 from create_precomputed_volume import create_precomputed_volume
 from generate_stitching_commands import generate_stitching_commands
 from correct_stitched_data import correct_stitched_data
+from download_data import download_data
 #from . import correct_raw_data, create_precomputed_volume, generate_stitching_commands
 from util import S3Url, upload_file_to_s3, download_file_from_s3, download_terastitcher_files, tqdm_joblib, aws_cli
 import boto3
@@ -106,7 +107,7 @@ def colm_pipeline(
         target_name = f'{base_path}/autofluorescence_data.tif'
 
         # download downsampled autofluorescence channel
-
+        download_data(output_s3_path, target_name)
 
         # run registration
         matlab_registration_command = f'''
