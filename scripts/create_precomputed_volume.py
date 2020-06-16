@@ -9,6 +9,7 @@ import PIL
 from PIL import Image
 from psutil import virtual_memory
 from tqdm import tqdm
+import tifffile as tf
 
 import tinybrain
 
@@ -49,7 +50,7 @@ def create_cloud_volume(
 
 
 def load_image(path_to_file,transpose=True):
-    image = np.squeeze(np.asarray(Image.open(path_to_file)))
+    image = np.squeeze(np.array(Image.open(path_to_file)))
     if transpose:
         return image.T
     return image
@@ -66,15 +67,12 @@ def get_image_dims(files):
 
 def process(z,file_path,layer_path,num_mips):
     vols = [CloudVolume(layer_path,mip=i,parallel=False,fill_missing=False) for i in range(num_mips)]
-    image = Image.open(file_path)
-    width, height = image.size
-    array = np.asarray(image).T
-    array = array.reshape((width,height,1))
+    # array = load_image(file_path)[..., None]
+    array = tf.imread(file_path).T[..., None]
     img_pyramid = tinybrain.accelerated.average_pooling_2x2(array, num_mips)
     vols[0][:,:,z] = array
     for i in range(num_mips-1):
         vols[i+1][:,:,z] = img_pyramid[i]
-    image.close()
     return
 
 

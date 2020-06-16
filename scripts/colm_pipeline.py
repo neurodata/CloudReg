@@ -69,11 +69,11 @@ def colm_pipeline(
     )
 
     # run the Terastitcher commands
-    for i in commands:
-        print(i)
-        subprocess.run(
-            shlex.split(i)
-        )
+    # for i in commands:
+    #     print(i)
+    #     subprocess.run(
+    #         shlex.split(i)
+    #     )
     
     # # upload xml results to log_s3_path if not None
     # # and if not stitch_only
