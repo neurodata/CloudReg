@@ -98,7 +98,7 @@ def correct_stitched_data(data_s3_path, out_s3_path, num_procs=12):
     bias = get_bias_field(data,scale=0.125)
     bias_slices = [bias[:,:,i] for i in range(bias.GetSize()[-1])]
     with tqdm_joblib(tqdm(desc=f"Uploading bias corrected data...", total=len(bias_slices))) as progress_bar:
-        Parallel(num_procs)(
+        Parallel(num_procs, timeout=1800)(
             delayed(process_slice)(
                 bias_slice,
                 z,

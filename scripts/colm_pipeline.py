@@ -110,6 +110,8 @@ def colm_pipeline(
         # download downsampled autofluorescence channel
         voxel_size = download_data(output_s3_path, target_name)
 
+        # initialize affine transformation for data
+
         # run registration
         matlab_registration_command = f'''
             matlab -nodisplay -nosplash -nodesktop -r \"base_path={base_path};target_name={target_name};prefix={registration_prefix};dxJ0={voxel_size};run(~/CloudReg/registration/registration_script_mouse_GN.m\")

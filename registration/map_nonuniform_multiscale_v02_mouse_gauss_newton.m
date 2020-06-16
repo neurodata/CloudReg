@@ -89,6 +89,82 @@ end
 do_GN = 1; % do gauss newton
 uniform_scale_only = 1; % for uniform scaling
 rigid_only  = 0; % constrain affine to be rigid
+
+    % %%
+    % initialize
+    A = eye(4);
+    A = [0,-1,0,0;
+        1,0,0,0;
+        0,0,1,0
+        0,0,0,1]*A;
+    A = [0,0,1,0;
+        0,1,0,0;
+        1,0,0,0;
+        0,0,0,1]*A;
+    % % note this has det -1!
+    A = diag([-1,1,1,1])*A;
+    % translation down in axis 2
+%    A(3,4)=-500;
+    % translation up in axis 1 direction
+%    A(2,4)=-1400;
+    % translation in axis 0
+%    A(1,4)=-1500;
+    %  30 degree  rotation
+    %A = [0.8660254,-0.5,0,0;
+    %     0.5,0.8660254,0,0;
+    %     0,0,1,0
+    %     0,0,0,1]*A;
+
+    %  10 degree clockwise rotation in xy
+    A = [0.9848077,-0.1736482,0,0;
+         0.1736482,0.9848077,0,0;
+         0,0,1,0
+         0,0,0,1]*A;
+    %  10 degree  rotation in yz
+%    A = [  1.0000000,  0.0000000,  0.0000000, 0;
+%           0.0000000,  0.9848077, -0.1736482, 0;
+%           0.0000000,  0.1736482,  0.9848077, 0;
+%	   0.0000000,  0.0000000,  0.0000000, 1.0 ]*A;
+%    %  15 degree  rotation
+%    A = [0.9659258,-0.2588190,0,0;
+%         0.2588190,0.9659258,0,0;
+%         0,0,1,0
+%         0,0,0,1]*A;
+%    A = [0,0,1,0;
+%        1,0,0,0;
+%        0,1,0,0;
+%        0,0,0,1]*A;
+
+    % expand atlas
+    %A = diag([1.85,1.85,1.85,1])*A;
+    
+    
+    % shrink atlas to make affine estimate more accurate
+    % comment out below for SertCre
+    %  stretch atlas in y dimension, typical deformation introduced
+%    A = diag([1.05,0.90,0.95,1])*A;
+
+%    A = diag([1,1.5,0.95,1])*A;
+    
+    % 30 degree rotation for gad2cre sample
+    %A = [  0.8660254, -0.5,0.0,0;
+    %   0.50,  0.8660254,0.0,0.0;
+    %      0.0,  0.0,  1.0 ,0.0;
+    %      0,0,0,1]*A;
+    %
+    %
+    % add some translation to move the brain
+    % in it's anterior direction
+
+    % A(2,4)=-1100
+    
+    % % after 25 iters
+    % A = [0.0017   -0.0272    0.8835 -0.0674*1e3
+    %     0.9193   -0.0057    0.0029 -1.1686*1e3
+    %     0.0964   -1.0415    0.0199 -0.0594*1e3;
+    %     0,0,0,1];
+    % naffine = 0;
+
 %%%% end parameters %%%%
 
 
@@ -441,84 +517,6 @@ for downloop = downloop_start : 2
     LLC = LC.^2;
     iLC = 1.0/LC;
     KhatC = 1.0./LLC;
-    
-    
-    
-    % %%
-    % initialize
-    A = eye(4);
-    A = [0,-1,0,0;
-        1,0,0,0;
-        0,0,1,0
-        0,0,0,1]*A;
-    A = [0,0,1,0;
-        0,1,0,0;
-        1,0,0,0;
-        0,0,0,1]*A;
-    % % note this has det -1!
-    A = diag([-1,1,1,1])*A;
-    % translation down in axis 2
-%    A(3,4)=-500;
-    % translation up in axis 1 direction
-%    A(2,4)=-1400;
-    % translation in axis 0
-%    A(1,4)=-1500;
-    %  30 degree  rotation
-    %A = [0.8660254,-0.5,0,0;
-    %     0.5,0.8660254,0,0;
-    %     0,0,1,0
-    %     0,0,0,1]*A;
-
-    %  10 degree clockwise rotation in xy
-    A = [0.9848077,-0.1736482,0,0;
-         0.1736482,0.9848077,0,0;
-         0,0,1,0
-         0,0,0,1]*A;
-    %  10 degree  rotation in yz
-%    A = [  1.0000000,  0.0000000,  0.0000000, 0;
-%           0.0000000,  0.9848077, -0.1736482, 0;
-%           0.0000000,  0.1736482,  0.9848077, 0;
-%	   0.0000000,  0.0000000,  0.0000000, 1.0 ]*A;
-%    %  15 degree  rotation
-%    A = [0.9659258,-0.2588190,0,0;
-%         0.2588190,0.9659258,0,0;
-%         0,0,1,0
-%         0,0,0,1]*A;
-%    A = [0,0,1,0;
-%        1,0,0,0;
-%        0,1,0,0;
-%        0,0,0,1]*A;
-
-    % expand atlas
-    %A = diag([1.85,1.85,1.85,1])*A;
-    
-    
-    % shrink atlas to make affine estimate more accurate
-    % comment out below for SertCre
-    %  stretch atlas in y dimension, typical deformation introduced
-%    A = diag([1.05,0.90,0.95,1])*A;
-
-%    A = diag([1,1.5,0.95,1])*A;
-    
-    % 30 degree rotation for gad2cre sample
-    %A = [  0.8660254, -0.5,0.0,0;
-    %   0.50,  0.8660254,0.0,0.0;
-    %      0.0,  0.0,  1.0 ,0.0;
-    %      0,0,0,1]*A;
-    %
-    %
-    % add some translation to move the brain
-    % in it's anterior direction
-
-    % A(2,4)=-1100
-    
-    % % after 25 iters
-    % A = [0.0017   -0.0272    0.8835 -0.0674*1e3
-    %     0.9193   -0.0057    0.0029 -1.1686*1e3
-    %     0.0964   -1.0415    0.0199 -0.0594*1e3;
-    %     0,0,0,1];
-    % naffine = 0;
-    
     
     vtx = zeros([size(I),nT]);
     vty = zeros([size(I),nT]);
