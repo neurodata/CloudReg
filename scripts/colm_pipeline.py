@@ -14,6 +14,7 @@ from tqdm import tqdm
 import argparse
 import os
 from joblib import Parallel, delayed
+import shutil
 
 
 def colm_pipeline(
@@ -67,21 +68,21 @@ def colm_pipeline(
         stitch_only
     )
 
-    # # run the Terastitcher commands
-    # for i in commands:
-    #     print(i)
-    #     subprocess.run(
-    #         shlex.split(i)
-    #     )
+    # run the Terastitcher commands
+    for i in commands:
+        print(i)
+        subprocess.run(
+            shlex.split(i)
+        )
     
     # # upload xml results to log_s3_path if not None
     # # and if not stitch_only
-    # if log_s3_path and not stitch_only:
-    #     log_s3_url = S3Url(log_s3_path.strip('/'))
-    #     files_to_save = glob(f'{raw_data_path}/*.xml')
-    #     for i in tqdm(files_to_save,desc='saving xml files to S3'):
-    #         out_path = i.split('/')[-1]
-    #         upload_file_to_s3(i, log_s3_url.bucket, f'{log_s3_url.key}/{out_path}')
+    if log_s3_path and not stitch_only:
+        log_s3_url = S3Url(log_s3_path.strip('/'))
+        files_to_save = glob(f'{raw_data_path}/*.xml')
+        for i in tqdm(files_to_save,desc='saving xml files to S3'):
+            out_path = i.split('/')[-1]
+            upload_file_to_s3(i, log_s3_url.bucket, f'{log_s3_url.key}/{out_path}')
 
 
     # downsample and upload stitched data to S3
@@ -107,11 +108,11 @@ def colm_pipeline(
         target_name = f'{base_path}/autofluorescence_data.tif'
 
         # download downsampled autofluorescence channel
-        download_data(output_s3_path, target_name)
+        voxel_size = download_data(output_s3_path, target_name)
 
         # run registration
         matlab_registration_command = f'''
-            matlab -nodisplay -nosplash -nodesktop -r \"base_path={base_path};target_name={target_name};prefix={registration_prefix};run(~/CloudReg/registration/registration_script_mouse_GN.m\")
+            matlab -nodisplay -nosplash -nodesktop -r \"base_path={base_path};target_name={target_name};prefix={registration_prefix};dxJ0={voxel_size};run(~/CloudReg/registration/registration_script_mouse_GN.m\")
         '''
         subprocess.run(
             shlex.split(matlab_registration_command)
@@ -125,8 +126,6 @@ def colm_pipeline(
 
         
 
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser('Run COLM pipeline including bias correction, stitching, upoad to S3')
     parser.add_argument('input_s3_path', help='S3 path to input colm data. Should be of the form s3://<bucket>/<experiment>', type=str)
@@ -139,22 +138,29 @@ if __name__ == "__main__":
     parser.add_argument('--log_s3_path', help='S3 path at which pipeline intermediates can be stored including bias correctin tile.',  type=str, default=None)
 
     args = parser.parse_args()
+    
 
     # for all channels in experiment
     for i in range(args.num_channels):
+        if i == 0: continue
+        output_s3_path = args.output_s3_path.strip('/')
         colm_pipeline(
             args.input_s3_path,
-            args.output_s3_path,
+            f"{output_s3_path}/CHN0{i}",
             i,
             args.autofluorescence_channel,
             args.raw_data_path,
             args.stitched_data_path,
             args.log_s3_path
         )
-        # delete all tiff files in raw_data_path
-        files_to_remove = glob.glob(f'{args.raw_data_path}/*/*.tiff')
-        with tqdm_joblib(tqdm(desc=f"Delete files from CHN0{i}", total=len(files_to_remove))) as progress_bar:
-            Parallel(-1)(delayed(os.remove)(
-                    f
-                ) for f in files_to_remove
-            )
+        if i == 0:
+            # delete all tiff files in raw_data_path
+            directories_to_remove = glob(f'{args.raw_data_path}/LOC*')
+            directories_to_remove.append(glob(f'{args.stitched_data_path}/RES*'))
+            with tqdm_joblib(tqdm(desc=f"Delete files from CHN0{i}", total=len(directories_to_remove))) as progress_bar:
+                Parallel(-1)(delayed(shutil.rmtree)(
+                        f
+                    ) for f in directories_to_remove
+                )
+            # make sure to delete mdata.bin from terastitcher
+            os.remove(f'{raw_data_path}/mdata.bin')

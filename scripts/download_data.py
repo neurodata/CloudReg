@@ -11,19 +11,21 @@ def get_mip_at_res(vol,resolution):
         if (scale['resolution'] < resolution).all():
             tmp_mip = i
             tmp_res = scale['resolution']
-    print(f"saving resolution (in nm): {tmp_res}")
-    return tmp_mip
+    return tmp_mip, tmp_res
 
 
 def download_data(s3_path, outfile, desired_resolution=15000):
     vol = CloudVolume(s3_path)
-    mip_needed = get_mip_at_res(vol,np.array([desired_resolution]*3))
+    mip_needed, resolution = get_mip_at_res(vol,np.array([desired_resolution]*3))
     vol = CloudVolume(args.s3_path,mip=mip_needed,parallel=True)
 
     # img is F order
     img = vol[:,:,:]
     # save out as C order
     tf.imsave(args.outfile,img.T,compress=3)
+
+    # return resolution in um
+    return resolution/1000
 
 
 

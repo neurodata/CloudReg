@@ -65,10 +65,10 @@ def get_image_dims(files):
 
 
 def process(z,file_path,layer_path,num_mips):
-    vols = [CloudVolume(layer_path,i,parallel=False) for i in range(num_mips)]
+    vols = [CloudVolume(layer_path,mip=i,parallel=False,fill_missing=False) for i in range(num_mips)]
     image = Image.open(file_path)
     width, height = image.size
-    array = np.array(image).T
+    array = np.asarray(image).T
     array = array.reshape((width,height,1))
     img_pyramid = tinybrain.accelerated.average_pooling_2x2(array, num_mips)
     vols[0][:,:,z] = array

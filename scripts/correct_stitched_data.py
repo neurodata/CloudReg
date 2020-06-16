@@ -6,7 +6,7 @@ from cloudvolume import CloudVolume
 import tinybrain
 from joblib import Parallel, delayed
 
-from util import imgResample
+from util import imgResample, tqdm_joblib
 
 def get_bias_field(img, mask=None, scale=1.0, niters=[50, 50, 50, 50]):
     """Correct bias field in image using the N4ITK algorithm (http://bit.ly/2oFwAun)
@@ -64,7 +64,7 @@ def get_bias_field(img, mask=None, scale=1.0, niters=[50, 50, 50, 50]):
 def process_slice(bias_slice,z,data_orig_path,data_bc_path):
     data_vol = CloudVolume(data_orig_path,parallel=False,progress=False,fill_missing=True)
     data_vol_bc = CloudVolume(data_bc_path,parallel=False,progress=False,fill_missing=True)
-    data_vols_bc = [get_vol_at_mip(data_bc_path,i,parallel=False) for i in range(len(data_vol_bc.scales))]
+    data_vols_bc = [CloudVolume(data_bc_path,mip=i,parallel=False) for i in range(len(data_vol_bc.scales))]
     # convert spcing rom nm to um
     new_spacing = np.array(data_vol.scales[0]['resolution'][:2])/1000
     bias_upsampled_sitk = imgResample(bias_slice,new_spacing,size=data_vol.scales[0]['size'][:2])
@@ -88,7 +88,7 @@ def correct_stitched_data(data_s3_path, out_s3_path, num_procs=12):
     vol_ds = CloudVolume(data_s3_path,mip,parallel=True,fill_missing=True)
 
     # create new vol if it doesnt exist
-    vol_bc = CloudVolume(args.out_s3_path,info=vol.info.copy())
+    vol_bc = CloudVolume(out_s3_path,info=vol.info.copy())
     vol_bc.commit_info()
 
     # download image at low res
@@ -98,12 +98,12 @@ def correct_stitched_data(data_s3_path, out_s3_path, num_procs=12):
     bias = get_bias_field(data,scale=0.125)
     bias_slices = [bias[:,:,i] for i in range(bias.GetSize()[-1])]
     with tqdm_joblib(tqdm(desc=f"Uploading bias corrected data...", total=len(bias_slices))) as progress_bar:
-        Parallel(args.num_procs)(
+        Parallel(num_procs)(
             delayed(process_slice)(
                 bias_slice,
                 z,
-                args.data_s3_path,
-                args.out_s3_path
+                data_s3_path,
+                out_s3_path
             ) for z,bias_slice in enumerate(bias_slices)
         )
 

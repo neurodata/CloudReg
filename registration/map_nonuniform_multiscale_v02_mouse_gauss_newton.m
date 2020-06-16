@@ -29,6 +29,11 @@ end
 if ~exist(atlas_prefix)
     atlas_prefix = [base_path 'CloudReg/registration/atlases/'];
 end
+% pixel size is required here as the tif data structure does not store it
+if ~exist(dxJ0)
+    dxJ0 = [9.36 9.36  5];
+end
+
 %%%% end params for input  files
 
 
@@ -90,8 +95,6 @@ rigid_only  = 0; % constrain affine to be rigid
 downloop_start = 1;
 for downloop = downloop_start : 2
     
-    % pixel size is required here as the tif data structure does not store it
-    dxJ0 = [9.36 9.36  5];
 
     if downloop == 1
         template_name = strcat(atlas_prefix,'/average_template_100.nrrd');
@@ -665,73 +668,6 @@ for downloop = downloop_start : 2
         
         danfigure(6666);
         sliceView(xJ,yJ,zJ,cat(4,J,fAphiI,J),nplot,climJ);
-        
-%         return % for checking affine
-if downloop == 1 && fixed_scale == 0 && it == 1
-    % show 5 scales
-    Asave_ = A;
-    [U,S,V] = svd(A(1:3,1:3));
-    s = diag(S);
-    ss = [0.9,1.0,1.1,1.2,1.3,1.4,1.5];
-    for ssloop = 1 : length(ss)
-        s = ss(ssloop);
-        A(1:3,1:3) = U * diag([s,s,s]) * V';
-        B = inv(A);
-        Xs = B(1,1)*XJ + B(1,2)*YJ + B(1,3)*ZJ + B(1,4);
-        Ys = B(2,1)*XJ + B(2,2)*YJ + B(2,3)*ZJ + B(2,4);
-        Zs = B(3,1)*XJ + B(3,2)*YJ + B(3,3)*ZJ + B(3,4);
-        
-        % okay if I did this together I would see
-        % AphiI = I(phiinv(B x))
-        % first sample phiinv at Bx
-        % then sample I at phiinv Bx
-        F = griddedInterpolant({yI,xI,zI},phiinvx-XI,'linear','nearest');
-        phiinvBx = F(Ys,Xs,Zs) + Xs;
-        F = griddedInterpolant({yI,xI,zI},phiinvy-YI,'linear','nearest');
-        phiinvBy = F(Ys,Xs,Zs) + Ys;
-        F = griddedInterpolant({yI,xI,zI},phiinvz-ZI,'linear','nearest');
-        phiinvBz = F(Ys,Xs,Zs) + Zs;
-        F = griddedInterpolant({yI,xI,zI},I,'linear','nearest');
-        AphiI = F(phiinvBy,phiinvBx,phiinvBz);
-        
-        
-        % now apply the linear intensity transformation
-        % order is 1 plus highest power
-        fAphiI = zeros(size(J));
-        for o = 1 : order
-            fAphiI = fAphiI + coeffs(:,:,:,o).*AphiI.^(o-1);
-        end
-        
-        
-        danfigure(6666);
-        sliceView(xJ,yJ,zJ,cat(4,J,fAphiI,J),nplot,climJ);
-        saveas(6666,[prefix 'test_scale_' num2str(s) '.png']);
-    end
-    A = Asave_;
-    B = inv(A);
-    Xs = B(1,1)*XJ + B(1,2)*YJ + B(1,3)*ZJ + B(1,4);
-    Ys = B(2,1)*XJ + B(2,2)*YJ + B(2,3)*ZJ + B(2,4);
-    Zs = B(3,1)*XJ + B(3,2)*YJ + B(3,3)*ZJ + B(3,4);
-    F = griddedInterpolant({yI,xI,zI},phiinvx-XI,'linear','nearest');
-    phiinvBx = F(Ys,Xs,Zs) + Xs;
-    F = griddedInterpolant({yI,xI,zI},phiinvy-YI,'linear','nearest');
-    phiinvBy = F(Ys,Xs,Zs) + Ys;
-    F = griddedInterpolant({yI,xI,zI},phiinvz-ZI,'linear','nearest');
-    phiinvBz = F(Ys,Xs,Zs) + Zs;
-    F = griddedInterpolant({yI,xI,zI},I,'linear','nearest');
-    AphiI = F(phiinvBy,phiinvBx,phiinvBz);
-    
-    
-    % now apply the linear intensity transformation
-    % order is 1 plus highest power
-    fAphiI = zeros(size(J));
-    for o = 1 : order
-        fAphiI = fAphiI + coeffs(:,:,:,o).*AphiI.^(o-1);
-    end
-    danfigure(6666);
-    sliceView(xJ,yJ,zJ,cat(4,J,fAphiI,J),nplot,climJ);
-end
-
         
         % now a weight
         doENumber = nMaffine;
