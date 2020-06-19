@@ -18,13 +18,16 @@ def run_command_on_server(command, ssh_key_path, ip_address, username='ubuntu'):
         client.connect(hostname=ip_address, username=username, pkey=key)
 
         # Execute a command after connecting/ssh to an instance
-        stdin, stdout, stderr = client.exec_command(command)
-        output = stdout.read().decode('utf-8')
+        stdin, stdout, stderr = client.exec_command(command, get_pty=True)
+        for line in iter(stdout.readline, ""):
+            print(line, end="")
+
+        # output = stdout.read().decode('utf-8')
         errors = stderr.read().decode('utf-8')
 
         # close the client connection once the job is done
         client.close()
-        return output, errors
+        return errors
 
     except Exception as e:
         print(e)
@@ -53,7 +56,7 @@ def run_colm_pipeline(
     # start instance
     ec2.meta.client.start_instances(InstanceIds=[instance_id])
     # wait until instance is started up
-    waiter = ec2.meta.client.get_waiter('instance_running')
+    waiter = ec2.meta.client.get_waiter('instance_status_ok')
     waiter.wait(InstanceIds=[instance_id])
     # get instance ip address
     instance = ec2.Instance(instance_id)
@@ -63,10 +66,9 @@ def run_colm_pipeline(
     command1 = 'sudo bash CloudReg/scripts/mount_combined_ssds.sh'
     # colm pipeline command
     command2 = f'time /home/ubuntu/colm_pipeline_env/bin/python CloudReg/scripts/colm_pipeline.py {input_s3_path} {output_s3_path} {num_channels} {autofluorescence_channel} --log_s3_path {log_s3_path}'
-    output1, errors1 = run_command_on_server(command1, ssh_key_path, instance.public_ip_address)
-    print(output1)
-    output2, errors2 = run_command_on_server(command2, ssh_key_path, instance.public_ip_address)
-    print(output2)
+    errors1 = run_command_on_server(command1, ssh_key_path, instance.public_ip_address)
+    print(errors1)
+    errors2 = run_command_on_server(command2, ssh_key_path, instance.public_ip_address)
     print(errors2)
 
     # shut down instance
