@@ -7,3 +7,4 @@ tifffile
 awscli
 mpi4py
 imagecodecs
+paramiko
