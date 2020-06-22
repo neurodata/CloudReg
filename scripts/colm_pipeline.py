@@ -126,7 +126,7 @@ if __name__ == "__main__":
             args.stitched_data_path,
             args.log_s3_path
         )
-        if i < args.num_channels:
+        if i < args.num_channels - 1:
             # delete all tiff files in raw_data_path
             directories_to_remove = glob(f'{args.raw_data_path}/LOC*')
             directories_to_remove.append(glob(f'{args.stitched_data_path}/RES*'))
