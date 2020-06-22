@@ -116,7 +116,6 @@ if __name__ == "__main__":
 
     # for all channels in experiment
     for i in range(args.num_channels):
-        if i == 0: continue
         output_s3_path = args.output_s3_path.strip('/')
         colm_pipeline(
             args.input_s3_path,
@@ -127,7 +126,7 @@ if __name__ == "__main__":
             args.stitched_data_path,
             args.log_s3_path
         )
-        if i == 0:
+        if i < args.num_channels:
             # delete all tiff files in raw_data_path
             directories_to_remove = glob(f'{args.raw_data_path}/LOC*')
             directories_to_remove.append(glob(f'{args.stitched_data_path}/RES*'))
