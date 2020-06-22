@@ -1,4 +1,5 @@
-if [[ $(lsblk | grep nvme | wc -l) - 2 < 4 ]]
+if [ $(($(($(lsblk | grep nvme | wc -l) - 2)) < 4)) ]
+then
     mkfs.ext4 -E nodiscard -m0 /dev/nvme0n1
     mkfs.ext4 -E nodiscard -m0 /dev/nvme1n1
     mount -o discard /dev/nvme0n1 /home/ubuntu/ssd1
