@@ -43,13 +43,13 @@ def colm_pipeline(
     # pull raw data from S3, bias correct, and save to local directory
     # save bias correction tile to log_s3_path
     vw0_path = f'{input_s3_url.url}/VW0/'
-    # correct_raw_data(
-    #     vw0_path,
-    #     channel_of_interest,
-    #     autofluorescence_channel,
-    #     raw_data_path,
-    #     log_s3_path=log_s3_path
-    # )
+    correct_raw_data(
+        vw0_path,
+        channel_of_interest,
+        autofluorescence_channel,
+        raw_data_path,
+        log_s3_path=log_s3_path
+    )
     
     # # generate commands to stitch data using Terastitcher
     stitch_only = False if channel_of_interest == 0 else True
@@ -69,11 +69,11 @@ def colm_pipeline(
     )
 
     # run the Terastitcher commands
-    # for i in commands:
-    #     print(i)
-    #     subprocess.run(
-    #         shlex.split(i)
-    #     )
+    for i in commands:
+        print(i)
+        subprocess.run(
+            shlex.split(i)
+        )
     
     # # upload xml results to log_s3_path if not None
     # # and if not stitch_only
@@ -99,34 +99,6 @@ def colm_pipeline(
         output_s3_path,
         output_s3_path
     )
-
-    # REGISTRATION
-    # only after stitching autofluorescence channel
-    if channel_of_interest == autofluorescence_channel:
-        base_path = f'{raw_data_path}'
-        registration_prefix = f'{base_path}/registration/'
-        target_name = f'{base_path}/autofluorescence_data.tif'
-
-        # download downsampled autofluorescence channel
-        voxel_size = download_data(output_s3_path, target_name)
-
-        # initialize affine transformation for data
-
-        # run registration
-        matlab_registration_command = f'''
-            matlab -nodisplay -nosplash -nodesktop -r \"base_path={base_path};target_name={target_name};prefix={registration_prefix};dxJ0={voxel_size};run(~/CloudReg/registration/registration_script_mouse_GN.m\")
-        '''
-        subprocess.run(
-            shlex.split(matlab_registration_command)
-        )
-
-        if log_s3_path:
-            # sync registration results to log_s3_path
-            aws_cli(['s3', 'sync', registration_prefix, log_s3_path])
-
-
-
-        
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser('Run COLM pipeline including bias correction, stitching, upoad to S3')
