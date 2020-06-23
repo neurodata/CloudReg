@@ -97,15 +97,18 @@ def correct_stitched_data(data_s3_path, out_s3_path, num_procs=12):
 
     bias = get_bias_field(data,scale=0.125)
     bias_slices = [bias[:,:,i] for i in range(bias.GetSize()[-1])]
-    with tqdm_joblib(tqdm(desc=f"Uploading bias corrected data...", total=len(bias_slices))) as progress_bar:
-        Parallel(num_procs, timeout=1800)(
-            delayed(process_slice)(
-                bias_slice,
-                z,
-                data_s3_path,
-                out_s3_path
-            ) for z,bias_slice in enumerate(bias_slices)
-        )
+    try: 
+        with tqdm_joblib(tqdm(desc=f"Uploading bias corrected data...", total=len(bias_slices))) as progress_bar:
+                Parallel(num_procs, timeout=7200)(
+                    delayed(process_slice)(
+                        bias_slice,
+                        z,
+                        data_s3_path,
+                        out_s3_path
+                    ) for z,bias_slice in enumerate(bias_slices)
+                )
+    except:
+        print("timed out on bias correcting slice. moving to next step.")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser('Correct whole brain bias field in image at native resolution.')
