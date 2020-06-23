@@ -62,6 +62,9 @@ def run_colm_pipeline(
     instance = ec2.Instance(instance_id)
 
     # now run command on instance
+    # update the code on the instance
+    update_command = 'cd CloudReg; git pull;'
+    errors_update = run_command_on_server(update_command, ssh_key_path, instance.public_ip_address)
     # mount ssds command
     command1 = 'sudo bash CloudReg/scripts/mount_combined_ssds.sh'
     # colm pipeline command
