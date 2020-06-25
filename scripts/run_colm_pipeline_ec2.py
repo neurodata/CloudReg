@@ -2,6 +2,7 @@ import argparse
 import boto3
 import paramiko
 import os
+from functools import partial
 
 
 # assume boto3 credentials are already configured
@@ -19,7 +20,7 @@ def run_command_on_server(command, ssh_key_path, ip_address, username='ubuntu'):
 
         # Execute a command after connecting/ssh to an instance
         stdin, stdout, stderr = client.exec_command(command, get_pty=True)
-        for line in iter(stdout.readline, ""):
+        for line in iter(lambda: stdout.readline(2048), ''):
             print(line, end="")
 
         # output = stdout.read().decode('utf-8')

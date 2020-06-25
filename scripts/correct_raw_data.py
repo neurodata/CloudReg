@@ -218,7 +218,7 @@ def correct_raw_data(
     files_per_proc = math.ceil(total_files/total_n_jobs)+1
     work = chunks(all_files, files_per_proc)
     with tqdm_joblib(tqdm(desc="Correcting tiles", total=total_n_jobs)) as progress_bar:
-        Parallel(n_jobs=total_n_jobs)(
+        Parallel(n_jobs=total_n_jobs, verbose=10)(
             delayed(correct_tiles)(
                 files, 
                 in_bucket_name, 
