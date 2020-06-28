@@ -4,9 +4,12 @@ from util import S3Url
 from cloudvolume import CloudVolume
 from scipy.spatial.transform import Rotation
 import numpy as np
-from util import get_reorientations
+from util import get_reorientations, aws_cli
+import argparse
+import subprocess
 
 atlas_orientation = "PIR"
+
 
 def get_affine_matrix(
     translation,
@@ -66,6 +69,7 @@ def get_affine_matrix(
 
     return affine
 
+
 def register(
     input_s3_path,
     output_s3_path,
@@ -78,7 +82,7 @@ def register(
 
     # registration
     # get channel name
-    s3_url = s3url(input_s3_path)
+    s3_url = S3Url(input_s3_path)
     channel = s3_url.key.split('/')[-1]
     exp = s3_url.key.split('/')[-2]
 

@@ -9,6 +9,7 @@ import numpy as np
 from cloudvolume import CloudVolume
 from registration import get_affine_matrix
 
+python_path = '/home/ubuntu/colm_pipeline_env/bin/python'
 
 def run_command_on_server(command, ssh_key_path, ip_address, username='ubuntu'):
 
@@ -82,13 +83,14 @@ def run_registration(
     # now run command on instance
     # update the code on the instance
     update_command = 'cd ~/CloudReg; git pull;'
-    errors_update = run_command_on_server(update_command, ssh_key_path, public_ip_address)
+    _ = run_command_on_server(update_command, ssh_key_path, public_ip_address)
     # matlab registration command
-    command2 = f'time /home/ubuntu/colm_pipeline_env/bin/python CloudReg/scripts/registration.py -orientation {orientation} --rotation {initial_rotation} --translation {initial_translation} --scale {fixed_scale} -log_s3_path {log_s3_path}'
+    command2 = f'time {python_path} CloudReg/scripts/registration.py -orientation {orientation} --rotation {initial_rotation} --translation {initial_translation} --scale {fixed_scale} -log_s3_path {log_s3_path}'
     errors2 = run_command_on_server(command2, ssh_key_path, public_ip_address)
     print(f"errors: {errors2}")
 
     # shut down instance
+    ec2 = boto3.resource('ec2')
     ec2.meta.client.stop_instances(InstanceIds=[instance_id])
 
 

@@ -8,3 +8,4 @@ awscli
 mpi4py
 imagecodecs
 paramiko
+scipy
