@@ -87,9 +87,6 @@ prior = [0.79, 0.2, 0.01];
 
 % total number of iterations
 niter = 5000;
-if downloop > 1
-    niter = 500;
-end
 
 do_GN = 1; % do gauss newton
 uniform_scale_only = 1; % for uniform scaling
@@ -103,6 +100,7 @@ for downloop = downloop_start : 2
 
     if downloop > 1
         eV = eV/2
+        niter = 500;
     end
     
 
