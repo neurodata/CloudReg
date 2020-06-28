@@ -12,25 +12,25 @@ addpath ~/CloudReg/registration/Functions/spatially_varying_polynomial/
 addpath ~/CloudReg/registration/Functions/textprogressbar/
 
 %%%% params for  input files
-if ~exist(base_path)
+if ~exist('base_path')
     base_path = '~/'
 end
 % path to input tif data
-if ~exist(target_name)
+if ~exist('target_name')
     target_name = [base_path 'autofluorescence_data.tif']
 end
 
 % prefix at which to store registration intermediates
-if ~exist(prefix)
+if ~exist('prefix')
     prefix = [base_path 'registration/']
 end
 
 %  atlas data prefix
-if ~exist(atlas_prefix)
+if ~exist('atlas_prefix')
     atlas_prefix = [base_path 'CloudReg/registration/atlases/']
 end
 % pixel size is required here as the tif data structure does not store it
-if ~exist(dxJ0)
+if ~exist('dxJ0')
     dxJ0 = [9.36 9.36  5]
 end
 
@@ -44,11 +44,11 @@ grid_correction = 1;
 %%%% end params for preprocessing
 
 %%%% params for registration
-if ~exist(fixed_scale)
+if ~exist('fixed_scale')
     fixed_scale = 1.0
 end
 
-if ~exist(initial_affine)
+if ~exist('initial_affine')
     initial_affine = eye(4)
 end
 A = initial_affine
