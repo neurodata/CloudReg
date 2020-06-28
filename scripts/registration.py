@@ -102,7 +102,7 @@ def register(
     affine_string = [', '.join(map(str,i)) for i in initial_affine]
     affine_string = '; '.join(affine_string)
     matlab_registration_command = f'''
-        matlab -nodisplay -nosplash -nodesktop -r \"base_path={base_path};target_name={target_name};prefix={registration_prefix};dxJ0={voxel_size};fixed_scale={fixed_scale};initial_affine=[{affine_string}];run(~/CloudReg/registration/registration_script_mouse_GN.m\")
+        matlab -nodisplay -nosplash -nodesktop -r \"base_path=\'{base_path}\';target_name=\'{target_name}\';prefix=\'{registration_prefix}\';dxJ0={voxel_size};fixed_scale={fixed_scale};initial_affine=[{affine_string}];run(\'~/CloudReg/registration/registration_script_mouse_GN.m\')\"
     '''
     subprocess.run(
         shlex.split(matlab_registration_command)
