@@ -248,7 +248,7 @@ def start_ec2_instance(instance_id, instance_type):
     # get ec2 client
     ec2 = boto3.resource('ec2')
 
-    if 'd' is in instance_type:
+    if 'd' in instance_type:
         # stop instance in case it is running
         ec2.meta.client.stop_instances(InstanceIds=[instance_id])
         waiter = ec2.meta.client.get_waiter('instance_stopped')
