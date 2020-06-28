@@ -182,7 +182,7 @@ for downloop = downloop_start : 2
     % downsample to about same res as atlas
     down = round(dxI./dxJ0);
     textprogressbar('reading target: ');
-    num_slices = length(info)
+    num_slices = length(info);
     for f = 1 : num_slices
         textprogressbar((f/num_slices)*100);
         %disp(['File ' num2str(f) ' of ' num2str(length(info))])
@@ -363,7 +363,6 @@ for downloop = downloop_start : 2
 	        danfigure(12);
 	        sliceView(xJ,yJ,zJ,histgrad);
 	        
-	        ep = 2e-1;
 	        ep = 1e-1;
 	        
 	        
@@ -497,7 +496,7 @@ for downloop = downloop_start : 2
         % make the coeffs a function of space
         coeffs = reshape(coeffs,1,1,1,[]) .*  ones([size(J),order]);
     else
-        coeffs  = load(coeffsname)
+        coeffs = load(coeffsname);
         coeffs_1 = upsample(coeffs(:,:,:,1),[size(J,1),size(J,2),size(J,3)]);
         coeffs_2 = upsample(coeffs(:,:,:,2),[size(J,1),size(J,2),size(J,3)]);
         coeffs_3 = upsample(coeffs(:,:,:,3),[size(J,1),size(J,2),size(J,3)]);
@@ -824,7 +823,6 @@ for downloop = downloop_start : 2
             Ai(1:3,1:4) = Ai(1:3,1:4) - eA * step;
             A = inv(Ai);
             if rigid_only
-                %
                 [U,S,V] = svd(A(1:3,1:3));
                 A(1:3,1:3) = U * V';
             end
