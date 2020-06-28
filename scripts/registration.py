@@ -4,7 +4,8 @@ from util import S3Url
 from cloudvolume import CloudVolume
 from scipy.spatial.transform import Rotation
 import numpy as np
-from util import get_reorientations, aws_cli, ara_average_data_link
+from util import get_reorientations, aws_cli 
+from visualization import ara_average_data_link
 import argparse
 import subprocess
 import os
