@@ -121,21 +121,21 @@ for downloop = downloop_start : 2
         Aname = ''; % input mat file to restore A, empty string if not restoring
         coeffsname = ''; % input mat file to restore A, empty string if not restoring
     else
-        [a,b,c] = fileparts(prefix);
-        vname = [a,filesep, b,['downloop_' num2str(downloop-1) '_'], c , 'v.mat'];
-        Aname = [a,filesep, b,['downloop_' num2str(downloop-1) '_'], c , 'A.mat'];
-        coeffsname = [a,filesep, b,['downloop_' num2str(downloop-1) '_'], c , 'coeffs.mat'];
+        [filepath,name,ext] = fileparts(prefix);
+        vname = [filepath,filesep, name,['downloop_' num2str(downloop-1) '_'], ext , 'v.mat'];
+        Aname = [filepath,filesep, name,['downloop_' num2str(downloop-1) '_'], ext , 'A.mat'];
+        coeffsname = [filepath,filesep, name,['downloop_' num2str(downloop-1) '_'], ext , 'coeffs.mat'];
 
     end
 
     % add down loop to prefix
-    [a,b,c] = fileparts(prefix);
-    prefix = [a,filesep, b,['downloop_' num2str(downloop) '_'], c];
+    [filepath,name,ext] = fileparts(prefix);
+    prefix = [filepath,filesep, name,['downloop_' num2str(downloop) '_'], ext];
     
     %%
-    [a,b,c] = fileparts(prefix);
-    if ~exist(a,'dir')
-        mkdir(a);
+    [filepath,~,~] = fileparts(prefix);
+    if ~exist(filepath,'dir')
+        mkdir(filepath);
     end
     
     
@@ -221,7 +221,6 @@ for downloop = downloop_start : 2
         end
     end
     textprogressbar('done reading target.');
-    display(size(J))
     dxJ = dxJ0.*down;
     xJ = (0:nxJ(1)-1)*dxJ(1);
     yJ = (0:nxJ(2)-1)*dxJ(2);
@@ -428,8 +427,6 @@ for downloop = downloop_start : 2
     
     
     % for debugging display dxI
-    disp(dxI)
-    disp(dxI(1))
     LL = (1 - 2 * a^2 * ( (cos(2*pi*dxI(1)*FXI) - 1)/dxI(1)^2 + (cos(2*pi*dxI(2)*FYI) - 1)/dxI(2)^2 + (cos(2*pi*dxI(3)*FZI) - 1)/dxI(3)^2 )).^(2*p);
     Khat = 1.0./LL;
     
@@ -447,13 +444,6 @@ for downloop = downloop_start : 2
     vtz = zeros([size(I),nT]);
     
  
-    % add translation in X,Y and Z axes
-    A = [eye(3),[500;-100;0];[0,0,0,1]]*A;
-    if fixed_scale
-        A = diag([fixed_scale,fixed_scale,fixed_scale,1])*A;
-    end
-    
-    
     % load data
     if ~isempty(Aname)
         variables = load(Aname);
