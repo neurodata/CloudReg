@@ -40,10 +40,10 @@ def get_affine_matrix(
     affine[range(len(order)),order] = 1
     # flip across appropriate dimensions
     affine[:3,:3] = np.diag(flips) @ affine[:3,:3]
-    # for each flip add the size of image in that dimension
-    affine[:3,-1] += np.array([vol_size[i]  if flips[i] == -1 else 0 for i in range(len(flips))])
 
     if center:
+        # for each flip add the size of image in that dimension
+        affine[:3,-1] += np.array([vol_size[i]  if flips[i] == -1 else 0 for i in range(len(flips))])
         # make image centered at the middle of the image
         # volume is now centered
         affine[:3,-1] -= vol_size/2
@@ -52,12 +52,6 @@ def get_affine_matrix(
     if np.array(rotation).any():
         rotation_matrix = np.eye(4)
         rotation_matrix[:3,:3] = Rotation.from_euler('xyz', rotation, degrees=True).as_matrix()
-        # convert rotation matrix to homogenous around origin
-        # rot_counts = np.zeros((3,))
-        # for i in range(len(rotation)):
-        #     if rotation[i] != 0:
-        #         rot_counts[list(set(range(3))-set([i]))] += 1
-        # rotation_matrix[:3,-1] = (vol_size/2) * rot_counts
         # compose rotation with affine
         affine = rotation_matrix @ affine
     # add translation components
@@ -98,6 +92,8 @@ def register(
     voxel_size = download_data(input_s3_path, target_name)
 
     # initialize affine transformation for data
+    atlas_res = 100
+    atlas_s3_path = ara_average_data_link(atlas_res)
     initial_affine = get_affine_matrix(translation, rotation, atlas_orientation, orientation, fixed_scale, atlas_s3_path)
 
 

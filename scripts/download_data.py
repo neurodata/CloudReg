@@ -25,7 +25,7 @@ def download_data(s3_path, outfile, desired_resolution=15000):
     tf.imsave(outfile,img.T,compress=3)
 
     # return resolution in um
-    return resolution/1000
+    return np.divide(resolution,1000.0)
 
 
 
