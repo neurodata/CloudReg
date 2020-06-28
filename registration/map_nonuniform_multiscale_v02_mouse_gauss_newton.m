@@ -37,7 +37,7 @@ end
 
 
 %%%% params for preprocessing
-missing_data_correction = 0;
+missing_data_correction = 1;
 bias_correction = 1;
 grid_correction = 1;
 %%%% end params for preprocessing
@@ -50,7 +50,7 @@ end
 if ~exist('initial_affine')
     initial_affine = eye(4)
 end
-A = initial_affine
+A = initial_affine;
 
 % weight of regularization 
 sigmaR = 1e4;
@@ -99,7 +99,7 @@ downloop_start = 1;
 for downloop = downloop_start : 2
 
     if downloop > 1
-        eV = eV/2
+        eV = eV/2;
         niter = 500;
     end
     
@@ -259,7 +259,7 @@ for downloop = downloop_start : 2
     % grid correction
     if grid_correction
         grid_correction_blur_width = 150;
-        J0 = correct_grid(J0_orig, xJ, yJ, 3, grid_correction_blur_width)
+        J0 = correct_grid(J0_orig, xJ, yJ, 3, grid_correction_blur_width);
         danfigure(3);
         sliceView(xJ,yJ,zJ,J0);
         axis image
@@ -427,6 +427,9 @@ for downloop = downloop_start : 2
     pC = 2;
     
     
+    % for debugging display dxI
+    disp(dxI)
+    disp(dxI(1))
     LL = (1 - 2 * a^2 * ( (cos(2*pi*dxI(1)*FXI) - 1)/dxI(1)^2 + (cos(2*pi*dxI(2)*FYI) - 1)/dxI(2)^2 + (cos(2*pi*dxI(3)*FZI) - 1)/dxI(3)^2 )).^(2*p);
     Khat = 1.0./LL;
     
