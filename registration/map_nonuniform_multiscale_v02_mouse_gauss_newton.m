@@ -261,14 +261,7 @@ for downloop = downloop_start : 2
     % grid correction
     if grid_correction
         grid_correction_blur_width = 150;
-        J0 = correct_grid(
-            J0_orig,
-            xJ,
-            yJ,
-            3,
-            grid_correction_blur_width
-        )
-        
+        J0 = correct_grid(J0_orig, xJ, yJ, 3, grid_correction_blur_width)
         danfigure(3);
         sliceView(xJ,yJ,zJ,J0);
         axis image

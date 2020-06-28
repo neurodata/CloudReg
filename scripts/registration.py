@@ -61,7 +61,7 @@ def get_affine_matrix(
     affine[:3,-1] += translation
     
     # scale by fixed_scale
-    affine = np.diag([fixed_scale]*dim) @ affine
+    affine = np.diag([fixed_scale, fixed_scale, fixed_scale, 1.0]) @ affine
 
     return affine
 
