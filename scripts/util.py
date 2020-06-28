@@ -195,3 +195,70 @@ def aws_cli(*cmd):
     finally:
         os.environ.clear()
         os.environ.update(old_env)
+
+
+
+def get_reorientations(in_orient, out_orient):
+    """
+    Gets reordering and flips require to convert from  in_orient to out_orient
+    """
+
+    dimension = len(in_orient)
+    if (len(in_orient) != dimension):
+        raise Exception(
+            "in_orient must be a string of length {0}.".format(dimension))
+    if (len(out_orient) != dimension):
+        raise Exception(
+            "out_orient must be a string of length {0}.".format(dimension))
+    in_orient = str(in_orient).lower()
+    out_orient = str(out_orient).lower()
+
+    inDirection = ""
+    outDirection = ""
+    orientToDirection = {"r": "r", "l": "r",
+                         "s": "s", "i": "s", "a": "a", "p": "a"}
+    for i in range(dimension):
+        try:
+            inDirection += orientToDirection[in_orient[i]]
+        except BaseException:
+            raise Exception("in_orient \'{0}\' is invalid.".format(in_orient))
+
+        try:
+            outDirection += orientToDirection[out_orient[i]]
+        except BaseException:
+            raise Exception("out_orient \'{0}\' is invalid.".format(out_orient))
+
+    if len(set(inDirection)) != dimension:
+        raise Exception(
+            "in_orient \'{0}\' is invalid.".format(in_orient))
+    if len(set(outDirection)) != dimension:
+        raise Exception(
+            "out_orient \'{0}\' is invalid.".format(out_orient))
+
+    order = []
+    flip = []
+    for i in range(dimension):
+        j = inDirection.find(outDirection[i])
+        order += [j]
+        flip += [-1 if in_orient[j] != out_orient[i] else 1]
+    return order, flip
+
+
+def start_ec2_instance(instance_id, instance_type):
+    # get ec2 client
+    ec2 = boto3.resource('ec2')
+
+    # stop instance in case it is running
+    ec2.meta.client.stop_instances(InstanceIds=[instance_id])
+    waiter = ec2.meta.client.get_waiter('instance_stopped')
+    waiter.wait(InstanceIds=[instance_id])
+    # make sure instance is the right type
+    ec2.meta.client.modify_instance_attribute(InstanceId=instance_id, Attribute='instanceType', Value=instance_type)
+    # start instance
+    ec2.meta.client.start_instances(InstanceIds=[instance_id])
+    # wait until instance is started up
+    waiter = ec2.meta.client.get_waiter('instance_status_ok')
+    waiter.wait(InstanceIds=[instance_id])
+    # get instance ip address
+    instance = ec2.Instance(instance_id)
+    return instance.public_ip_address

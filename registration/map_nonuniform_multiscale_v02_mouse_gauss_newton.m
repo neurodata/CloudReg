@@ -13,25 +13,25 @@ addpath ~/CloudReg/registration/Functions/textprogressbar/
 
 %%%% params for  input files
 if ~exist(base_path)
-    base_path = '~/';
+    base_path = '~/'
 end
 % path to input tif data
 if ~exist(target_name)
-    target_name = [base_path 'autofluorescence_data.tif'];
+    target_name = [base_path 'autofluorescence_data.tif']
 end
 
 % prefix at which to store registration intermediates
 if ~exist(prefix)
-    prefix = [base_path 'registration/'];
+    prefix = [base_path 'registration/']
 end
 
 %  atlas data prefix
 if ~exist(atlas_prefix)
-    atlas_prefix = [base_path 'CloudReg/registration/atlases/'];
+    atlas_prefix = [base_path 'CloudReg/registration/atlases/']
 end
 % pixel size is required here as the tif data structure does not store it
 if ~exist(dxJ0)
-    dxJ0 = [9.36 9.36  5];
+    dxJ0 = [9.36 9.36  5]
 end
 
 %%%% end params for input  files
@@ -44,7 +44,15 @@ grid_correction = 1;
 %%%% end params for preprocessing
 
 %%%% params for registration
-fixed_scale = 1.2;
+if ~exist(fixed_scale)
+    fixed_scale = 1.0
+end
+
+if ~exist(initial_affine)
+    initial_affine = eye(4)
+end
+A = initial_affine
+
 % weight of regularization 
 sigmaR = 1e4;
 
@@ -71,6 +79,7 @@ eA = 0.2;
 
 % velocity field update step size
 eV = 1e6;
+
 if downloop > 1
     eV = eV/2
 end
@@ -89,81 +98,6 @@ end
 do_GN = 1; % do gauss newton
 uniform_scale_only = 1; % for uniform scaling
 rigid_only  = 0; % constrain affine to be rigid
-
-    % %%
-    % initialize
-    A = eye(4);
-    A = [0,-1,0,0;
-        1,0,0,0;
-        0,0,1,0
-        0,0,0,1]*A;
-    A = [0,0,1,0;
-        0,1,0,0;
-        1,0,0,0;
-        0,0,0,1]*A;
-    % % note this has det -1!
-    A = diag([-1,1,1,1])*A;
-    % translation down in axis 2
-%    A(3,4)=-500;
-    % translation up in axis 1 direction
-%    A(2,4)=-1400;
-    % translation in axis 0
-%    A(1,4)=-1500;
-    %  30 degree  rotation
-    %A = [0.8660254,-0.5,0,0;
-    %     0.5,0.8660254,0,0;
-    %     0,0,1,0
-    %     0,0,0,1]*A;
-
-    %  10 degree clockwise rotation in xy
-    A = [0.9848077,-0.1736482,0,0;
-         0.1736482,0.9848077,0,0;
-         0,0,1,0
-         0,0,0,1]*A;
-    %  10 degree  rotation in yz
-%    A = [  1.0000000,  0.0000000,  0.0000000, 0;
-%           0.0000000,  0.9848077, -0.1736482, 0;
-%           0.0000000,  0.1736482,  0.9848077, 0;
-%	   0.0000000,  0.0000000,  0.0000000, 1.0 ]*A;
-%    %  15 degree  rotation
-%    A = [0.9659258,-0.2588190,0,0;
-%         0.2588190,0.9659258,0,0;
-%         0,0,1,0
-%         0,0,0,1]*A;
-%    A = [0,0,1,0;
-%        1,0,0,0;
-%        0,1,0,0;
-%        0,0,0,1]*A;
-
-    % expand atlas
-    %A = diag([1.85,1.85,1.85,1])*A;
-    
-    
-    % shrink atlas to make affine estimate more accurate
-    % comment out below for SertCre
-    %  stretch atlas in y dimension, typical deformation introduced
-%    A = diag([1.05,0.90,0.95,1])*A;
-
-%    A = diag([1,1.5,0.95,1])*A;
-    
-    % 30 degree rotation for gad2cre sample
-    %A = [  0.8660254, -0.5,0.0,0;
-    %   0.50,  0.8660254,0.0,0.0;
-    %      0.0,  0.0,  1.0 ,0.0;
-    %      0,0,0,1]*A;
-    %
-    %
-    % add some translation to move the brain
-    % in it's anterior direction
-
-    % A(2,4)=-1100
-    
-    % % after 25 iters
-    % A = [0.0017   -0.0272    0.8835 -0.0674*1e3
-    %     0.9193   -0.0057    0.0029 -1.1686*1e3
-    %     0.0964   -1.0415    0.0199 -0.0594*1e3;
-    %     0,0,0,1];
-    % naffine = 0;
 
 %%%% end parameters %%%%
 
@@ -241,10 +175,6 @@ for downloop = downloop_start : 2
     [FXI,FYI,FZI] = meshgrid(fxI,fyI,fzI);
     
     [L, meta] = nrrdread(label_name);
-%    L = niftiread(label_name);
-%    meta_L = niftiinfo(label_name)
-    %  convert pixel dimensions from  mm to um
-%    dxL = meta.PixelDimensions * 1000.0
     dxL = diag(sscanf(meta.spacedirections,'(%d,%d,%d) (%d,%d,%d) (%d,%d,%d)',[3,3]))';
     L = padarray(L,[1,1,1]*npad,0,'both');
     
@@ -776,8 +706,6 @@ for downloop = downloop_start : 2
                     Jerr(:,:,:,count) = (bsxfun(@times, fAphiI_x,Xs) + bsxfun(@times, fAphiI_y,Ys) + bsxfun(@times, fAphiI_z,Zs)).*sqrt(WM);
                 end
             end
-%             JerrJerr = squeeze(sum(sum(sum(bsxfun(@times, permute(bsxfun(@times,Jerr,1),[1,2,3,4,5]) , permute(Jerr,[1,2,3,5,4])),3),2),1));
-            % the above line is very slow
             Jerr_ = reshape(Jerr,[],count);
             JerrJerr = Jerr_' * Jerr_;
             % step
