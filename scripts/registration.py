@@ -82,6 +82,7 @@ def register(
 
     # registration
     # get channel name
+    print(input_s3_path)
     s3_url = S3Url(input_s3_path)
     channel = s3_url.key.split('/')[-1]
     exp = s3_url.key.split('/')[-2]

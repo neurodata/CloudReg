@@ -85,7 +85,7 @@ def run_registration(
     update_command = 'cd ~/CloudReg; git pull;'
     _ = run_command_on_server(update_command, ssh_key_path, public_ip_address)
     # matlab registration command
-    command2 = f'time {python_path} CloudReg/scripts/registration.py -orientation {orientation} --rotation {initial_rotation} --translation {initial_translation} --scale {fixed_scale} -log_s3_path {log_s3_path}'
+    command2 = f"time {python_path} CloudReg/scripts/registration.py -orientation {orientation} --rotation {' '.join(map(str,initial_rotation))} --translation {' '.join(map(str,initial_translation))} --scale {fixed_scale} -log_s3_path {log_s3_path}"
     errors2 = run_command_on_server(command2, ssh_key_path, public_ip_address)
     print(f"errors: {errors2}")
 
