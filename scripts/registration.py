@@ -93,6 +93,7 @@ def register(
     target_name = f'{base_path}/autofluorescence_data.tif'
 
     # download downsampled autofluorescence channel
+    print("downloading data for registration...")
     voxel_size = download_data(input_s3_path, target_name)
 
     # initialize affine transformation for data
