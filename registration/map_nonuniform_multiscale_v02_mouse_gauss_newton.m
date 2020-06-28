@@ -412,6 +412,14 @@ for downloop = downloop_start : 2
     %%
     % now we map them!
     %%
+    % get clims for atlas and target
+    danfigure(1);
+    sliceView(xI,yI,zI,I)
+    climI = get(gca,'clim');
+    danfigure(2);
+    sliceView(xJ,yJ,zJ,J)
+    climJ = get(gca,'clim');
+
     % weight of matching in cost function
     sigmaM = std(J(:));
     % background weight
