@@ -1,4 +1,3 @@
-clear all;
 close all;
 fclose all;
 
@@ -12,11 +11,11 @@ addpath ~/CloudReg/registration/Functions/spatially_varying_polynomial/
 addpath ~/CloudReg/registration/Functions/textprogressbar/
 
 %%%% params for  input files
-if ~exist('base_path')
+if exist('base_path') == 0
     base_path = '~/'
 end
 % path to input tif data
-if ~exist('target_name')
+if exist('target_name') == 0
     target_name = [base_path 'autofluorescence_data.tif']
 end
 
@@ -80,9 +79,6 @@ eA = 0.2;
 % velocity field update step size
 eV = 1e6;
 
-if downloop > 1
-    eV = eV/2
-end
 
 
 % prior on brain, artifact, background likelihood (in that order)
@@ -104,6 +100,10 @@ rigid_only  = 0; % constrain affine to be rigid
 
 downloop_start = 1;
 for downloop = downloop_start : 2
+
+    if downloop > 1
+        eV = eV/2
+    end
     
 
     if downloop == 1

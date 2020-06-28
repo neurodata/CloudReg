@@ -104,6 +104,7 @@ def register(
     matlab_registration_command = f'''
         matlab -nodisplay -nosplash -nodesktop -r \"base_path=\'{base_path}\';target_name=\'{target_name}\';prefix=\'{registration_prefix}\';dxJ0={voxel_size};fixed_scale={fixed_scale};initial_affine=[{affine_string}];run(\'~/CloudReg/registration/registration_script_mouse_GN.m\')\"
     '''
+    print(matlab_registration_command)
     subprocess.run(
         shlex.split(matlab_registration_command)
     )
