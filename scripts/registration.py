@@ -7,6 +7,7 @@ import numpy as np
 from util import get_reorientations, aws_cli
 import argparse
 import subprocess
+import os
 
 atlas_orientation = "PIR"
 
