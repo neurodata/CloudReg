@@ -11,11 +11,11 @@ addpath ~/CloudReg/registration/Functions/spatially_varying_polynomial/
 addpath ~/CloudReg/registration/Functions/textprogressbar/
 
 %%%% params for  input files
-if exist('base_path') == 0
+if ~exist('base_path')
     base_path = '~/'
 end
 % path to input tif data
-if exist('target_name') == 0
+if ~exist('target_name')
     target_name = [base_path 'autofluorescence_data.tif']
 end
 
