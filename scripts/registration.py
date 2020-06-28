@@ -88,7 +88,7 @@ def register(
     exp = s3_url.key.split('/')[-2]
 
     # only after stitching autofluorescence channel
-    base_path = f'~/'
+    base_path = os.path.expanduser('~/')
     registration_prefix = f'{base_path}/{exp}_{channel}_registration/'
     target_name = f'{base_path}/autofluorescence_data.tif'
 
