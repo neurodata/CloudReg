@@ -8,5 +8,5 @@ function [corrected_image] = correct_grid(img, x_axis_coords, y_axis_coords, z_a
     Ks = ifftshift(K);
     Kshat = fftn(Ks);
     Jb = ifftn(fftn(image_sum).*Kshat,'symmetric');
-    corrected_image = bsxfun(@times, img, Jb./(Jsum+1));
+    corrected_image = bsxfun(@times, img, Jb./(image_sum+1));
 end
