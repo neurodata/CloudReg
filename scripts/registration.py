@@ -119,7 +119,7 @@ if __name__ == "__main__":
     # data args
     parser.add_argument('-input_s3_path', help='S3 path to precomputed volume used to register the data', type=str)
     parser.add_argument('-log_s3_path', help='S3 path at which registration outputs are stored.',  type=str)
-    parser.add_argument('--output_s3_path', help='S3 path to store atlas transformed to target as precomputed volume. Should be of the form s3://<bucket>/<path_to_precomputed>. Default is same as input s3_path with atlas_to_target as channel name',  type=str)
+    parser.add_argument('--output_s3_path', help='S3 path to store atlas transformed to target as precomputed volume. Should be of the form s3://<bucket>/<path_to_precomputed>. Default is same as input s3_path with atlas_to_target as channel name',  type=str, default=None)
 
     # affine initialization args
     parser.add_argument('-orientation', help='3-letter orientation of data. i.e. LPS',  type=str)

@@ -38,7 +38,7 @@ end
 
 %%%% params for preprocessing
 missing_data_correction = 1;
-bias_correction = 1;
+bias_correction = 0;
 grid_correction = 1;
 %%%% end params for preprocessing
 
