@@ -916,6 +916,7 @@ for downloop = downloop_start : 2
         
     end
     save([prefix 'v.mat'],'vtx','vty','vtz','-v7.3')
+    save([prefix 'coeffs.mat'], 'coeffs')
     toc
     
     %%
