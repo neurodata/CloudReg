@@ -20,8 +20,8 @@ if ~exist('target_name')
 end
 
 % prefix at which to store registration intermediates
-if ~exist('prefix')
-    prefix = [base_path 'registration/']
+if ~exist('registration_prefix')
+    registration_prefix = [base_path 'registration/']
 end
 
 %  atlas data prefix
@@ -38,8 +38,8 @@ end
 
 %%%% params for preprocessing
 missing_data_correction = 1;
-bias_correction = 0;
 grid_correction = 1;
+bias_correction = 1;
 %%%% end params for preprocessing
 
 %%%% params for registration
@@ -102,6 +102,8 @@ for downloop = downloop_start : 2
         eV = eV/2;
         niter = 500;
     end
+
+    prefix = registration_prefix;
     
 
     if downloop == 1
@@ -376,7 +378,7 @@ for downloop = downloop_start : 2
 	        sliceView(xJ,yJ,zJ,exp(J))
 	        
 	        
-	%        disp(['Finished it ' num2str(it)])
+	    % disp(['Finished it ' num2str(it)])
 	        drawnow
 	        
 	        
