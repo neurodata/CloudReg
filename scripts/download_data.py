@@ -8,7 +8,7 @@ def get_mip_at_res(vol,resolution):
     tmp_mip = 0
     tmp_res = 0
     for i,scale in enumerate(vol.scales):
-        if (scale['resolution'] < resolution).all():
+        if (scale['resolution'] <= resolution).all():
             tmp_mip = i
             tmp_res = scale['resolution']
     return tmp_mip, tmp_res

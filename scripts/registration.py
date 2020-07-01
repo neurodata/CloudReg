@@ -5,7 +5,7 @@ from cloudvolume import CloudVolume
 from scipy.spatial.transform import Rotation
 import numpy as np
 from util import get_reorientations, aws_cli 
-from visualization import ara_average_data_link
+from visualization import ara_average_data_link, ara_annotation_data_link
 import argparse
 import subprocess
 import os
@@ -91,6 +91,12 @@ def register(
     # download downsampled autofluorescence channel
     print("downloading data for registration...")
     voxel_size = download_data(input_s3_path, target_name)
+    # if high res atlas labels file doesn't exist
+    ara_annotation_10um = '~/CloudReg/registration/atlases/ara_annotation_10um.tif'
+    if not os.path.exists(ara_annotation_10um):
+        # download it
+        _ = download_data(ara_annotation_data_link(10), ara_annotation_10um, desired_resolution=10000)
+
 
     # initialize affine transformation for data
     atlas_res = 100
