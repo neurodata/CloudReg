@@ -95,7 +95,7 @@ rigid_only  = 0; % constrain affine to be rigid
 %%%% end parameters %%%%
 
 
-downloop_start = 1;
+downloop_start = 2;
 for downloop = downloop_start : 2
 
     if downloop > 1
@@ -484,7 +484,7 @@ for downloop = downloop_start : 2
     It(:,:,:,1) = I;
     
     
-    if downloop == 1
+    if downloop >= 1
         % actually
         % we need an initial linear transformation to compute our first weight
         Jq = quantile(J(:),[0.1 0.9]);
@@ -506,6 +506,7 @@ for downloop = downloop_start : 2
         coeffs = cat(4,coeffs_1,coeffs_2,coeffs_3,coeffs_4);
     end
     
+    return
     % start
     Esave = [];
     EMsave = [];

@@ -9,6 +9,6 @@ nxJ0_ds = nxJ0./down2
 dxJ0_ds = dxJ0.*down2
 vname = [prefix 'v.mat'];
 Aname = [prefix 'A.mat'];
-save([prefix 'transform_params.mat'],'atlas_path','atlas_voxel_size','output_path','nxJ0','dxJ0','vname','Aname')
+save([prefix 'transform_params.mat'],'atlas_path','atlas_voxel_size','output_path_target','output_path_atlas','nxJ0','dxJ0','vname','Aname')
 transform_data(atlas_path,atlas_voxel_size,Aname,vname,dxI,dxJ0_ds,nxJ0_ds,'target',output_path_atlas,'nearest')
 transform_data(target_path,dxJ0,Aname,vname,dxI,atlas_voxel_size,[1320 800 1140],'target',output_path_target,'linear')
