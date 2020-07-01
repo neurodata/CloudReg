@@ -47,7 +47,7 @@ minimum_ngl_json = {
 
 # desired ara resolution in microns
 ara_average_data_link = lambda res: f'https://open-neurodata.s3.amazonaws.com/ara_2016/sagittal_{res}um/average_{res}um'
-ara_annotation_data_link = lambda res: f'https://open-neurodata.s3.amazonaws.com/ara_2016/sagittal_{res}um/annotation_{res}um'
+ara_annotation_data_link = lambda res: f'https://open-neurodata.s3.amazonaws.com/ara_2016/sagittal_{res}um/annotation_{res}um_2017'
 
 
 def create_viz_link(
