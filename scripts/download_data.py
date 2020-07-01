@@ -22,7 +22,7 @@ def download_data(s3_path, outfile, desired_resolution=15000):
     # img is F order
     img = vol[:,:,:]
     # save out as C order
-    tf.imsave(outfile,img.T,compress=3)
+    tf.imsave(outfile,img.T,compress=9)
 
     # return resolution in um
     return np.divide(resolution,1000.0)

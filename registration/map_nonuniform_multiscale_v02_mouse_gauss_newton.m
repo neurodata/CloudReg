@@ -484,7 +484,7 @@ for downloop = downloop_start : 2
     It(:,:,:,1) = I;
     
     
-    if downloop >= 1
+    if ~isempty(coeffsname)
         % actually
         % we need an initial linear transformation to compute our first weight
         Jq = quantile(J(:),[0.1 0.9]);
