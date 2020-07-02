@@ -92,7 +92,7 @@ def register(
     print("downloading data for registration...")
     voxel_size = download_data(input_s3_path, target_name)
     # if high res atlas labels file doesn't exist
-    ara_annotation_10um = '~/CloudReg/registration/atlases/ara_annotation_10um.tif'
+    ara_annotation_10um = os.path.expanduser('~/CloudReg/registration/atlases/ara_annotation_10um.tif')
     if not os.path.exists(ara_annotation_10um):
         # download it
         _ = download_data(ara_annotation_data_link(10), ara_annotation_10um, desired_resolution=10000)
@@ -115,9 +115,12 @@ def register(
         shlex.split(matlab_registration_command)
     )
 
+    # savse results to S3
     if log_s3_path:
         # sync registration results to log_s3_path
         aws_cli(['s3', 'sync', registration_prefix, log_s3_path])
+    
+
 
 
 if __name__ == "__main__":
