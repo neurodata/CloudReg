@@ -136,4 +136,4 @@ if __name__ == "__main__":
                     ) for f in directories_to_remove
                 )
             # make sure to delete mdata.bin from terastitcher
-            os.remove(f'{raw_data_path}/mdata.bin')
+            os.remove(f'{args.raw_data_path}/mdata.bin')
