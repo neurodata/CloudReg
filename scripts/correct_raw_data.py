@@ -1,4 +1,4 @@
-import glob.glob
+import glob
 import time
 import os
 from io import BytesIO
