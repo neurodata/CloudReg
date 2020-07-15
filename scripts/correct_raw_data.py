@@ -1,3 +1,4 @@
+import glob.glob
 import time
 import os
 from io import BytesIO
@@ -15,18 +16,6 @@ from util import tqdm_joblib, chunks, imgResample, upload_file_to_s3, S3Url, s3_
 
 
 config = Config(connect_timeout=5, retries={'max_attempts': 5})
-
-
-def get_list_of_files_to_process(in_bucket_name, prefix, channel):
-    session = boto3.Session()
-    s3_client = session.client('s3', config=config)
-    loc_prefixes = s3_client.list_objects_v2(Bucket=in_bucket_name,Prefix=prefix,Delimiter='CHN')['CommonPrefixes']
-    loc_prefixes = [i['Prefix'] + f'0{channel}' for i in loc_prefixes]
-    all_files = []
-    for i in tqdm(loc_prefixes):
-        all_files.extend([f['Key'] for f in get_all_s3_objects(s3_client,Bucket=in_bucket_name,Prefix=i)])
-    return all_files
-
 
 def correct_bias_field(img, mask=None, scale=1.0, niters=[50, 50, 50, 50]):
     """Correct bias field in image using the N4ITK algorithm (http://bit.ly/2oFwAun)
@@ -81,117 +70,69 @@ def correct_bias_field(img, mask=None, scale=1.0, niters=[50, 50, 50, 50]):
     return img_bc,bias
 
 
-def sum_tile(s3, running_sum, raw_tile_bucket, raw_tile_path):
-    raw_tile_obj = s3.Object(raw_tile_bucket, raw_tile_path)
-    raw_tile = np.asarray(Image.open(BytesIO(raw_tile_obj.get()["Body"].read())))
-    running_sum += raw_tile
+def sum_tiles(files):
+    raw_tile = np.squeeze(tf.imread(files[0])).T
+    running_sum = np.zeros(raw_tile.shape, dtype='float')
 
-
-def sum_tiles(files, raw_tile_bucket):
-    session = boto3.Session()
-    s3 = session.resource('s3',config=config)
-    raw_tile_obj = s3.Object(raw_tile_bucket, files[0])
-    raw_tile = np.asarray(Image.open(BytesIO(raw_tile_obj.get()["Body"].read())))
-    running_sum = np.zeros(raw_tile.shape)
     for f in files:
-        sum_tile(
-            s3,
-            running_sum,
-            raw_tile_bucket,
-            f
-        )
+        running_sum += np.squeeze(tf.imread(f)).T
+
     return running_sum
 
 
-def correct_tile(s3, raw_tile_bucket, raw_tile_path, bias, outdir):
-    out_path = get_out_path(raw_tile_path, outdir)
-    raw_tile_obj = s3.Object(raw_tile_bucket, raw_tile_path)
-    # try this unless you get endpoin None error
-    # then wait 30 seconds and retry
-    try:
-        raw_tile = np.asarray(Image.open(BytesIO(raw_tile_obj.get()["Body"].read())))
-    except e:
-        print(f"Encountered Exception. Waiting 10 seconds to retry")
-        time.sleep(10)
-        s3 = boto3.resource('s3')
-        raw_tile_obj = s3.Object(raw_tile_bucket, raw_tile_path)
-        raw_tile = np.asarray(Image.open(BytesIO(raw_tile_obj.get()["Body"].read())))
+def correct_tile(raw_tile_path, outdir, bias=None):
+    # overwrite existing tile
+    out_path = raw_tile_path
+    raw_tile = np.squeeze(tf.imread(raw_tile_path)).T
 
-    # rescale corrected tile to be uint16
-    # for  Terastitcher
-    corrected_tile = np.around(raw_tile * bias)
-    # clip values above uint16.max and below 0
-    corrected_tile = np.clip(corrected_tile,0,np.iinfo(np.uint16).max)
-    # corrected_tile = (corrected_tile/(2**12 - 1)) * np.iinfo('uint16').max
-    tf.imwrite(out_path,data=corrected_tile.astype('uint16'), compress=3, append=False)
+    if bias is None:
+        tf.imwrite(out_path, data=raw_tile.astype('uint16'), compress=3, append=False)
+
+    else:
+        # rescale corrected tile to be uint16
+        # for Terastitcher
+        corrected_tile = np.around(raw_tile * bias)
+        # clip values above uint16.max and below 0
+        corrected_tile = np.clip(corrected_tile, 0, np.iinfo(np.uint16).max)
+        # corrected_tile = (corrected_tile/(2**12 - 1)) * np.iinfo('uint16').max
+        tf.imwrite(out_path, data=corrected_tile.astype('uint16'), compress=3, append=False)
 
 
-def correct_tiles(tiles, raw_tile_bucket, bias, outdir):
-    session = boto3.Session()
-    s3 = session.resource('s3')
-    
+def correct_tiles(tiles, outdir, bias):
     for tile in tiles:
         correct_tile(
-            s3,
-            raw_tile_bucket,
             tile,
-            bias,
-            outdir
+            outdir,
+            bias
         )
 
 
-def get_out_path(in_path, outdir):
-    head,fname = os.path.split(in_path)
-    head_tmp = head.split('/')
-    head = f'{outdir}/' + '/'.join(head_tmp[-1:])
-    idx = fname.find('.')
-    fname_new = fname[:idx] + '_corrected.tiff'
-    out_path = f'{head}/{fname_new}'
-    os.makedirs(head, exist_ok=True)  # succeeds even if directory exists.
-    return out_path
-
-
-def get_all_s3_objects(s3, **base_kwargs):
-    continuation_token = None
-    while True:
-        list_kwargs = dict(MaxKeys=1000, **base_kwargs)
-        if continuation_token:
-            list_kwargs['ContinuationToken'] = continuation_token
-        response = s3.list_objects_v2(**list_kwargs)
-        yield from response.get('Contents', [])
-        if not response.get('IsTruncated'):  # At the end of the list?
-            break
-        continuation_token = response.get('NextContinuationToken')
-
-
 def correct_raw_data(
-    in_bucket_path,
+    raw_data_path,
     channel,
-    auto_channel,
-    outdir,
     subsample_factor=5,
     log_s3_path=None
 ):
 
-    input_s3_url = S3Url(in_bucket_path.strip('/'))
-    in_bucket_name = input_s3_url.bucket
-    in_path = input_s3_url.key
     total_n_jobs = cpu_count()
+    # overwrite existing raw data with corrected data
+    outdir = raw_data_path
 
     # get list of all tiles to correct for  given channel
-    all_files = get_list_of_files_to_process(in_bucket_name,in_path,channel)
+    all_files = np.sort(glob.glob(f'{raw_data_path}/*/*.tiff'))
     total_files = len(all_files)
 
     bias_path = f'{outdir}/CHN0{channel}_bias.tiff'
     if os.path.exists(bias_path):
         bias = tf.imread(bias_path)
-    else: 
+
+    else:
         # subsample tiles
         files_cb = all_files[::subsample_factor]
-        num_files  = len(files_cb)
+        num_files = len(files_cb)
 
         # compute running sums in parallel
-        sums = Parallel(total_n_jobs, verbose=10)(delayed(sum_tiles)(f, in_bucket_name) for f in chunks(files_cb,math.ceil(num_files//(total_n_jobs))+1))
+        sums = Parallel(total_n_jobs, verbose=10)(delayed(sum_tiles)(f) for f in chunks(files_cb,math.ceil(num_files//(total_n_jobs))+1))
         sums = [i[:,:,None] for i in sums]
         sum_tile = np.squeeze(np.sum(np.concatenate(sums,axis=2),axis=2))/num_files
         sum_tile = sitk.GetImageFromArray(sum_tile)
@@ -200,18 +141,18 @@ def correct_raw_data(
         bias = sitk.GetArrayFromImage(correct_bias_field(sum_tile,scale=1.0)[-1])
 
         # save bias tile to local directory
-        tf.imsave(bias_path,bias)
+        tf.imsave(bias_path, bias)
 
     # save bias tile to S3
     if log_s3_path:
         s3 = boto3.resource('s3')
         img = Image.fromarray(bias)
         fp = BytesIO()
-        img.save(fp,format='TIFF')
+        img.save(fp, format='TIFF')
         # reset pointer to beginning  of file
         fp.seek(0)
         log_s3_url = S3Url(log_s3_path.strip('/'))
-        bias_path = f'{log_s3_url.key}/CHN0{auto_channel}_bias.tiff'
+        bias_path = f'{log_s3_url.key}/CHN0{channel}_bias.tiff'
         s3.Object(log_s3_url.bucket, bias_path).upload_fileobj(fp)
 
     # correct all the files and save them
@@ -221,31 +162,26 @@ def correct_raw_data(
         Parallel(n_jobs=total_n_jobs, verbose=10)(
             delayed(correct_tiles)(
                 files, 
-                in_bucket_name, 
-                bias, 
-                outdir
+                outdir,
+                bias
             ) 
             for files in work
         )
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--in_bucket_path', help='Full path to S3 bucket where raw tiles live. Should be of the form s3://<bucket-name>/<path-to-VW0-folder>/', type=str)
-    parser.add_argument('--bias_bucket_name', help='Name of S3 bucket where bias correction will live.', type=str)
+    parser.add_argument('--raw_data_path', help='Path to raw data in COLM format.', type=str)
+    parser.add_argument('--log_s3_path', help='S3 path where bias correction will live.', type=str)
     parser.add_argument('--channel', help='Channel number to process. accepted values are 0, 1, or 2', type=str)
-    parser.add_argument('--auto_channel', help='Autofluorescence Channel number for computing bias. accepted values are 0, 1, or 2', type=str)
-    parser.add_argument('--outdir', help='Path to output directory to store corrected tiles. VW0 directory will  be saved here. Default: ~/', default='/home/ubuntu/' ,type=str)
+    # parser.add_argument('--outdir', help='Path to output directory to store corrected tiles. VW0 directory will  be saved here. Default: ~/', default='/home/ubuntu/' ,type=str)
     parser.add_argument('--subsample_factor', help='Factor to subsample the tiles by to compute the bias. Default is subsample by 5 which means every 5th tile  will be used.', type=int, default=5)
-    parser.add_argument('--skip_bias_correction', help='If included, no bias correction will be done', type=bool, default=False)
 
     args = parser.parse_args()
 
     correct_raw_data(
-        args.in_bucket_path,
+        args.raw_data_path,
         args.channel,
-        args.auto_channel,
-        args.outdir,
         args.subsample_factor,
-        args.skip_bias_correction
+        args.log_s3_path
     )
 

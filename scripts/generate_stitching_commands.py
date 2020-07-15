@@ -6,11 +6,15 @@ from psutil import virtual_memory
 import joblib
 import boto3
 import os
+from util import S3Url, upload_file_to_s3, download_file_from_s3, download_terastitcher_files, tqdm_joblib, aws_cli
+import subprocess
+import shlex
 
 parastitcher_path = f'{os.path.dirname(os.path.realpath(__file__))}/parastitcher.py'
 paraconverter_path = f'{os.path.dirname(os.path.realpath(__file__))}/paraconverter.py'
 python_path = os.path.expanduser('~/colm_pipeline_env/bin/python')
 
+STITCH_ONLY, COMPUTE_ONLY, ALL_STEPS = range(3)
 
 def write_import_xml(fname_importxml,scanned_matrix,metadata):
     img_regex = '.*.tiff'
@@ -54,7 +58,7 @@ def write_import_xml(fname_importxml,scanned_matrix,metadata):
         ])
 
 
-def write_terastitcher_commands(fname_ts, metadata, stitched_dir, stitch_only):
+def write_terastitcher_commands(fname_ts, metadata, stitched_dir, do_steps):
     eofl = '\n'
     subvoldim = 60
     #subvoldim = max(metadata['num_slices']//num_processes,20)
@@ -71,8 +75,11 @@ def write_terastitcher_commands(fname_ts, metadata, stitched_dir, stitch_only):
     step5 = f"terastitcher --placetiles --projin=\"{metadata['stack_dir']}/xml_displthres.xml\"{eofl}"
     step6 = f"mpirun -n {num_proc_merge} {python_path} {paraconverter_path} -s=\"{metadata['stack_dir']}/xml_merging.xml\" -d=\"{stitched_dir}\" --sfmt=\"TIFF (unstitched, 3D)\" --dfmt=\"TIFF (series, 2D)\" --height={metadata['height']} --width={metadata['width']} --depth={depth}{eofl}"
     ts_commands = []
-    if stitch_only:
+
+    if do_steps == STITCH_ONLY:
         ts_commands.extend([step1,step6])
+    elif do_steps == COMPUTE_ONLY:
+        ts_commands.extend([step1,step2,step3,step4,step5])
     else:
         ts_commands.extend([step1,step2,step3,step4,step5,step6])
 
@@ -144,6 +151,7 @@ def get_metadata(path_to_config):
     print(f"height: {metadata['height']}")
     return metadata
 
+
 def get_scanned_cells(fname_scanned_cells):
     # read scanned matrix file
     scanned_matrix = []
@@ -159,7 +167,7 @@ def generate_stitching_commands(
     stack_dir,
     metadata_s3_bucket,
     metadata_s3_path,
-    stitch_only=False
+    do_steps=ALL_STEPS
 ):
 
 
@@ -183,15 +191,61 @@ def generate_stitching_commands(
 
 
     fname_ts = f'{stack_dir}/terastitcher_commands.sh'
-    ts_commands = write_terastitcher_commands(fname_ts, metadata, stitched_dir, stitch_only)
+    ts_commands = write_terastitcher_commands(fname_ts, metadata, stitched_dir, do_steps)
 
     return metadata, ts_commands
 
 
-class COLMMetadata():
+def run_terastitcher(
+    raw_data_path,
+    stitched_data_path,
+    input_s3_path,
+    log_s3_path=None,
+    stitch_only=False,
+    compute_only=False
+):
 
-    def __init__():
+    input_s3_url = S3Url(input_s3_path.strip('/'))
+
+    # generate commands to stitch data using Terastitcher
+    if stitch_only and not log_s3_path:
+        raise("If using previous stitching results, must specify log_s3_path")
+    elif stitch_only:
         pass
+        # download terastitcher files if they arent already on local storage
+        # download_terastitcher_files(log_s3_path, raw_data_path)
+        
+    if stitch_only: 
+        do_steps = STITCH_ONLY
+    elif compute_only: 
+        do_steps = COMPUTE_ONLY
+    else: 
+        do_steps = ALL_STEPS
+
+    metadata, commands = generate_stitching_commands(
+        stitched_data_path,
+        raw_data_path,
+        input_s3_url.bucket,
+        input_s3_url.key,
+        do_steps
+    )
+
+    # run the Terastitcher commands
+    for i in commands:
+        print(i)
+        subprocess.run(
+            shlex.split(i)
+        )
+    
+    # # upload xml results to log_s3_path if not None
+    # # and if not stitch_only
+    if log_s3_path and not stitch_only:
+        log_s3_url = S3Url(log_s3_path.strip('/'))
+        files_to_save = glob(f'{raw_data_path}/*.xml')
+        for i in tqdm(files_to_save,desc='saving xml files to S3'):
+            out_path = i.split('/')[-1]
+            upload_file_to_s3(i, log_s3_url.bucket, f'{log_s3_url.key}/{out_path}')
+
 
 
 if __name__ == "__main__":

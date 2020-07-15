@@ -1,13 +1,9 @@
+from download_raw_data import download_raw_data
 from correct_raw_data import correct_raw_data
 from create_precomputed_volume import create_precomputed_volume
-from generate_stitching_commands import generate_stitching_commands
 from correct_stitched_data import correct_stitched_data
-from download_data import download_data
-#from . import correct_raw_data, create_precomputed_volume, generate_stitching_commands
+from generate_stitching_commands import run_terastitcher
 from util import S3Url, upload_file_to_s3, download_file_from_s3, download_terastitcher_files, tqdm_joblib, aws_cli
-import boto3
-import subprocess
-import shlex
 import numpy as np
 from glob import glob
 from tqdm import tqdm
@@ -40,50 +36,42 @@ def colm_pipeline(
     input_s3_url = S3Url(input_s3_path.strip('/'))
     output_s3_url = S3Url(output_s3_path.strip('/'))
 
-    # pull raw data from S3, bias correct, and save to local directory
-    # save bias correction tile to log_s3_path
+    # download raw data onto local SSD
     vw0_path = f'{input_s3_url.url}/VW0/'
-    correct_raw_data(
+    download_raw_data(
         vw0_path,
         channel_of_interest,
-        autofluorescence_channel,
         raw_data_path,
         log_s3_path=log_s3_path
     )
-    
-    # # generate commands to stitch data using Terastitcher
+
+    # compute stitching alignments
     stitch_only = False if channel_of_interest == 0 else True
-    if stitch_only and not log_s3_path:
-        raise("If using previous stitching results, must specify log_s3_path")
-    elif stitch_only:
-        pass
-    #     # download terastitcher files if they arent already on local storage
-    #     # download_terastitcher_files(log_s3_path, raw_data_path)
-        
-    metadata, commands = generate_stitching_commands(
-        stitched_data_path,
-        raw_data_path,
-        input_s3_url.bucket,
-        input_s3_url.key,
-        stitch_only
-    )
-
-    # run the Terastitcher commands
-    for i in commands:
-        print(i)
-        subprocess.run(
-            shlex.split(i)
+    if not stitch_only:
+        run_terastitcher(
+            raw_data_path,
+            stitched_data_path,
+            input_s3_path,
+            log_s3_path=log_s3_path,
+            compute_only=True
         )
-    
-    # # upload xml results to log_s3_path if not None
-    # # and if not stitch_only
-    if log_s3_path and not stitch_only:
-        log_s3_url = S3Url(log_s3_path.strip('/'))
-        files_to_save = glob(f'{raw_data_path}/*.xml')
-        for i in tqdm(files_to_save,desc='saving xml files to S3'):
-            out_path = i.split('/')[-1]
-            upload_file_to_s3(i, log_s3_url.bucket, f'{log_s3_url.key}/{out_path}')
 
+    # bias correct all tiles
+    # save bias correction tile to log_s3_path
+    correct_raw_data(
+        raw_data_path,
+        channel_of_interest,
+        log_s3_path=log_s3_path
+    )
+    
+    # now stitch the data
+    run_terastitcher(
+        raw_data_path,
+        stitched_data_path,
+        input_s3_path,
+        log_s3_path=log_s3_path,
+        stitch_only=True
+    )
 
     # downsample and upload stitched data to S3
     create_precomputed_volume(

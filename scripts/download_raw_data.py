@@ -10,14 +10,14 @@ from tqdm import tqdm
 from joblib import Parallel, delayed, cpu_count
 import math
 import tifffile as tf
-import SimpleITK as sitk
 from util import tqdm_joblib, chunks, imgResample, upload_file_to_s3, S3Url, s3_object_exists
 
 
 config = Config(connect_timeout=5, retries={'max_attempts': 5})
 
+
 def get_out_path(in_path, outdir):
-    head,fname = os.path.split(in_path)
+    head, fname = os.path.split(in_path)
     head_tmp = head.split('/')
     head = f'{outdir}/' + '/'.join(head_tmp[-1:])
     idx = fname.find('.')
@@ -104,9 +104,9 @@ def download_raw_data(
         Parallel(n_jobs=total_n_jobs, verbose=10)(
             delayed(download_tiles)(
                 files, 
-                in_bucket_name, 
+                in_bucket_name,
                 outdir
-            ) 
+            )
             for files in work
         )
 
@@ -122,9 +122,7 @@ if __name__ == "__main__":
     download_raw_data(
         args.in_bucket_path,
         args.channel,
-        args.auto_channel,
         args.outdir,
-        args.subsample_factor,
         args.log_s3_path
     )
 
