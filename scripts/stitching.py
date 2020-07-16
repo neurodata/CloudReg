@@ -10,7 +10,7 @@ from util import S3Url, upload_file_to_s3, download_file_from_s3, download_teras
 import subprocess
 import shlex
 from glob import glob
-import tqdm
+from tqdm import tqdm
 
 parastitcher_path = f'{os.path.dirname(os.path.realpath(__file__))}/parastitcher.py'
 paraconverter_path = f'{os.path.dirname(os.path.realpath(__file__))}/paraconverter.py'
