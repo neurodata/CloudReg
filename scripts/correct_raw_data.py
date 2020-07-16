@@ -71,11 +71,11 @@ def correct_bias_field(img, mask=None, scale=1.0, niters=[50, 50, 50, 50]):
 
 
 def sum_tiles(files):
-    raw_tile = np.squeeze(tf.imread(files[0])).T
+    raw_tile = np.squeeze(tf.imread(files[0]))
     running_sum = np.zeros(raw_tile.shape, dtype='float')
 
     for f in files:
-        running_sum += np.squeeze(tf.imread(f)).T
+        running_sum += np.squeeze(tf.imread(f))
 
     return running_sum
 
@@ -83,7 +83,7 @@ def sum_tiles(files):
 def correct_tile(raw_tile_path, outdir, bias=None):
     # overwrite existing tile
     out_path = raw_tile_path
-    raw_tile = np.squeeze(tf.imread(raw_tile_path)).T
+    raw_tile = np.squeeze(tf.imread(raw_tile_path))
 
     if bias is None:
         tf.imwrite(out_path, data=raw_tile.astype('uint16'), compress=3, append=False)
@@ -95,7 +95,7 @@ def correct_tile(raw_tile_path, outdir, bias=None):
         # clip values above uint16.max and below 0
         corrected_tile = np.clip(corrected_tile, 0, np.iinfo(np.uint16).max)
         # corrected_tile = (corrected_tile/(2**12 - 1)) * np.iinfo('uint16').max
-        tf.imwrite(out_path, data=corrected_tile.astype('uint16').T, compress=3, append=False)
+        tf.imwrite(out_path, data=corrected_tile.astype('uint16'), compress=3, append=False)
 
 
 def correct_tiles(tiles, outdir, bias):
