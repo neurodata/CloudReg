@@ -6,59 +6,7 @@ from cloudvolume import CloudVolume
 import tinybrain
 from joblib import Parallel, delayed
 
-from util import imgResample, tqdm_joblib
-
-def get_bias_field(img, mask=None, scale=1.0, niters=[50, 50, 50, 50]):
-    """Correct bias field in image using the N4ITK algorithm (http://bit.ly/2oFwAun)
-
-    Parameters:
-    ----------
-    img : {SimpleITK.SimpleITK.Image}
-        Input image with bias field.
-    mask : {SimpleITK.SimpleITK.Image}, optional
-        If used, the bias field will only be corrected within the mask. (the default is None, which results in the whole image being corrected.)
-    scale : {float}, optional
-        Scale at which to compute the bias correction. (the default is 0.25, which results in bias correction computed on an image downsampled to 1/4 of it's original size)
-    niters : {list}, optional
-        Number of iterations per resolution. Each additional entry in the list adds an additional resolution at which the bias is estimated. (the default is [50, 50, 50, 50] which results in 50 iterations per resolution at 4 resolutions)
-
-    Returns
-    -------
-    SimpleITK.SimpleITK.Image
-        Bias-corrected image that has the same size and spacing as the input image.
-    """
-
-    # do in case image has 0 intensities
-    # add a small constant that depends on
-    # distribution of intensities in the image
-    minmaxfilter = sitk.MinimumMaximumImageFilter()
-    minmaxfilter.Execute(img)
-    minval = minmaxfilter.GetMinimum()
-    img_rescaled = sitk.Cast(img, sitk.sitkFloat32) - minval + 1.0
-
-    spacing = np.array(img_rescaled.GetSpacing())/scale
-    img_ds = imgResample(img_rescaled, spacing=spacing)
-    img_ds = sitk.Cast(img_ds, sitk.sitkFloat32)
-
-    # Calculate bias
-    if mask is None:
-        mask = sitk.Image(img_ds.GetSize(), sitk.sitkUInt8)+1
-        mask.CopyInformation(img_ds)
-    else:
-        if type(mask) is not sitk.SimpleITK.Image:
-            mask_sitk = sitk.GetImageFromArray(mask)
-            mask_sitk.CopyInformation(img)
-            mask = mask_sitk
-        mask = imgResample(mask, spacing=spacing)
-
-    img_ds_bc = sitk.N4BiasFieldCorrection(img_ds, mask, 0.001, niters)
-    bias_ds = img_ds_bc / sitk.Cast(img_ds, img_ds_bc.GetPixelID())
-
-    # Upsample bias
-    bias = imgResample(bias_ds, spacing=img.GetSpacing(), size=img.GetSize())
-
-    return bias
-
+from util import imgResample, tqdm_joblib get_bias_field
 
 
 def process_slice(bias_slice,z,data_orig_path,data_bc_path):
