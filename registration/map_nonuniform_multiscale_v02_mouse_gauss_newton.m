@@ -485,7 +485,13 @@ for downloop = downloop_start : 2
     
     
     if ~isempty(coeffsname)
-        % actually
+        coeffs = load(coeffsname);
+        coeffs_1 = upsample(coeffs(:,:,:,1),[size(J,1),size(J,2),size(J,3)]);
+        coeffs_2 = upsample(coeffs(:,:,:,2),[size(J,1),size(J,2),size(J,3)]);
+        coeffs_3 = upsample(coeffs(:,:,:,3),[size(J,1),size(J,2),size(J,3)]);
+        coeffs_4 = upsample(coeffs(:,:,:,4),[size(J,1),size(J,2),size(J,3)]);
+        coeffs = cat(4,coeffs_1,coeffs_2,coeffs_3,coeffs_4);
+    else
         % we need an initial linear transformation to compute our first weight
         Jq = quantile(J(:),[0.1 0.9]);
         Iq = quantile(I(:),[0.1,0.9]);
@@ -497,16 +503,8 @@ for downloop = downloop_start : 2
         % then increase order
         % make the coeffs a function of space
         coeffs = reshape(coeffs,1,1,1,[]) .*  ones([size(J),order]);
-    else
-        coeffs = load(coeffsname);
-        coeffs_1 = upsample(coeffs(:,:,:,1),[size(J,1),size(J,2),size(J,3)]);
-        coeffs_2 = upsample(coeffs(:,:,:,2),[size(J,1),size(J,2),size(J,3)]);
-        coeffs_3 = upsample(coeffs(:,:,:,3),[size(J,1),size(J,2),size(J,3)]);
-        coeffs_4 = upsample(coeffs(:,:,:,4),[size(J,1),size(J,2),size(J,3)]);
-        coeffs = cat(4,coeffs_1,coeffs_2,coeffs_3,coeffs_4);
     end
     
-    return
     % start
     Esave = [];
     EMsave = [];
