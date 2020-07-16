@@ -65,7 +65,7 @@ def colm_pipeline(
     )
     
     # now stitch the data
-    run_terastitcher(
+    metadata = run_terastitcher(
         raw_data_path,
         stitched_data_path,
         input_s3_path,

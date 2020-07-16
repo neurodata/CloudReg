@@ -95,7 +95,7 @@ def correct_tile(raw_tile_path, outdir, bias=None):
         # clip values above uint16.max and below 0
         corrected_tile = np.clip(corrected_tile, 0, np.iinfo(np.uint16).max)
         # corrected_tile = (corrected_tile/(2**12 - 1)) * np.iinfo('uint16').max
-        tf.imwrite(out_path, data=corrected_tile.astype('uint16'), compress=3, append=False)
+        tf.imwrite(out_path, data=corrected_tile.astype('uint16').T, compress=3, append=False)
 
 
 def correct_tiles(tiles, outdir, bias):
@@ -110,7 +110,7 @@ def correct_tiles(tiles, outdir, bias):
 def correct_raw_data(
     raw_data_path,
     channel,
-    subsample_factor=5,
+    subsample_factor=2,
     log_s3_path=None
 ):
 
