@@ -2,7 +2,7 @@ from download_raw_data import download_raw_data
 from correct_raw_data import correct_raw_data
 from create_precomputed_volume import create_precomputed_volume
 from correct_stitched_data import correct_stitched_data
-from generate_stitching_commands import run_terastitcher
+from stitching import run_terastitcher
 from util import S3Url, upload_file_to_s3, download_file_from_s3, download_terastitcher_files, tqdm_joblib, aws_cli
 import numpy as np
 from glob import glob
@@ -88,6 +88,7 @@ def colm_pipeline(
         output_s3_path
     )
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser('Run COLM pipeline including bias correction, stitching, upoad to S3')
     parser.add_argument('input_s3_path', help='S3 path to input colm data. Should be of the form s3://<bucket>/<experiment>', type=str)
@@ -100,7 +101,6 @@ if __name__ == "__main__":
     parser.add_argument('--log_s3_path', help='S3 path at which pipeline intermediates can be stored including bias correctin tile.',  type=str, default=None)
 
     args = parser.parse_args()
-    
 
     # for all channels in experiment
     for i in range(args.num_channels):
