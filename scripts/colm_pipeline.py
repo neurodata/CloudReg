@@ -117,7 +117,7 @@ if __name__ == "__main__":
         if i < args.num_channels - 1:
             # delete all tiff files in raw_data_path
             directories_to_remove = glob(f'{args.raw_data_path}/LOC*')
-            directories_to_remove.append(glob(f'{args.stitched_data_path}/RES*'))
+            directories_to_remove.extend(glob(f'{args.stitched_data_path}/RES*'))
             with tqdm_joblib(tqdm(desc=f"Delete files from CHN0{i}", total=len(directories_to_remove))) as progress_bar:
                 Parallel(-1)(delayed(shutil.rmtree)(
                         f

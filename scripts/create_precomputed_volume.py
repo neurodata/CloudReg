@@ -97,7 +97,7 @@ def create_precomputed_volume(
 
     try:
         with tqdm_joblib(tqdm(desc="Creating precomputed volume", total=len(files))) as progress_bar:
-            Parallel(num_procs, timeout=1800, verbose=10)(
+            Parallel(num_procs, timeout=1200, verbose=10)(
                 delayed(process)(
                     z,
                     f,
