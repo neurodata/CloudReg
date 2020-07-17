@@ -28,7 +28,7 @@ def sum_tiles(files):
     return running_sum
 
 
-def correct_tile(raw_tile_path, outdir, bias, background_tile=None):
+def correct_tile(raw_tile_path, outdir, bias, background_value=None):
     # overwrite existing tile
     out_path = raw_tile_path
     raw_tile = np.squeeze(tf.imread(raw_tile_path)).astype('float')
@@ -39,7 +39,7 @@ def correct_tile(raw_tile_path, outdir, bias, background_tile=None):
     else:
         # rescale corrected tile to be uint16
         # for Terastitcher
-        tile_bc = np.clip(raw_tile - background_tile.astype('float'), 0, None)
+        tile_bc = np.clip(raw_tile - background_value, 0, None)
         corrected_tile = np.around(tile_bc * bias)
         # clip values above uint16.max and below 0
         # corrected_tile = np.clip(corrected_tile, 0, np.iinfo(np.uint16).max)
@@ -47,31 +47,29 @@ def correct_tile(raw_tile_path, outdir, bias, background_tile=None):
         tf.imwrite(out_path, data=corrected_tile.astype('uint16'), compress=3, append=False)
 
 
-def correct_tiles(tiles, outdir, bias, background_tile_path=None):
-    background_tile = None
-    if background_tile_path is not None:
-        background_tile = np.squeeze(tf.imread(background_tile_path)).astype('float')
-
+def correct_tiles(tiles, outdir, bias, background_value=None):
     for tile in tiles:
         correct_tile(
             tile,
             outdir,
             bias,
-            background_tile
+            background_value
         )
 
 
-def get_background_tile_path(raw_data_path):
+def get_background_value(raw_data_path):
     first_plane = np.sort(glob.glob(f'{raw_data_path}/LOC*/*PLN0000*.tiff'))
     def _mean(image_path):
         return np.mean(tf.imread(image_path))
     means = Parallel(-1)(
         delayed(_mean)(
             tile
-        ) for tile in tqdm(first_plane,desc='Finding background tile...')
+        ) for tile in tqdm(first_plane, desc='Finding background tile...')
     )
-    # return tile with lowest mean
-    return first_plane[np.argmin(means)]
+    # pat to tile with lowest mean
+    # background_tile_path = first_plane[np.argmin(means)]
+    # return mean of that tile
+    return np.min(means)
 
 
 
@@ -80,8 +78,7 @@ def correct_raw_data(
     channel,
     subsample_factor=2,
     log_s3_path=None,
-    background_correction=True,
-    background_tile_path=None
+    background_correction=True
 ):
 
     total_n_jobs = cpu_count()
@@ -90,8 +87,8 @@ def correct_raw_data(
 
     # get list of all tiles to correct for  given channel
     all_files = np.sort(glob.glob(f'{raw_data_path}/*/*.tiff'))
-    if background_correction == True and background_tile_path is None:
-        background_tile_path = get_background_tile_path(raw_data_path)
+    if background_correction: 
+        background_val = get_background_value(raw_data_path)
     total_files = len(all_files)
 
     bias_path = f'{outdir}/CHN0{channel}_bias.tiff'
@@ -106,14 +103,14 @@ def correct_raw_data(
         # compute running sums in parallel
         sums = Parallel(total_n_jobs, verbose=10)(delayed(sum_tiles)(f) for f in chunks(files_cb,math.ceil(num_files//(total_n_jobs))+1))
         sums = [i[:,:,None] for i in sums]
-        sum_tile = np.squeeze(np.sum(np.concatenate(sums,axis=2),axis=2))/num_files
+        mean_tile = np.squeeze(np.sum(np.concatenate(sums,axis=2),axis=2))/num_files
         if background_correction:
             # subtract background out from bias correction
-            sum_tile -= np.squeeze(tf.imread(background_tile_path)).astype('float')
-        sum_tile = sitk.GetImageFromArray(sum_tile)
+            mean_tile -= background_val
+        mean_tile = sitk.GetImageFromArray(mean_tile)
 
         # get the bias correction tile using N4ITK
-        bias = sitk.GetArrayFromImage(get_bias_field(sum_tile,scale=1.0))
+        bias = sitk.GetArrayFromImage(get_bias_field(mean_tile, scale=1.0))
 
         # save bias tile to local directory
         tf.imsave(bias_path, bias.astype('float32'))
@@ -139,7 +136,7 @@ def correct_raw_data(
                 files, 
                 outdir,
                 bias,
-                background_tile_path
+                background_val
             ) 
             for files in work
         )
