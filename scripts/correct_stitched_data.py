@@ -6,7 +6,7 @@ from cloudvolume import CloudVolume
 import tinybrain
 from joblib import Parallel, delayed
 
-from util import imgResample, tqdm_joblib get_bias_field
+from util import imgResample, tqdm_joblib, get_bias_field
 
 
 def process_slice(bias_slice,z,data_orig_path,data_bc_path):

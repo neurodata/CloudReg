@@ -28,10 +28,10 @@ def sum_tiles(files):
     return running_sum
 
 
-def correct_tile(raw_tile_path, outdir, bias=None):
+def correct_tile(raw_tile_path, outdir, bias, background_tile=None):
     # overwrite existing tile
     out_path = raw_tile_path
-    raw_tile = np.squeeze(tf.imread(raw_tile_path))
+    raw_tile = np.squeeze(tf.imread(raw_tile_path)).astype('float')
 
     if bias is None:
         tf.imwrite(out_path, data=raw_tile.astype('uint16'), compress=3, append=False)
@@ -39,19 +39,25 @@ def correct_tile(raw_tile_path, outdir, bias=None):
     else:
         # rescale corrected tile to be uint16
         # for Terastitcher
-        corrected_tile = np.around(raw_tile * bias)
+        tile_bc = np.clip(raw_tile - background_tile.astype('float'), 0, None)
+        corrected_tile = np.around(tile_bc * bias)
         # clip values above uint16.max and below 0
-        corrected_tile = np.clip(corrected_tile, 0, np.iinfo(np.uint16).max)
+        # corrected_tile = np.clip(corrected_tile, 0, np.iinfo(np.uint16).max)
         # corrected_tile = (corrected_tile/(2**12 - 1)) * np.iinfo('uint16').max
         tf.imwrite(out_path, data=corrected_tile.astype('uint16'), compress=3, append=False)
 
 
-def correct_tiles(tiles, outdir, bias):
+def correct_tiles(tiles, outdir, bias, background_tile_path=None):
+    background_tile = None
+    if background_tile_path is not None:
+        background_tile = np.squeeze(tf.imread(background_tile_path)).astype('float')
+
     for tile in tiles:
         correct_tile(
             tile,
             outdir,
-            bias
+            bias,
+            background_tile
         )
 
 
@@ -104,7 +110,7 @@ def correct_raw_data(
         sum_tile = sitk.GetImageFromArray(sum_tile)
         if background_correction:
             # subtract background out from bias correction
-            sum_tile -= np.squeeze(tf.imread(background_tile_path))
+            sum_tile -= np.squeeze(tf.imread(background_tile_path)).astype('float')
 
         # get the bias correction tile using N4ITK
         bias = sitk.GetArrayFromImage(get_bias_field(sum_tile,scale=1.0))
@@ -132,7 +138,8 @@ def correct_raw_data(
             delayed(correct_tiles)(
                 files, 
                 outdir,
-                bias
+                bias,
+                background_tile_path
             ) 
             for files in work
         )
