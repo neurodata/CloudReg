@@ -107,10 +107,10 @@ def correct_raw_data(
         sums = Parallel(total_n_jobs, verbose=10)(delayed(sum_tiles)(f) for f in chunks(files_cb,math.ceil(num_files//(total_n_jobs))+1))
         sums = [i[:,:,None] for i in sums]
         sum_tile = np.squeeze(np.sum(np.concatenate(sums,axis=2),axis=2))/num_files
-        sum_tile = sitk.GetImageFromArray(sum_tile)
         if background_correction:
             # subtract background out from bias correction
             sum_tile -= np.squeeze(tf.imread(background_tile_path)).astype('float')
+        sum_tile = sitk.GetImageFromArray(sum_tile)
 
         # get the bias correction tile using N4ITK
         bias = sitk.GetArrayFromImage(get_bias_field(sum_tile,scale=1.0))
