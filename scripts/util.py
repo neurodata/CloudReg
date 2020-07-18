@@ -8,6 +8,7 @@ import SimpleITK as sitk
 import math
 import boto3
 import numpy as np
+from tqdm import tqdm
 
 
 def get_bias_field(img, mask=None, scale=1.0, niters=[50, 50, 50, 50]):
@@ -219,16 +220,46 @@ def s3_object_exists(bucket, key):
         # The object does exist.
         return True
 
+
 def download_terastitcher_files(s3_path, local_path):
+    # default_terastitcher_files = ['xml_import.xml', 'xml_displcompute.xml', 'xml_dislproj.xml', 'xml_merging.xml', 'xml_displthres.xml']
     s3 = boto3.resource('s3')
+    s3_url = S3Url(s3_path)
+    xml_paths = list(get_matching_s3_keys(s3_url.bucket, prefix=s3_url.key, suffix='xml'))
     # download xml results to local_path
-    log_s3_url = S3Url(s3_path.strip('/'))
-    files_to_save = glob(f'{local_path}/*.xml')
-    s3_files = s3.meta.client.list_objects_v2(log_s3_url.bucket, Prefix='xml')
-    for i in tqdm(files_to_save,desc='downloading xml files from S3'):
-        out_path = i.split('/')[-1]
-        download_file_from_s3(i, log_s3_url.bucket, f'{log_s3_url.key}/{out_path}')
-    
+    for i in tqdm(xml_paths, desc='downloading xml files from S3'):
+        fname = i.split('/')[-1]
+        s3.meta.client.download_file(s3_url.bucket, i, f"{local_path}/{fname}")
+
+    if len(xml_paths) == 0:
+        # xml files were not at s3_path
+        return False
+    return True
+
+
+def get_matching_s3_keys(bucket, prefix='', suffix=''):
+    """
+    Generate the keys in an S3 bucket.
+
+    :param bucket: Name of the S3 bucket.
+    :param prefix: Only fetch keys that start with this prefix (optional).
+    :param suffix: Only fetch keys that end with this suffix (optional).
+    """
+    s3 = boto3.client('s3')
+    kwargs = {'Bucket': bucket, 'Prefix': prefix}
+    while True:
+        resp = s3.list_objects_v2(**kwargs)
+        for obj in resp['Contents']:
+            key = obj['Key']
+            if key.endswith(suffix):
+                yield key
+
+        try:
+            kwargs['ContinuationToken'] = resp['NextContinuationToken']
+        except KeyError:
+            break
+
+
 
 # below code from https://github.com/boto/boto3/issues/358#issuecomment-372086466
 from awscli.clidriver import create_clidriver

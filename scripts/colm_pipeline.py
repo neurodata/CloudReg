@@ -46,15 +46,17 @@ def colm_pipeline(
     )
 
     # compute stitching alignments
-    stitch_only = False if channel_of_interest == 0 else True
-    if not stitch_only:
-        run_terastitcher(
-            raw_data_path,
-            stitched_data_path,
-            input_s3_path,
-            log_s3_path=log_s3_path,
-            compute_only=True
-        )
+    # download stitching files if they exist at log path
+    if not download_terastitcher_files(input_s3_path):
+        stitch_only = False if channel_of_interest == 0 else True
+        if not stitch_only:
+            run_terastitcher(
+                raw_data_path,
+                stitched_data_path,
+                input_s3_path,
+                log_s3_path=log_s3_path,
+                compute_only=True
+            )
 
     # bias correct all tiles
     # save bias correction tile to log_s3_path
