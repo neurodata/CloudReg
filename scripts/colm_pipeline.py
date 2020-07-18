@@ -47,7 +47,7 @@ def colm_pipeline(
 
     # compute stitching alignments
     # download stitching files if they exist at log path
-    if not download_terastitcher_files(input_s3_path):
+    if not download_terastitcher_files(input_s3_path, raw_data_path):
         stitch_only = False if channel_of_interest == 0 else True
         if not stitch_only:
             run_terastitcher(

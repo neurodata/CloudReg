@@ -237,6 +237,7 @@ def download_terastitcher_files(s3_path, local_path):
     return True
 
 
+# code from https://alexwlchan.net/2019/07/listing-s3-keys/
 def get_matching_s3_keys(bucket, prefix='', suffix=''):
     """
     Generate the keys in an S3 bucket.
