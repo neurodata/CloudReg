@@ -1,0 +1,11 @@
+boto3
+cloud-volume
+tinybrain
+tqdm
+joblib
+tifffile
+awscli
+mpi4py
+imagecodecs
+paramiko
+scipy
