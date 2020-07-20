@@ -212,8 +212,9 @@ def compute_regisration_accuracy(
     # voxel size of velocity field
     velocity_field_vsize=[50.0]*3
 ):
-    target = NGLink(target_viz_link)
-    atlas = NGLink(atlas_viz_link)
+    # get json link from viz link
+    target = NGLink(target_viz_link.split('json_url=')[-1])
+    atlas = NGLink(atlas_viz_link.split('json_url=')[-1])
 
     # run matlab command to get transformed fiducials
     points = target.get_points_in('physical')
