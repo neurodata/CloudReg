@@ -237,6 +237,7 @@ if __name__ == "__main__":
     parser.add_argument('-atlas_viz_link', help='viz link to atlas with fiducials labelled',  type=str)
     parser.add_argument('-affine_path', help='S3 path or local path to matlab transformation files. These will be downloaded to compute the fiducial accuracy',  type=str, default='')
     parser.add_argument('-velocity_path', help='S3 path ot local matlab transformation files. These will be downloaded to compute the fiducial accuracy',  type=str, default='')
+    parser.add_argument('--velocity_voxel_size', help='Voxel size of velocity field in microns', nargs='+', type=float, default=[50.0]*3)
     # parser.add_argument('-ssh_key_path', help='path to identity file used to ssh into given instance')
     # parser.add_argument('-instance_id', help='EC2 Instance ID of instance to run COLM pipeline on.')
     # parser.add_argument('--instance_type', help='EC2 instance type to run pipeline on. minimum r5d.16xlarge',  type=str, default='r5d.16xlarge')
