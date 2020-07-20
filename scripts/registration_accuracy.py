@@ -207,28 +207,22 @@ class Fiducial:
 def compute_regisration_accuracy(
     target_viz_link,
     atlas_viz_link,
-    transformation_s3_path,
+    affine_path,
+    velocity_path,
     # voxel size of velocity field
     velocity_field_vsize=[50.0]*3
 ):
     target = NGLink(target_viz_link)
     atlas = NGLink(atlas_viz_link)
 
-    # download transformation files to cwd
-    aws_cli(shlex.split(f's3 sync --exclude \"*\" --include \"*.mat\" {transformation_path} ./'))
-
     # run matlab command to get transformed fiducials
     points = target.get_points_in('physical')
     points_string = [', '.join(map(str, i)) for i in points]
     points_string = '; '.join(points_string)
-    # path to affine mat file
-    Aname = glob('./*A.mat')
-    # path to velocity field mat file
-    vname = glob('./*v.mat')
     # velocity field voxel size
     v_size = ', '.join(str(i) for i in velocity_field_vsize)
     matlab_command = f'''
-        matlab -nodisplay -nosplash -nodesktop -r \"Aname={Aname};vname={vname};v_size=[{v_size}];points=[{points_string}];transform_points(points,Aname,vname,v_size,'atlas')\"
+        matlab -nodisplay -nosplash -nodesktop -r \"Aname={affine_path};vname={velocity_path};v_size=[{v_size}];points=[{points_string}];points_t = transform_points(points,Aname,vname,v_size,\'atlas\');save(\'./transformed_points.mat\',\'points_t\')\"
     '''
     print(matlab_command)
     subprocess.run(
@@ -240,14 +234,26 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser('Compute registration accuracy given 2 sets of fiducials from target to atlas')
     parser.add_argument('-target_viz_link', help='viz link to target with fiducials labelled.', type=str)
     parser.add_argument('-atlas_viz_link', help='viz link to atlas with fiducials labelled',  type=str)
-    parser.add_argument('-transformation_path', help='S3 path matlab transformation files. These will be downloaded to compute the fiducial accuracy',  type=str, default='')
+    parser.add_argument('-affine_path', help='S3 path or local path to matlab transformation files. These will be downloaded to compute the fiducial accuracy',  type=str, default='')
+    parser.add_argument('-velocity_path', help='S3 path ot local matlab transformation files. These will be downloaded to compute the fiducial accuracy',  type=str, default='')
     # parser.add_argument('-ssh_key_path', help='path to identity file used to ssh into given instance')
     # parser.add_argument('-instance_id', help='EC2 Instance ID of instance to run COLM pipeline on.')
     # parser.add_argument('--instance_type', help='EC2 instance type to run pipeline on. minimum r5d.16xlarge',  type=str, default='r5d.16xlarge')
 
     args = parser.parse_args()
     
+    if args.affine_path.startswith('s3://'):
+        # download affine mat to local storage
+        aws_cli(shlex.split(f's3 sync {args.affine_path} ./A.mat'))
+        args.affine_path = './A.mat'
+    if args.velocity_path.startswith('s3://'):
+        # download velocity mat to local storage
+        aws_cli(shlex.split(f's3 sync {args.velocity_path} ./v.mat'))
+        args.velocity_path = './v.mat'
 
     compute_regisration_accuracy(
-
+        args.target_viz_link,
+        args.atlas_viz_link,
+        args.affine_path,
+        args.velocity_path
     )
