@@ -218,7 +218,7 @@ def compute_regisration_accuracy(
 
     # run matlab command to get transformed fiducials
     points = target.get_points_in('physical')
-    points_string = [', '.join(map(str, i)) for i in points]
+    points_string = [', '.join(map(str, i)) for i in points.values()]
     points_string = '; '.join(points_string)
     # velocity field voxel size
     v_size = ', '.join(str(i) for i in velocity_field_vsize)
