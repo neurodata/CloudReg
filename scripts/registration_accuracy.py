@@ -210,7 +210,7 @@ def compute_regisration_accuracy(
     affine_path,
     velocity_path,
     # voxel size of velocity field
-    velocity_field_vsize=[50.0]*3
+    velocity_field_vsize
 ):
     # get json link from viz link
     target = NGLink(target_viz_link.split('json_url=')[-1])
@@ -257,5 +257,6 @@ if __name__ == "__main__":
         args.target_viz_link,
         args.atlas_viz_link,
         args.affine_path,
-        args.velocity_path
+        args.velocity_path,
+        args.velocity_voxel_size
     )
