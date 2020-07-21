@@ -1,9 +1,9 @@
 function [points_transformed] = transform_points(points,path_to_affine,path_to_velocity,velocity_voxel_size,transformation_direction)
     
-    curr_path = mfilename('fullpath')
-    curr_path = strsplit(curr_path,'/')
-    curr_path(end) = []
-    curr_path = strjoin(curr_path, '/')
+    curr_path = mfilename('fullpath');
+    curr_path = strsplit(curr_path,'/');
+    curr_path(end) = [];
+    curr_path = strjoin(curr_path, '/');
     addpath([curr_path,'/Functions/avwQuiet/'])
     addpath([curr_path,'/Functions/downsample/'])
     addpath([curr_path,'/Functions/plotting/'])

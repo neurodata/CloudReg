@@ -239,10 +239,10 @@ def compute_regisration_accuracy(
     # get current file path and set path to transform_points
     # base_path = pathlib.Path(__file__).parent.parent.absolute() / 'registration' 
     base_path = os.path.expanduser('~/CloudReg/registration')
-    transformed_points_path = './transformed_points.m'
+    transformed_points_path = './transformed_points.mat'
 
     matlab_command = f'''
-        matlab -nodisplay -nosplash -nodesktop -r \"addpath(\'{base_path}\');Aname=\'{affine_path}\';vname=\'{velocity_path}\';v_size=[{v_size}];points=[{points_string}];points_t = transform_points(points,Aname,vname,v_size,\'atlas\');save(\'./transformed_points.mat\',\'points_t\')\"
+        matlab -nodisplay -nosplash -nodesktop -r \"addpath(\'{base_path}\');Aname=\'{affine_path}\';vname=\'{velocity_path}\';v_size=[{v_size}];points=[{points_string}];points_t = transform_points(points,Aname,vname,v_size,\'atlas\');save(\'./transformed_points.mat\',\'points_t\');exit;\"
     '''
     print(matlab_command)
     subprocess.run(
@@ -251,8 +251,8 @@ def compute_regisration_accuracy(
 
     # transformed_points.m created now
     points_t = loadmat(transformed_points_path)
-    target_transformed = {i:j for i,j in zip(target.keys(), points_t)}
-    distances = get_distances(atlas, target_transformed)
+    target_transformed = {i:j for i,j in zip(points.keys(), points_t)}
+    distances = get_distances(atlas.get_points_in('physical'), target_transformed)
     print(distances)
 
 
