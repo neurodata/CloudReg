@@ -1,3 +1,4 @@
+import os
 import subprocess
 from glob import glob
 import shlex
@@ -10,6 +11,7 @@ import uuid
 from util import aws_cli
 import argparse
 
+import pathlib
 
 def loadmat_v73(mat_path):
     arrays = {}
@@ -222,11 +224,15 @@ def compute_regisration_accuracy(
     points_string = '; '.join(points_string)
     # velocity field voxel size
     v_size = ', '.join(str(i) for i in velocity_field_vsize)
+    # get current file path and set path to transform_points
+    # base_path = pathlib.Path(__file__).parent.parent.absolute() / 'registration' 
+    base_path = os.path.expanduser('~/CloudReg/registration')
+
     matlab_command = f'''
-        matlab -nodisplay -nosplash -nodesktop -r \"Aname=\'{affine_path}\';vname=\'{velocity_path}\';v_size=[{v_size}];points=[{points_string}];points_t = transform_points(points,Aname,vname,v_size,\'atlas\');save(\'./transformed_points.mat\',\'points_t\')\"
+        matlab -nodisplay -nosplash -nodesktop -r \"addpath(\'{base_path}\');Aname=\'{affine_path}\';vname=\'{velocity_path}\';v_size=[{v_size}];points=[{points_string}];points_t = transform_points(points,Aname,vname,v_size,\'atlas\');save(\'./transformed_points.mat\',\'points_t\')\"
     '''
     print(matlab_command)
-    subprocess.run(
+    subprocess.run(a
         shlex.split(matlab_command),
     )
 

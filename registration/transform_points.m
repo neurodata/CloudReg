@@ -1,9 +1,13 @@
 function [points_transformed] = transform_points(points,path_to_affine,path_to_velocity,velocity_voxel_size,transformation_direction)
     
-    addpath ./Functions/avwQuiet/
-    addpath ./Functions/downsample/
-    addpath ./Functions/plotting/
-    addpath ./Functions/textprogressbar/
+    curr_path = mfilename('fullpath')
+    curr_path = strsplit(curr_path,'/')
+    curr_path(end) = []
+    curr_path = strjoin(curr_path, '/')
+    addpath([curr_path,'/Functions/avwQuiet/'])
+    addpath([curr_path,'/Functions/downsample/'])
+    addpath([curr_path,'/Functions/plotting/'])
+    addpath([curr_path,'/Functions/textprogressbar/'])
 
     % typical use case 1
     % eg.  transform the allen atlas to the high resolution CLARITY space
