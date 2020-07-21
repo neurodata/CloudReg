@@ -95,7 +95,7 @@ rigid_only  = 0; % constrain affine to be rigid
 %%%% end parameters %%%%
 
 
-downloop_start = 2;
+downloop_start = 1;
 for downloop = downloop_start : 2
 
     if downloop > 1
