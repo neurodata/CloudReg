@@ -8,6 +8,7 @@ import SimpleITK as sitk
 import math
 import boto3
 import numpy as np
+import os
 from tqdm import tqdm
 
 
