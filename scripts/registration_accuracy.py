@@ -260,7 +260,7 @@ def compute_regisration_accuracy(
     target_transformed = {i.description: j for i,j in zip(target_fiducials, points_t)}
     atlas_points = {i.description: i.point for i in atlas_fiducials}
     distances = get_distances(atlas_points, target_transformed)
-    print(distances)
+    [print(i,j) for i,j in distances.items()]
 
 
 if __name__ == "__main__":
@@ -278,11 +278,11 @@ if __name__ == "__main__":
     
     if args.affine_path.startswith('s3://'):
         # download affine mat to local storage
-        aws_cli(shlex.split(f's3 sync {args.affine_path} ./A.mat'))
+        aws_cli(shlex.split(f's3 cp {args.affine_path} ./A.mat'))
         args.affine_path = './A.mat'
     if args.velocity_path.startswith('s3://'):
         # download velocity mat to local storage
-        aws_cli(shlex.split(f's3 sync {args.velocity_path} ./v.mat'))
+        aws_cli(shlex.split(f's3 cp {args.velocity_path} ./v.mat'))
         args.velocity_path = './v.mat'
 
     compute_regisration_accuracy(
