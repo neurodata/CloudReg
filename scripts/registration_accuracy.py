@@ -233,7 +233,7 @@ def compute_regisration_accuracy(
     atlas_viz = NGLink(atlas_viz_link.split('json_url=')[-1])
 
     # get origin-centered fiducials from viz link
-    # atlas_fiducials = [Fiducial(j, atlas_orientation, atlas_viz.image_shape, atlas_viz.image_voxel_size, description=i) for i,j in atlas_viz.get_points_in('physical').items()]
+    atlas_fiducials = [Fiducial(j, atlas_orientation, atlas_viz.image_shape, atlas_viz.image_voxel_size, description=i) for i,j in atlas_viz.get_points_in('physical').items()]
     target_fiducials = [Fiducial(j, target_orientation, target_viz.image_shape, target_viz.image_voxel_size, description=i) for i,j in target_viz.get_points_in('physical').items()]
 
     # run matlab command to get transformed fiducials
@@ -257,8 +257,9 @@ def compute_regisration_accuracy(
 
     # transformed_points.m created now
     points_t = loadmat(transformed_points_path)['points_t']
-    target_transformed = {i:j for i,j in zip(points.keys(), points_t)}
-    distances = get_distances(atlas.get_points_in('physical'), target_transformed)
+    target_transformed = {i.description: j for i,j in zip(target_fiducials, points_t)}
+    atlas_points = {i.description: i.point for i in atlas_fiducials}
+    distances = get_distances(atlas_points, target_transformed)
     print(distances)
 
 
