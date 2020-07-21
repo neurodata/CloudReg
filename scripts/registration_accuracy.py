@@ -223,11 +223,11 @@ def compute_regisration_accuracy(
     # velocity field voxel size
     v_size = ', '.join(str(i) for i in velocity_field_vsize)
     matlab_command = f'''
-        matlab -nodisplay -nosplash -nodesktop -r \"Aname={affine_path};vname={velocity_path};v_size=[{v_size}];points=[{points_string}];points_t = transform_points(points,Aname,vname,v_size,\'atlas\');save(\'./transformed_points.mat\',\'points_t\')\"
+        matlab -nodisplay -nosplash -nodesktop -r \"Aname=\'{affine_path}\';vname=\'{velocity_path}\';v_size=[{v_size}];points=[{points_string}];points_t = transform_points(points,Aname,vname,v_size,\'atlas\');save(\'./transformed_points.mat\',\'points_t\')\"
     '''
     print(matlab_command)
     subprocess.run(
-        shlex.split(matlab_command)
+        shlex.split(matlab_command),
     )
 
 
