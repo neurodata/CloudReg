@@ -25,13 +25,18 @@ def process_slice(bias_slice,z,data_orig_path,data_bc_path):
         data_vols_bc[i+1][:,:,z] = img_pyramid[i].astype('uint16')
 
 
-def correct_stitched_data(data_s3_path, out_s3_path, num_procs=12):
+def correct_stitched_data(
+    data_s3_path, 
+    out_s3_path, 
+    resolution, 
+    num_procs=12
+):
     # create vol
     vol = CloudVolume(data_s3_path)
     mip = 0
     for i in range(len(vol.scales)):
         # get low res image smaller than 15 um
-        if vol.scales[i]['resolution'][0] < 15000:
+        if vol.scales[i]['resolution'][0] < resolution * 1000:
             mip = i
     vol_ds = CloudVolume(data_s3_path,mip,parallel=True,fill_missing=True)
 
@@ -63,10 +68,12 @@ if __name__ == "__main__":
     parser.add_argument('data_s3_path',help='full s3 path to data of interest as precomputed volume. must be of the form `s3://bucket-name/path/to/channel`')
     parser.add_argument('out_s3_path',help='S3 path to save output results')
     parser.add_argument('--num_procs',help='number of processes to use', default=15, type=int)
+    parser.add_argument('--resolution',help='max resolution for computing bias correction in microns', default=15, type=float)
     args = parser.parse_args()
 
     correct_stitched_data(
         args.data_s3_path,
         args.out_s3_path,
+        args.resolution,
         args.num_procs
     )
