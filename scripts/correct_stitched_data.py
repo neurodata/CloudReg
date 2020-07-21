@@ -30,8 +30,8 @@ def correct_stitched_data(data_s3_path, out_s3_path, num_procs=12):
     vol = CloudVolume(data_s3_path)
     mip = 0
     for i in range(len(vol.scales)):
-        # get low res image smaller than 10 um
-        if vol.scales[i]['resolution'][0] < 10000:
+        # get low res image smaller than 15 um
+        if vol.scales[i]['resolution'][0] < 15000:
             mip = i
     vol_ds = CloudVolume(data_s3_path,mip,parallel=True,fill_missing=True)
 

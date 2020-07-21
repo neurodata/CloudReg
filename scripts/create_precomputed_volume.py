@@ -84,7 +84,7 @@ def create_precomputed_volume(
     num_mips=8
 ):
 
-    files_slices = list(enumerate(np.sort(glob(f'{input_path}/*/*.{extension}')).tolist()))
+    files_slices = list(enumerate(np.sort(glob(f'{input_path}/*.{extension}')).tolist()))
     zs = [i[0] for i in files_slices]
     files = np.array([i[1] for i in files_slices])
 
@@ -114,7 +114,7 @@ def create_precomputed_volume(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Convert local volume into precomputed volume on S3.')
     parser.add_argument('input_path',help='Path to directory containing stitched tiles named sequentially.')
-    parser.add_argument('voxel_size',help='Voxel size of image in 3D in X, Y, Z order.', nargs='+')
+    parser.add_argument('voxel_size',help='Voxel size in microns of image in 3D in X, Y, Z order.', nargs='+', type=float)
     parser.add_argument('precomputed_path',help='Path to location on s3 where precomputed volume should be stored. Example: s3://<bucket>/<experiment>/<channel>')
     parser.add_argument('--extension',help='Extension of stitched files. default is tif', default='tif',type=str)
     args = parser.parse_args()
