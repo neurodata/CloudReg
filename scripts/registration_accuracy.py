@@ -224,15 +224,21 @@ def compute_regisration_accuracy(
     affine_path,
     velocity_path,
     # voxel size of velocity field
-    velocity_field_vsize
+    velocity_field_vsize,
+    atlas_orientation="PIR",
+    target_orientation="LPS"
 ):
     # get json link from viz link
-    target = NGLink(target_viz_link.split('json_url=')[-1])
-    atlas = NGLink(atlas_viz_link.split('json_url=')[-1])
+    target_viz = NGLink(target_viz_link.split('json_url=')[-1])
+    atlas_viz = NGLink(atlas_viz_link.split('json_url=')[-1])
+
+    # get origin-centered fiducials from viz link
+    # atlas_fiducials = [Fiducial(j, atlas_orientation, atlas_viz.image_shape, atlas_viz.image_voxel_size, description=i) for i,j in atlas_viz.get_points_in('physical').items()]
+    target_fiducials = [Fiducial(j, target_orientation, target_viz.image_shape, target_viz.image_voxel_size, description=i) for i,j in target_viz.get_points_in('physical').items()]
 
     # run matlab command to get transformed fiducials
-    points = target.get_points_in('physical')
-    points_string = [', '.join(map(str, i)) for i in points.values()]
+    points = [i.point for i in target_fiducials]
+    points_string = [', '.join(map(str, i)) for i in points]
     points_string = '; '.join(points_string)
     # velocity field voxel size
     v_size = ', '.join(str(i) for i in velocity_field_vsize)
@@ -250,7 +256,7 @@ def compute_regisration_accuracy(
     )
 
     # transformed_points.m created now
-    points_t = loadmat(transformed_points_path)
+    points_t = loadmat(transformed_points_path)['points_t']
     target_transformed = {i:j for i,j in zip(points.keys(), points_t)}
     distances = get_distances(atlas.get_points_in('physical'), target_transformed)
     print(distances)
