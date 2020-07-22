@@ -37,9 +37,16 @@ end
 
 
 %%%% params for preprocessing
-missing_data_correction = 1;
-grid_correction = 1;
-bias_correction = 1;
+if ~exist('missing_data_correction')
+    missing_data_correction = 1;
+end
+if ~exist('grid_correction')
+    grid_correction = 1;
+end
+if ~exist('bias_correction')
+    bias_correction = 1;
+end
+
 %%%% end params for preprocessing
 
 %%%% params for registration

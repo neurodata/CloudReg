@@ -73,7 +73,10 @@ def register(
     orientation,
     fixed_scale,
     translation,
-    rotation
+    rotation,
+    missing_data_correction,
+    grid_correction,
+    bias_correction
 ):
 
     # registration
@@ -108,7 +111,7 @@ def register(
     affine_string = [', '.join(map(str,i)) for i in initial_affine]
     affine_string = '; '.join(affine_string)
     matlab_registration_command = f'''
-        matlab -nodisplay -nosplash -nodesktop -r \"base_path=\'{base_path}\';target_name=\'{target_name}\';registration_prefix=\'{registration_prefix}\';dxJ0={voxel_size};fixed_scale={fixed_scale};initial_affine=[{affine_string}];run(\'~/CloudReg/registration/registration_script_mouse_GN.m\')\"
+        matlab -nodisplay -nosplash -nodesktop -r \"missing_data_correction={int(missing_data_correction)};grid_correction={int(grid_correction)};bias_correction={int(bias_correction)};base_path=\'{base_path}\';target_name=\'{target_name}\';registration_prefix=\'{registration_prefix}\';dxJ0={voxel_size};fixed_scale={fixed_scale};initial_affine=[{affine_string}];run(\'~/CloudReg/registration/registration_script_mouse_GN.m\')\"
     '''
     print(matlab_registration_command)
     subprocess.run(
@@ -136,6 +139,11 @@ if __name__ == "__main__":
     parser.add_argument('--translation', help='Initial translation in x,y,z respectively in microns.',  nargs='+', type=float, default=[0,0,0])
     parser.add_argument('--rotation', help='Initial rotation in x,y,z respectively in degrees.',  nargs='+', type=float, default=[0,0,0])
 
+    # preprocessing args
+    parser.add_argument('--bias_correction', help='Perform bias correction prior to registration.',  type=bool, default=True)
+    parser.add_argument('--missing_data_correction', help='Perform missing data correction by ignoring 0 values in image prior to registration.',  type=bool, default=False)
+    parser.add_argument('--grid_correction', help='Perform correction for low-intensity grid artifact (COLM data)',  type=bool, default=False)
+
     args = parser.parse_args()
 
     register(
@@ -145,5 +153,8 @@ if __name__ == "__main__":
         args.orientation,
         args.scale,
         args.translation,
-        args.rotation
+        args.rotation,
+        args.missing_data_correction,
+        args.grid_correction,
+        args.bias_correction
     )

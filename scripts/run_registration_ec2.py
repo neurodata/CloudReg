@@ -50,7 +50,10 @@ def run_registration(
     initial_translation,
     initial_rotation,
     orientation,
-    fixed_scale
+    fixed_scale,
+    missing_data_correction,
+    grid_correction,
+    bias_correction
 ):
 
     # this is the initialization for registration
@@ -100,6 +103,7 @@ if __name__ == "__main__":
     # instance params
     parser.add_argument('-ssh_key_path', help='path to identity file used to ssh into given instance')
     parser.add_argument('-instance_id', help='EC2 Instance ID of instance to run COLM pipeline on.')
+    parser.add_argument('--instance_type', help='EC2 instance type to run registration on. Default is r5.8xlarge',  type=str, default='r5.8xlarge')
 
     # data params
     parser.add_argument('-input_s3_path', help='S3 path to precomputed volume used to register the data', type=str)
@@ -116,8 +120,11 @@ if __name__ == "__main__":
     parser.add_argument('--y', help='Translation in Y axis in microns. Default is 0.',  type=float, default=0)
     parser.add_argument('--z', help='Translation in Z axis in microns. Default is 0.',  type=float, default=0)
 
-    # optional args
-    parser.add_argument('--instance_type', help='EC2 instance type to run registration on. Default is r5.8xlarge',  type=str, default='r5.8xlarge')
+    # registration preprocessing params
+    parser.add_argument('--missing_data_correction', help='Perform missing data correction by ignoring 0 values in image prior to registration.',  type=bool, default=False)
+    parser.add_argument('--grid_correction', help='Perform correction for low-intensity grid artifact (COLM data)',  type=bool, default=False)
+    parser.add_argument('--bias_correction', help='Perform bias correction prior to registration.',  type=bool, default=True)
+
 
     args = parser.parse_args()
 
@@ -131,5 +138,8 @@ if __name__ == "__main__":
         [args.x, args.y, args.z],
         [args.yz, args.xz, args.xy],
         args.orientation,
-        args.fixed_scale
+        args.fixed_scale,
+        args.missing_data_correction,
+        args.grid_correction,
+        args.bias_correction
     )
