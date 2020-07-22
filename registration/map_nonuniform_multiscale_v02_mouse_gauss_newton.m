@@ -60,7 +60,9 @@ end
 A = initial_affine;
 
 % weight of regularization 
-sigmaR = 1e4;
+if ~exist('sigmaR')
+    sigmaR = 1e4;
+end
 
 nT = 10; % number of timesteps over which to integrate flow
 sigmaC = 5.0;
