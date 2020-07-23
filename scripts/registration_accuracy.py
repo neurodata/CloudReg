@@ -23,15 +23,6 @@ def loadmat_v73(mat_path):
 
 class NGLink:
     
-#     json_link = ''
-#     # voxel size in microns
-#     points_voxel_size = []
-#     image_voxel_size = []
-#     _json = {}
-#     image_shape = []
-#     voxel_origin = np.zeros((3,))
-#     points = defaultdict(lambda: "")
-    
     def __init__(self,json_link):
         self.points = defaultdict(lambda: "")
         self.json_link =  json_link
@@ -237,29 +228,33 @@ def compute_regisration_accuracy(
     target_fiducials = [Fiducial(j, target_orientation, target_viz.image_shape, target_viz.image_voxel_size, description=i) for i,j in target_viz.get_points_in('physical').items()]
 
     # run matlab command to get transformed fiducials
-    points = [i.point for i in target_fiducials]
-    points_string = [', '.join(map(str, i)) for i in points]
-    points_string = '; '.join(points_string)
-    # velocity field voxel size
-    v_size = ', '.join(str(i) for i in velocity_field_vsize)
-    # get current file path and set path to transform_points
-    # base_path = pathlib.Path(__file__).parent.parent.absolute() / 'registration' 
-    base_path = os.path.expanduser('~/CloudReg/registration')
-    transformed_points_path = './transformed_points.mat'
+    if affine_path != '' and velocity_path != '':
+        points = [i.point for i in target_fiducials]
+        points_string = [', '.join(map(str, i)) for i in points]
+        points_string = '; '.join(points_string)
+        # velocity field voxel size
+        v_size = ', '.join(str(i) for i in velocity_field_vsize)
+        # get current file path and set path to transform_points
+        # base_path = pathlib.Path(__file__).parent.parent.absolute() / 'registration' 
+        base_path = os.path.expanduser('~/CloudReg/registration')
+        transformed_points_path = './transformed_points.mat'
 
-    matlab_command = f'''
-        matlab -nodisplay -nosplash -nodesktop -r \"addpath(\'{base_path}\');Aname=\'{affine_path}\';vname=\'{velocity_path}\';v_size=[{v_size}];points=[{points_string}];points_t = transform_points(points,Aname,vname,v_size,\'atlas\');save(\'./transformed_points.mat\',\'points_t\');exit;\"
-    '''
-    print(matlab_command)
-    subprocess.run(
-        shlex.split(matlab_command),
-    )
+        matlab_command = f'''
+            matlab -nodisplay -nosplash -nodesktop -r \"addpath(\'{base_path}\');Aname=\'{affine_path}\';vname=\'{velocity_path}\';v_size=[{v_size}];points=[{points_string}];points_t = transform_points(points,Aname,vname,v_size,\'atlas\');save(\'./transformed_points.mat\',\'points_t\');exit;\"
+        '''
+        print(matlab_command)
+        subprocess.run(
+            shlex.split(matlab_command),
+        )
 
-    # transformed_points.m created now
-    points_t = loadmat(transformed_points_path)['points_t']
-    target_transformed = {i.description: j for i,j in zip(target_fiducials, points_t)}
+        # transformed_points.m created now
+        points_t = loadmat(transformed_points_path)['points_t']
+        points = {i.description: j for i,j in zip(target_fiducials, points_t)}
+    else:
+        points = {i.description: i.point for i in target_fiducials}
+
     atlas_points = {i.description: i.point for i in atlas_fiducials}
-    distances = get_distances(atlas_points, target_transformed)
+    distances = get_distances(atlas_points, points)
     [print(i,j) for i,j in distances.items()]
 
 
@@ -267,9 +262,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser('Compute registration accuracy given 2 sets of fiducials from target to atlas')
     parser.add_argument('-target_viz_link', help='viz link to target with fiducials labelled.', type=str)
     parser.add_argument('-atlas_viz_link', help='viz link to atlas with fiducials labelled',  type=str)
-    parser.add_argument('-affine_path', help='S3 path or local path to matlab transformation files. These will be downloaded to compute the fiducial accuracy',  type=str, default='')
-    parser.add_argument('-velocity_path', help='S3 path ot local matlab transformation files. These will be downloaded to compute the fiducial accuracy',  type=str, default='')
+    parser.add_argument('--affine_path', help='S3 path or local path to matlab transformation files. These will be downloaded to compute the fiducial accuracy',  type=str, default='')
+    parser.add_argument('--velocity_path', help='S3 path ot local matlab transformation files. These will be downloaded to compute the fiducial accuracy',  type=str, default='')
     parser.add_argument('--velocity_voxel_size', help='Voxel size of velocity field in microns', nargs='+', type=float, default=[50.0]*3)
+    parser.add_argument('--atlas_orientation', help='3-letter orientation of the atlas data. Default is PIR for Allen Reference Atlas.', type=str, default="PIR")
+    parser.add_argument('--target_orientation', help='3-letter orientation of the target data. Default is LPS.', type=str, default="LPS")
     # parser.add_argument('-ssh_key_path', help='path to identity file used to ssh into given instance')
     # parser.add_argument('-instance_id', help='EC2 Instance ID of instance to run COLM pipeline on.')
     # parser.add_argument('--instance_type', help='EC2 instance type to run pipeline on. minimum r5d.16xlarge',  type=str, default='r5d.16xlarge')
@@ -290,5 +287,7 @@ if __name__ == "__main__":
         args.atlas_viz_link,
         args.affine_path,
         args.velocity_path,
-        args.velocity_voxel_size
+        args.velocity_voxel_size,
+        args.atlas_orientation,
+        args.target_orientation
     )
