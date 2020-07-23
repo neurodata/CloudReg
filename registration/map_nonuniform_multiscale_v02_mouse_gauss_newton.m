@@ -104,7 +104,7 @@ rigid_only  = 0; % constrain affine to be rigid
 %%%% end parameters %%%%
 
 
-downloop_start = 1;
+downloop_start = 2;
 for downloop = downloop_start : 2
 
     if downloop > 1
@@ -494,7 +494,7 @@ for downloop = downloop_start : 2
     
     
     if ~isempty(coeffsname)
-        coeffs = load(coeffsname);
+        coeffs = load(coeffsname).coeffs;
         coeffs_1 = upsample(coeffs(:,:,:,1),[size(J,1),size(J,2),size(J,3)]);
         coeffs_2 = upsample(coeffs(:,:,:,2),[size(J,1),size(J,2),size(J,3)]);
         coeffs_3 = upsample(coeffs(:,:,:,3),[size(J,1),size(J,2),size(J,3)]);
