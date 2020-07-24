@@ -71,7 +71,7 @@ def colm_pipeline(
     )
 
     # downsample and upload stitched data to S3
-    stitched_path = glob(f'{stitched_data_path}/RES*')
+    stitched_path = glob(f'{stitched_data_path}/RES*')[0]
     create_precomputed_volume(
         stitched_path,
         np.array(metadata['voxel_size']),
