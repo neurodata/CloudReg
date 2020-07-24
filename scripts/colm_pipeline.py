@@ -46,18 +46,6 @@ def colm_pipeline(
         log_s3_path=log_s3_path
     )
 
-    # compute stitching alignments
-    # download stitching files if they exist at log path
-    if not download_terastitcher_files(log_s3_path, raw_data_path):
-        stitch_only = False if channel_of_interest == 0 else True
-        if not stitch_only:
-            run_terastitcher(
-                raw_data_path,
-                stitched_data_path,
-                input_s3_path,
-                log_s3_path=log_s3_path,
-                compute_only=True
-            )
 
     # bias correct all tiles
     # save bias correction tile to log_s3_path
@@ -67,19 +55,25 @@ def colm_pipeline(
         log_s3_path=log_s3_path
     )
     
-    # now stitch the data
-    stitched_path = glob(f'{stitched_data_path}/RES*')
+    # compute stitching alignments
+    # download stitching files if they exist at log path
+    if not download_terastitcher_files(log_s3_path, raw_data_path):
+        stitch_only = False if channel_of_interest == 0 else True
+    else:
+        stitch_only = True
+
     metadata = run_terastitcher(
         raw_data_path,
-        stitched_path,
+        stitched_data_path,
         input_s3_path,
         log_s3_path=log_s3_path,
-        stitch_only=True
+        stitch_only=stitch_only
     )
 
     # downsample and upload stitched data to S3
+    stitched_path = glob(f'{stitched_data_path}/RES*')
     create_precomputed_volume(
-        stitched_data_path,
+        stitched_path,
         np.array(metadata['voxel_size']),
         output_s3_path
     )
