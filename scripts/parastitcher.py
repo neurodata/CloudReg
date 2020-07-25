@@ -5,7 +5,7 @@
 # Embedded file name: Parastitcher3.py
 # Compiled at: 2018-09-06 04:29:28
 """
-This program uses a master slave approach to consume a queue 
+This program uses a main subordinate approach to consume a queue 
 of elaborations using teraconverter
 Copyright (c) 2016:
 Massimiliano Guarrasi (1), Giulio Iannello (2), Alessandro Bria (2)
@@ -20,7 +20,7 @@ For align step:
 mpirun -np XX python ParastitcherX.Y.Z.py -2 --projin=xml_import_file --projout=xml_displcomp_file [--sV=VV] [--sH=HH] [--sD=DD] [--imin_channel=C] [ ... ] 
 
 where:
-- XX is the desided level of parallelism plus 1 (for the master process)
+- XX is the desided level of parallelism plus 1 (for the main process)
 - VV, HH, DD are the half size of the NCC map along V, H, and D directions, respectively
 - C is the input channel to be used for align computation
 
@@ -200,9 +200,9 @@ def worker(input_file):
     return input_file
 
 
-def slave():
+def subordinate():
     """
-   Slave process.
+   Subordinate process.
    """
     myrank = comm.Get_rank()
     WORKTAG = 1
@@ -312,7 +312,7 @@ def add_chars(params):
     return params
 
 
-def master_step2(queue):
+def main_step2(queue):
     """
     dispatch the work among processors
 
@@ -419,7 +419,7 @@ def sort_work(params, priority):
     return sorted_dict
 
 
-def master_step6(queue, rs_fname):
+def main_step6(queue, rs_fname):
     """
    Dispatch the work among processors.
    Input:
@@ -1286,7 +1286,7 @@ if __name__ == '__main__':
                             cmd_string.update({(r * len(c_start) + c) * n_ss + i: tmp_string})
 
             work_list = cmd_string
-            master_step2(work_list)
+            main_step2(work_list)
             if len(r_start) == 1 and len(c_start) == 1:
                 slash_pos = len(tmp_xml_dir) - 1
                 if debug_level > 0:
@@ -1347,7 +1347,7 @@ if __name__ == '__main__':
                 scores = score_function(npoints)
                 elaborations = sort_elaborations(scores)
                 work_list = sort_work(cmd_string, elaborations)
-                master_step6(work_list, rs_fname)
+                main_step6(work_list, rs_fname)
                 if debug_level > 0:
                     execution_string = prefix + final_string + ' > ' + 'output_final.out'
                 else:
@@ -1356,12 +1356,12 @@ if __name__ == '__main__':
                 print(execution_string)
     elif step2:
         prefix = prefix + 'terastitcher '
-        slave()
+        subordinate()
     elif step6:
         if info:
             dummy = 0
         else:
-            slave()
+            subordinate()
     comm.Barrier()
     if myrank == 0:
         t2 = time.time()
