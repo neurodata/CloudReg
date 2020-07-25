@@ -77,7 +77,8 @@ def register(
     missing_data_correction,
     grid_correction,
     bias_correction,
-    regularization
+    regularization,
+    num_iterations
 ):
 
     # registration
@@ -112,7 +113,7 @@ def register(
     affine_string = [', '.join(map(str,i)) for i in initial_affine]
     affine_string = '; '.join(affine_string)
     matlab_registration_command = f'''
-        matlab -nodisplay -nosplash -nodesktop -r \"sigmaR={regularization};missing_data_correction={int(missing_data_correction)};grid_correction={int(grid_correction)};bias_correction={int(bias_correction)};base_path=\'{base_path}\';target_name=\'{target_name}\';registration_prefix=\'{registration_prefix}\';dxJ0={voxel_size};fixed_scale={fixed_scale};initial_affine=[{affine_string}];run(\'~/CloudReg/registration/registration_script_mouse_GN.m\')\"
+        matlab -nodisplay -nosplash -nodesktop -r \"num_iter={num_iterations};sigmaR={regularization};missing_data_correction={int(missing_data_correction)};grid_correction={int(grid_correction)};bias_correction={int(bias_correction)};base_path=\'{base_path}\';target_name=\'{target_name}\';registration_prefix=\'{registration_prefix}\';dxJ0={voxel_size};fixed_scale={fixed_scale};initial_affine=[{affine_string}];run(\'~/CloudReg/registration/registration_script_mouse_GN.m\')\"
     '''
     print(matlab_registration_command)
     subprocess.run(
@@ -123,6 +124,10 @@ def register(
     if log_s3_path:
         # sync registration results to log_s3_path
         aws_cli(['s3', 'sync', registration_prefix, log_s3_path])
+    
+    # upload high res deformed atlas and deformed target to S3
+
+
     
 
 
@@ -147,6 +152,7 @@ if __name__ == "__main__":
 
     # registration params
     parser.add_argument('--regularization', help='Weight of the regularization. Bigger regularization means less regularization. Default is 5e3',  type=float, default=5e3)
+    parser.add_argument('--iterations', help='Number of iterations to do at low resolution. Default is 5000.',  type=int, default=5000)
 
     args = parser.parse_args()
 
@@ -161,5 +167,6 @@ if __name__ == "__main__":
         args.missing_data_correction,
         args.grid_correction,
         args.bias_correction,
-        args.regularization
+        args.regularization,
+        args.iterations
     )

@@ -54,7 +54,8 @@ def run_registration(
     missing_data_correction,
     grid_correction,
     bias_correction,
-    sigma_regularization
+    sigma_regularization,
+    num_iterations
 ):
 
     # this is the initialization for registration
@@ -89,7 +90,7 @@ def run_registration(
     update_command = 'cd ~/CloudReg; git pull;'
     _ = run_command_on_server(update_command, ssh_key_path, public_ip_address)
     # matlab registration command
-    command2 = f"time {python_path} CloudReg/scripts/registration.py -input_s3_path {input_s3_path} --output_s3_path {output_s3_path} -orientation {orientation} --rotation {' '.join(map(str,initial_rotation))} --translation {' '.join(map(str,initial_translation))} --scale {fixed_scale} -log_s3_path {log_s3_path} --missing_data_correction {missing_data_correction} --grid_correction {grid_correction} --bias_correction {bias_correction} --regularization {sigma_regularization}"
+    command2 = f"time {python_path} CloudReg/scripts/registration.py -input_s3_path {input_s3_path} --output_s3_path {output_s3_path} -orientation {orientation} --rotation {' '.join(map(str,initial_rotation))} --translation {' '.join(map(str,initial_translation))} --scale {fixed_scale} -log_s3_path {log_s3_path} --missing_data_correction {missing_data_correction} --grid_correction {grid_correction} --bias_correction {bias_correction} --regularization {sigma_regularization} --iterations {num_iterations}"
     errors2 = run_command_on_server(command2, ssh_key_path, public_ip_address)
     print(f"errors: {errors2}")
 
@@ -127,7 +128,8 @@ if __name__ == "__main__":
     parser.add_argument('--bias_correction', help='Perform bias correction prior to registration.',  type=bool, default=True)
 
     # registration params
-    parser.add_argument('--regularization', help='Weight of the regularization. Bigger value means less regularization. Default is 5000',  type=float, default=5e3)
+    parser.add_argument('--regularization', help='Weight of the regularization. Bigger value means less regularization. Default is 10000',  type=float, default=1e4)
+    parser.add_argument('--iterations', help='Number of iterations to do at low resolution. Default is 5000.',  type=int, default=5000)
 
 
 
@@ -147,5 +149,6 @@ if __name__ == "__main__":
         args.missing_data_correction,
         args.grid_correction,
         args.bias_correction,
-        args.regularization
+        args.regularization,
+        args.iterations
     )

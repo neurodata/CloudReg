@@ -28,7 +28,7 @@ def process_slice(bias_slice,z,data_orig_path,data_bc_path):
 def correct_stitched_data(
     data_s3_path, 
     out_s3_path, 
-    resolution, 
+    resolution=15, 
     num_procs=12
 ):
     # create vol
