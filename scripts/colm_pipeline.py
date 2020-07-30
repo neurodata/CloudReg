@@ -87,7 +87,7 @@ def colm_pipeline(
     )
 
     # print viz link to console
-    viz_link = create_viz_link(output_s3_path)
+    viz_link = create_viz_link([output_s3_path])
     print("###################")
     print(f'VIZ LINK: {viz_link}')
     print("###################")
