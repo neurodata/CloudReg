@@ -4,6 +4,7 @@ from create_precomputed_volume import create_precomputed_volume
 from correct_stitched_data import correct_stitched_data
 from stitching import run_terastitcher
 from util import S3Url, upload_file_to_s3, download_file_from_s3, download_terastitcher_files, tqdm_joblib, aws_cli
+from visualization import create_viz_link
 import numpy as np
 from glob import glob
 from tqdm import tqdm
@@ -45,19 +46,6 @@ def colm_pipeline(
         log_s3_path=log_s3_path
     )
 
-    # compute stitching alignments
-    # download stitching files if they exist at log path
-    if not download_terastitcher_files(log_s3_path, raw_data_path):
-        stitch_only = False if channel_of_interest == 0 else True
-        if not stitch_only:
-            run_terastitcher(
-                raw_data_path,
-                stitched_data_path,
-                input_s3_path,
-                log_s3_path=log_s3_path,
-                compute_only=True
-            )
-
     # bias correct all tiles
     # save bias correction tile to log_s3_path
     correct_raw_data(
@@ -66,18 +54,26 @@ def colm_pipeline(
         log_s3_path=log_s3_path
     )
     
-    # now stitch the data
+
+    # compute stitching alignments
+    # download stitching files if they exist at log path
+    if not download_terastitcher_files(log_s3_path, raw_data_path):
+        stitch_only = False if channel_of_interest == 0 else True
+    else:
+        stitch_only = True
+        
     metadata = run_terastitcher(
         raw_data_path,
         stitched_data_path,
         input_s3_path,
         log_s3_path=log_s3_path,
-        stitch_only=True
+        stitch_only=stitch_only
     )
 
     # downsample and upload stitched data to S3
+    stitched_path = glob(f'{stitched_data_path}/RES*')[0]
     create_precomputed_volume(
-        stitched_data_path,
+        stitched_path,
         np.array(metadata['voxel_size']),
         output_s3_path
     )
@@ -91,6 +87,13 @@ def colm_pipeline(
     )
 
 
+    # print viz link to console
+    viz_link = create_viz_link([output_s3_path])
+    print("###################")
+    print(f'VIZ LINK: {viz_link}')
+    print("###################")
+    
+    
 if __name__ == "__main__":
     parser = argparse.ArgumentParser('Run COLM pipeline including bias correction, stitching, upoad to S3')
     parser.add_argument('input_s3_path', help='S3 path to input colm data. Should be of the form s3://<bucket>/<experiment>', type=str)

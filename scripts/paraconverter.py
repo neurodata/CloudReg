@@ -5,6 +5,7 @@
 # Embedded file name: paraconverterX.py
 # Compiled at: 2018-07-02 16:51:16
 """
+
 This program uses a main subordinate approach to consume a queue 
 of elaborations using teraconverter
 Copyright (c) 2016:
@@ -221,6 +222,7 @@ def main(queue, rs_fname):
         os.remove(rs_fname)
     return
 
+  
 
 def subordinate():
     """
@@ -925,6 +927,7 @@ if __name__ == '__main__':
             elaborations = sort_elaborations(scores)
             work_list = sort_work(cmd_string, elaborations)
             main(work_list, rs_fname)
+
             execution_string = prefix + final_string
             os.system(execution_string)
             print(execution_string)

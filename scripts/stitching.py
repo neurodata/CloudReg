@@ -241,7 +241,7 @@ def run_terastitcher(
     
     # # upload xml results to log_s3_path if not None
     # # and if not stitch_only
-    if log_s3_path:
+    if log_s3_path and not stitch_only:
         log_s3_url = S3Url(log_s3_path.strip('/'))
         files_to_save = glob(f'{raw_data_path}/*.xml')
         for i in tqdm(files_to_save, desc='saving xml files to S3'):

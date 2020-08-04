@@ -8,6 +8,7 @@ import SimpleITK as sitk
 import math
 import boto3
 import numpy as np
+import os
 from tqdm import tqdm
 
 
@@ -222,18 +223,19 @@ def s3_object_exists(bucket, key):
 
 
 def download_terastitcher_files(s3_path, local_path):
-    # default_terastitcher_files = ['xml_import.xml', 'xml_displcompute.xml', 'xml_dislproj.xml', 'xml_merging.xml', 'xml_displthres.xml']
+    default_terastitcher_files = ['xml_import.xml', 'xml_displcompute.xml', 'xml_dislproj.xml', 'xml_merging.xml', 'xml_displthres.xml']
     s3 = boto3.resource('s3')
     s3_url = S3Url(s3_path)
     xml_paths = list(get_matching_s3_keys(s3_url.bucket, prefix=s3_url.key, suffix='xml'))
+    xml_paths = [i for i in xml_paths if i in default_terastitcher_files]
+    if len(xml_paths) == 0:
+        # xml files were not at s3_path
+        return False
     # download xml results to local_path
     for i in tqdm(xml_paths, desc='downloading xml files from S3'):
         fname = i.split('/')[-1]
         s3.meta.client.download_file(s3_url.bucket, i, f"{local_path}/{fname}")
 
-    if len(xml_paths) == 0:
-        # xml files were not at s3_path
-        return False
     return True
 
 

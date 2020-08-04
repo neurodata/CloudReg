@@ -9,3 +9,5 @@ mpi4py
 imagecodecs
 paramiko
 scipy
+h5py
+
