@@ -5,7 +5,8 @@
 # Embedded file name: paraconverterX.py
 # Compiled at: 2018-07-02 16:51:16
 """
-This program uses a master slave approach to consume a queue 
+
+This program uses a main subordinate approach to consume a queue 
 of elaborations using teraconverter
 Copyright (c) 2016:
 Massimiliano Guarrasi (1), Giulio Iannello (2), Alessandro Bria (2)
@@ -18,7 +19,7 @@ EXAMPLE of usage (X is the major version, Y is the minor version, Z is the patch
 mpirun -np XX python paraconverterX.Y.Z.py -s=source_volume -d=destination_path --depth=DD --height=HH --width=WW --sfmt=source_format --dfmt=destinatiopn_format --resolutions=RR 
 
 where:
-- XX is the desided level of parallelism plus 1 (for the master process)
+- XX is the desided level of parallelism plus 1 (for the main process)
 - DD, HH, WW are the values used to partition the image for parallel execution
 - source and destination format are allowed formats for teraconverter
 - RR are the requested resolutions (according to the convention used by teraconverter)
@@ -155,7 +156,7 @@ def worker(input_file):
     return input_file
 
 
-def master(queue, rs_fname):
+def main(queue, rs_fname):
     """
    Dispatch the work among processors.
    Input:
@@ -221,10 +222,11 @@ def master(queue, rs_fname):
         os.remove(rs_fname)
     return
 
+  
 
-def slave():
+def subordinate():
     """
-   Slave process.
+   Subordinate process.
    """
     myrank = comm.Get_rank()
     WORKTAG = 1
@@ -924,14 +926,15 @@ if __name__ == '__main__':
             scores = score_function(npoints)
             elaborations = sort_elaborations(scores)
             work_list = sort_work(cmd_string, elaborations)
-            master(work_list, rs_fname)
+            main(work_list, rs_fname)
+
             execution_string = prefix + final_string
             os.system(execution_string)
             print(execution_string)
     elif info:
         dummy = 0
     else:
-        slave()
+        subordinate()
     comm.Barrier()
     if myrank == 0:
         t2 = time.time()

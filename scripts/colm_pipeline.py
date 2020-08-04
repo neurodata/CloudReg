@@ -46,7 +46,6 @@ def colm_pipeline(
         log_s3_path=log_s3_path
     )
 
-
     # bias correct all tiles
     # save bias correction tile to log_s3_path
     correct_raw_data(
@@ -55,13 +54,14 @@ def colm_pipeline(
         log_s3_path=log_s3_path
     )
     
+
     # compute stitching alignments
     # download stitching files if they exist at log path
     if not download_terastitcher_files(log_s3_path, raw_data_path):
         stitch_only = False if channel_of_interest == 0 else True
     else:
         stitch_only = True
-
+        
     metadata = run_terastitcher(
         raw_data_path,
         stitched_data_path,
@@ -86,13 +86,14 @@ def colm_pipeline(
         output_s3_path
     )
 
+
     # print viz link to console
     viz_link = create_viz_link([output_s3_path])
     print("###################")
     print(f'VIZ LINK: {viz_link}')
     print("###################")
-
-
+    
+    
 if __name__ == "__main__":
     parser = argparse.ArgumentParser('Run COLM pipeline including bias correction, stitching, upoad to S3')
     parser.add_argument('input_s3_path', help='S3 path to input colm data. Should be of the form s3://<bucket>/<experiment>', type=str)

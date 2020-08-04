@@ -131,8 +131,6 @@ if __name__ == "__main__":
     parser.add_argument('--regularization', help='Weight of the regularization. Bigger value means less regularization. Default is 10000',  type=float, default=1e4)
     parser.add_argument('--iterations', help='Number of iterations to do at low resolution. Default is 5000.',  type=int, default=5000)
 
-
-
     args = parser.parse_args()
 
     run_registration(

@@ -125,10 +125,8 @@ def register(
         # sync registration results to log_s3_path
         aws_cli(['s3', 'sync', registration_prefix, log_s3_path])
     
+
     # upload high res deformed atlas and deformed target to S3
-
-
-    
 
 
 
