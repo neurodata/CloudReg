@@ -65,7 +65,6 @@ def get_bias_field(img, mask=None, scale=1.0, niters=[50, 50, 50, 50]):
 
 
 
-
 @contextlib.contextmanager
 def tqdm_joblib(tqdm_object):
     """Context manager to patch joblib to report into tqdm progress bar given as argument"""
@@ -252,6 +251,11 @@ def get_matching_s3_keys(bucket, prefix='', suffix=''):
     kwargs = {'Bucket': bucket, 'Prefix': prefix}
     while True:
         resp = s3.list_objects_v2(**kwargs)
+        try:
+            resp['Contents']
+        except Exception as e:
+            print(e)
+            return None
         for obj in resp['Contents']:
             key = obj['Key']
             if key.endswith(suffix):

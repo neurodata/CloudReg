@@ -70,7 +70,7 @@ def write_terastitcher_commands(fname_ts, metadata, stitched_dir, do_steps):
     depth = 5
     num_proc_merge = min(math.floor(mem.total/(metadata['height']*metadata['width']*2*depth)),num_cpus)
     print(f"num processes to use for stitching is: {num_processes}")
-    step1 = f"terastitcher --test --projin={metadata['stack_dir']}/xml_import.xml --imout_depth=16 --sparse_data{eofl}"
+    # step1 = f"terastitcher --test --projin={metadata['stack_dir']}/xml_import.xml --imout_depth=16 --sparse_data{eofl}"
     step2 = f"mpirun -n {num_processes} {python_path} {parastitcher_path} -2 --projin=\"{metadata['stack_dir']}/xml_import.xml\" --projout=\"{metadata['stack_dir']}/xml_displcomp.xml\" --sV={metadata['sV']} --sH={metadata['sH']} --sD={metadata['sD']} --subvoldim={subvoldim} --sparse_data --exectimes --exectimesfile=\"{metadata['stack_dir']}/t_displcomp\"{eofl}"
     step3 = f"terastitcher --displproj --projin=\"{metadata['stack_dir']}/xml_displcomp.xml\" --projout=\"{metadata['stack_dir']}/xml_displproj.xml\" --sparse_data{eofl}"
     step4 = f"terastitcher --displthres --projin=\"{metadata['stack_dir']}/xml_displproj.xml\" --projout=\"{metadata['stack_dir']}/xml_displthres.xml\" --threshold=0.3 --sparse_data{eofl}"
@@ -79,11 +79,11 @@ def write_terastitcher_commands(fname_ts, metadata, stitched_dir, do_steps):
     ts_commands = []
 
     if do_steps == STITCH_ONLY:
-        ts_commands.extend([step1,step6])
+        ts_commands.extend([step6])
     elif do_steps == COMPUTE_ONLY:
-        ts_commands.extend([step1,step2,step3,step4,step5])
+        ts_commands.extend([step2,step3,step4,step5])
     else:
-        ts_commands.extend([step1,step2,step3,step4,step5,step6])
+        ts_commands.extend([step2,step3,step4,step5,step6])
 
     with open(fname_ts, 'w') as fp:
         fp.writelines(ts_commands)
