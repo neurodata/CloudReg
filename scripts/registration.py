@@ -157,9 +157,9 @@ if __name__ == "__main__":
     parser.add_argument('--rotation', help='Initial rotation in x,y,z respectively in degrees.',  nargs='+', type=float, default=[0,0,0])
 
     # preprocessing args
-    parser.add_argument('--bias_correction', help='Perform bias correction prior to registration.',  type=bool, default=True)
-    parser.add_argument('--missing_data_correction', help='Perform missing data correction by ignoring 0 values in image prior to registration.',  type=bool, default=False)
-    parser.add_argument('--grid_correction', help='Perform correction for low-intensity grid artifact (COLM data)',  type=bool, default=False)
+    parser.add_argument('--bias_correction', help='Perform bias correction prior to registration.',  type=bool, default=False)
+    parser.add_argument('--missing_data_correction', help='Perform missing data correction by ignoring 0 values in image prior to registration.',  type=bool, default=True)
+    parser.add_argument('--grid_correction', help='Perform correction for low-intensity grid artifact (COLM data)',  type=bool, default=True)
 
     # registration params
     parser.add_argument('--regularization', help='Weight of the regularization. Bigger regularization means less regularization. Default is 5e3',  type=float, default=5e3)
