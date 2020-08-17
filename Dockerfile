@@ -31,5 +31,5 @@ COPY --from=terastitcher /usr/local/bin/terastitcher /usr/local/bin/teraconverte
 
 ENTRYPOINT [ \\
     "python", \\
-    "CloudReg/scripts/colm_pipeline.py"
+    "CloudReg/scripts/colm_pipeline.py" \\
 ]
