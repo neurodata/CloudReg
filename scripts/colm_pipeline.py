@@ -108,8 +108,8 @@ if __name__ == "__main__":
     # parser.add_argument('channel_of_interest', help='Channel of interest in experiment',  type=int)
     parser.add_argument('num_channels', help='Number of channels in experiment',  type=int)
     parser.add_argument('autofluorescence_channel', help='Autofluorescence channel number.',  type=int)
-    parser.add_argument('--raw_data_path', help='Local path where corrected raw data will be stored.',  type=str, default='/home/ubuntu/ssd1')
-    parser.add_argument('--stitched_data_path', help='Local path where stitched slices will be stored.',  type=str, default='/home/ubuntu/ssd2')
+    parser.add_argument('--raw_data_path', help='Local path where corrected raw data will be stored.',  type=str, default=os.path.expanduser('~/ssd1'))
+    parser.add_argument('--stitched_data_path', help='Local path where stitched slices will be stored.',  type=str, default=os.path.expanduser('~/ssd2'))
     parser.add_argument('--log_s3_path', help='S3 path at which pipeline intermediates can be stored including bias correctin tile.',  type=str, default=None)
 
     args = parser.parse_args()
