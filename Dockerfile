@@ -29,7 +29,4 @@ RUN cd CloudReg && \
 # we want terastitcher, teraconverter, mergedisplacements, mdatagenerator
 COPY --from=terastitcher /usr/local/bin/terastitcher /usr/local/bin/teraconverter /usr/local/bin/mdatagenerator /usr/local/bin/mergedisplacements /usr/local/bin/
 
-ENTRYPOINT [ \\
-    "python", \\
-    "CloudReg/scripts/colm_pipeline.py" \\
-]
+ENTRYPOINT [ "python", "CloudReg/scripts/colm_pipeline.py" ]
