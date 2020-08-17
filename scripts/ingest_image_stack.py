@@ -14,10 +14,6 @@ from joblib import Parallel, delayed
 # from concurrent.futures import ProcessPoolExecutor
 
 
-def get_vol_at_mip(precomputed_path, mip, parallel=False):
-    return CloudVolume(precomputed_path, mip=mip, parallel=parallel)
-
-
 def create_cloud_volume(precomputed_path, img_size, voxel_size, dtype='uint16', num_hierarchy_levels=5, parallel=True):
     if dtype == 'uint64':
         layer_type = 'segmentation'
@@ -43,9 +39,8 @@ def create_cloud_volume(precomputed_path, img_size, voxel_size, dtype='uint16', 
 
 
 def process(z, img):
-    start = time.time()
     global layer_path, num_mips
-    vols = [get_vol_at_mip(layer_path, i, parallel=False) for i in range(num_mips)]
+    vols = [CloudVolume(layer_path, i, parallel=False) for i in range(num_mips)]
     if img.dtype in (np.uint8, np.uint16, np.float32, np.float64):
         img_pyramid = tinybrain.accelerated.average_pooling_2x2(img, num_mips=num_mips)
     else:
@@ -53,8 +48,6 @@ def process(z, img):
     vols[0][:, :, z] = img[:,:,None]
     for i in range(num_mips-1):
         vols[i+1][:,:,z] = img_pyramid[i][:,:,None]
-
-    # print(f"Processing {z} took {time.time() - start}")
 
 
 def ingest_image_stack(
@@ -74,7 +67,6 @@ def ingest_image_stack(
 
     img_size = img.shape[::-1]
     vol = create_cloud_volume(s3_path, img_size, voxel_size, dtype=dtype)
-#    vol[:,:,:] = img
 
     mem = virtual_memory()
     num_procs = min(math.floor(mem.total/(img.shape[0]*img.shape[1]*8)), joblib.cpu_count())
