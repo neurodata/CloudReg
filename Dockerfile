@@ -28,3 +28,8 @@ RUN cd CloudReg && \
 # installed terastitcher binaries are in /usr/local
 # we want terastitcher, teraconverter, mergedisplacements, mdatagenerator
 COPY --from=terastitcher /usr/local/bin/terastitcher /usr/local/bin/teraconverter /usr/local/bin/mdatagenerator /usr/local/bin/mergedisplacements /usr/local/bin/
+
+ENTRYPOINT [ \\
+    "python", \\
+    "CloudReg/scripts/colm_pipeline.py"
+]
