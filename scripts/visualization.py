@@ -35,7 +35,7 @@ minimum_ngl_json = {
             },
             'tab': 'source',
             'shader': '#uicontrol vec3 color color(default="white")\n#uicontrol float min slider(default=0, min=0, max=1, step=0.001)\n#uicontrol float max slider(default=1, min=0, max=1, step=0.001)\n#uicontrol float brightness slider(default=0, min=-1, max=1, step=0.1)\n#uicontrol float contrast slider(default=0, min=-3, max=3, step=0.1)\n\nfloat scale(float x) {\n  return (x - min) / (max - min);\n}\n\nvoid main() {\n  emitRGB(\n    color * vec3(\n      scale(\n        toNormalized(getDataValue()))\n       + brightness) * exp(contrast)\n  );\n}',
-            'shaderControls': {'max': 0.005},
+            'shaderControls': {'max': 0.050},
             'blend': 'default',
             'name': 'channel'
         },
@@ -79,12 +79,12 @@ def get_neuroglancer_json(s3_layer_paths, affine_matrices, output_resolution):
     return ngl_json
 
 
-def get_output_dimensions_json(output_dimensions):
+def get_output_dimensions_json(output_resolution):
     # output dimensions must be  in meters
     output_json = copy.deepcopy(minimum_ngl_json['dimensions'])
-    output_json['dimensions']['x'][0] = output_dimensions[0]
-    output_json['dimensions']['y'][1] = output_dimensions[1]
-    output_json['dimensions']['z'][2] = output_dimensions[2]
+    output_json['x'][0] = output_resolution[0]
+    output_json['y'][0] = output_resolution[1]
+    output_json['z'][0] = output_resolution[2]
     return output_json
 
 def get_layer_json(s3_layer_path, affine_matrix, output_resolution):

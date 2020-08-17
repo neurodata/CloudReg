@@ -44,7 +44,7 @@ if ~exist('grid_correction')
     grid_correction = 1;
 end
 if~exist('bias_correction')
-    bias_correction = 1;
+    bias_correction = 0;
 end
 %%%% end params for preprocessing
 
@@ -60,7 +60,7 @@ A = initial_affine;
 
 % weight of regularization 
 if ~exist('sigmaR')
-    sigmaR = 1e4;
+    sigmaR = 5e3;
 end
 
 if ~exist('niter')
@@ -109,7 +109,7 @@ rigid_only  = 0; % constrain affine to be rigid
 %%%% end parameters %%%%
 
 
-downloop_start = 2;
+downloop_start = 1;
 for downloop = downloop_start : 2
 
     if downloop > 1
