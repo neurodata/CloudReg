@@ -46,6 +46,18 @@ def colm_pipeline(
         log_s3_path=log_s3_path
     )
 
+    # compute stitching alignments first if you need to
+    # download stitching files if they exist at log path
+    if not download_terastitcher_files(log_s3_path, raw_data_path) and channel_of_interest == 0:
+        metadata = run_terastitcher(
+            raw_data_path,
+            stitched_data_path,
+            input_s3_path,
+            log_s3_path=log_s3_path,
+            compute_only=True
+        )
+
+
     # bias correct all tiles
     # save bias correction tile to log_s3_path
     correct_raw_data(
@@ -55,19 +67,13 @@ def colm_pipeline(
     )
     
 
-    # compute stitching alignments
-    # download stitching files if they exist at log path
-    if not download_terastitcher_files(log_s3_path, raw_data_path):
-        stitch_only = False if channel_of_interest == 0 else True
-    else:
-        stitch_only = True
-        
+    # now stitch the data with alignments we computed
     metadata = run_terastitcher(
         raw_data_path,
         stitched_data_path,
         input_s3_path,
         log_s3_path=log_s3_path,
-        stitch_only=stitch_only
+        stitch_only=True
     )
 
     # downsample and upload stitched data to S3
@@ -88,7 +94,8 @@ def colm_pipeline(
 
 
     # print viz link to console
-    viz_link = create_viz_link([output_s3_path])
+    # visualize data at 5 microns
+    viz_link = create_viz_link([output_s3_path], output_resolution=np.array([5]*3)/1e6)
     print("###################")
     print(f'VIZ LINK: {viz_link}')
     print("###################")

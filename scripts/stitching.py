@@ -210,10 +210,8 @@ def run_terastitcher(
     input_s3_url = S3Url(input_s3_path.strip('/'))
 
     # generate commands to stitch data using Terastitcher
-    if stitch_only and not log_s3_path:
-        raise("If using previous stitching results, must specify log_s3_path")
-    elif stitch_only:
-        pass
+    # if stitch_only and not log_s3_path:
+    #     raise("If using previous stitching results, must specify log_s3_path")
         # download terastitcher files if they arent already on local storage
         # download_terastitcher_files(log_s3_path, raw_data_path)
         

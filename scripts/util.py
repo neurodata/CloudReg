@@ -356,3 +356,10 @@ def start_ec2_instance(instance_id, instance_type):
     # get instance ip address
     instance = ec2.Instance(instance_id)
     return instance.public_ip_address
+
+
+def calc_hierarchy_levels(img_size, lowest_res=1024):
+    max_xy = max(img_size[0:1])
+    # we add one because 0 is included in the number of downsampling levels
+    num_levels = max(1, math.ceil(math.log(max_xy / lowest_res, 2)) + 1)
+    return num_levels
