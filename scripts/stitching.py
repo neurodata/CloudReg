@@ -14,7 +14,7 @@ from tqdm import tqdm
 
 parastitcher_path = f'{os.path.dirname(os.path.realpath(__file__))}/parastitcher.py'
 paraconverter_path = f'{os.path.dirname(os.path.realpath(__file__))}/paraconverter.py'
-python_path = os.path.expanduser('~/colm_pipeline_env/bin/python')
+python_path = "python"
 
 STITCH_ONLY, COMPUTE_ONLY, ALL_STEPS = range(3)
 
