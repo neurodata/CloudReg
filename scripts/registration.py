@@ -5,10 +5,11 @@ from cloudvolume import CloudVolume
 from scipy.spatial.transform import Rotation
 import numpy as np
 from util import get_reorientations, aws_cli 
-from visualization import ara_average_data_link, ara_annotation_data_link
+from visualization import ara_average_data_link, ara_annotation_data_link, create_viz_link
 import argparse
 import subprocess
 import os
+from ingest_image_stack import ingest_image_stack
 
 atlas_orientation = "PIR"
 
@@ -44,7 +45,7 @@ def get_affine_matrix(
 
     if center:
         # for each flip add the size of image in that dimension
-        affine[:3,-1] += np.array([vol_size[i]  if flips[i] == -1 else 0 for i in range(len(flips))])
+        affine[:3,-1] += np.array([vol_size[i] if flips[i] == -1 else 0 for i in range(len(flips))])
         # make image centered at the middle of the image
         # volume is now centered
         affine[:3,-1] -= vol_size/2
@@ -113,21 +114,33 @@ def register(
     affine_string = [', '.join(map(str,i)) for i in initial_affine]
     affine_string = '; '.join(affine_string)
     matlab_registration_command = f'''
-        matlab -nodisplay -nosplash -nodesktop -r \"num_iter={num_iterations};sigmaR={regularization};missing_data_correction={int(missing_data_correction)};grid_correction={int(grid_correction)};bias_correction={int(bias_correction)};base_path=\'{base_path}\';target_name=\'{target_name}\';registration_prefix=\'{registration_prefix}\';dxJ0={voxel_size};fixed_scale={fixed_scale};initial_affine=[{affine_string}];run(\'~/CloudReg/registration/registration_script_mouse_GN.m\')\"
+        matlab -nodisplay -nosplash -nodesktop -r \"niter={num_iterations};sigmaR={regularization};missing_data_correction={int(missing_data_correction)};grid_correction={int(grid_correction)};bias_correction={int(bias_correction)};base_path=\'{base_path}\';target_name=\'{target_name}\';registration_prefix=\'{registration_prefix}\';dxJ0={voxel_size};fixed_scale={fixed_scale};initial_affine=[{affine_string}];run(\'~/CloudReg/registration/registration_script_mouse_GN.m\')\"
     '''
     print(matlab_registration_command)
     subprocess.run(
         shlex.split(matlab_registration_command)
     )
 
-    # savse results to S3
+    # save results to S3
     if log_s3_path:
         # sync registration results to log_s3_path
         aws_cli(['s3', 'sync', registration_prefix, log_s3_path])
     
-
     # upload high res deformed atlas and deformed target to S3
+    ingest_image_stack(
+        output_s3_path,
+        voxel_size,
+        f'{registration_prefix}/downloop_2_labels_to_target_highres.img',
+        'img',
+        'uint64'
+    )
 
+    # print out viz link for visualization
+    # visualize results at 5 microns
+    viz_link = create_viz_link([input_s3_path, output_s3_path], output_resolution=np.array([5]*3)/1e6)
+    print("###################")
+    print(f'VIZ LINK: {viz_link}')
+    print("###################")
 
 
 if __name__ == "__main__":
@@ -144,9 +157,9 @@ if __name__ == "__main__":
     parser.add_argument('--rotation', help='Initial rotation in x,y,z respectively in degrees.',  nargs='+', type=float, default=[0,0,0])
 
     # preprocessing args
-    parser.add_argument('--bias_correction', help='Perform bias correction prior to registration.',  type=bool, default=True)
-    parser.add_argument('--missing_data_correction', help='Perform missing data correction by ignoring 0 values in image prior to registration.',  type=bool, default=False)
-    parser.add_argument('--grid_correction', help='Perform correction for low-intensity grid artifact (COLM data)',  type=bool, default=False)
+    parser.add_argument('--bias_correction', help='Perform bias correction prior to registration.',  type=bool, default=False)
+    parser.add_argument('--missing_data_correction', help='Perform missing data correction by ignoring 0 values in image prior to registration.',  type=bool, default=True)
+    parser.add_argument('--grid_correction', help='Perform correction for low-intensity grid artifact (COLM data)',  type=bool, default=True)
 
     # registration params
     parser.add_argument('--regularization', help='Weight of the regularization. Bigger regularization means less regularization. Default is 5e3',  type=float, default=5e3)

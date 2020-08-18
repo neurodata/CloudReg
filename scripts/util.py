@@ -65,7 +65,6 @@ def get_bias_field(img, mask=None, scale=1.0, niters=[50, 50, 50, 50]):
 
 
 
-
 @contextlib.contextmanager
 def tqdm_joblib(tqdm_object):
     """Context manager to patch joblib to report into tqdm progress bar given as argument"""
@@ -252,6 +251,11 @@ def get_matching_s3_keys(bucket, prefix='', suffix=''):
     kwargs = {'Bucket': bucket, 'Prefix': prefix}
     while True:
         resp = s3.list_objects_v2(**kwargs)
+        try:
+            resp['Contents']
+        except Exception as e:
+            print(e)
+            return None
         for obj in resp['Contents']:
             key = obj['Key']
             if key.endswith(suffix):
@@ -352,3 +356,10 @@ def start_ec2_instance(instance_id, instance_type):
     # get instance ip address
     instance = ec2.Instance(instance_id)
     return instance.public_ip_address
+
+
+def calc_hierarchy_levels(img_size, lowest_res=1024):
+    max_xy = max(img_size[0:1])
+    # we add one because 0 is included in the number of downsampling levels
+    num_levels = max(1, math.ceil(math.log(max_xy / lowest_res, 2)) + 1)
+    return num_levels
