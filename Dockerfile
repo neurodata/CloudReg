@@ -31,5 +31,5 @@ COPY --from=terastitcher /usr/local/bin/terastitcher /usr/local/bin/teraconverte
 
 ADD entrypoint.sh entrypoint.sh
 
-ENTRYPOINT [ "bash entrypoint.sh" ]
+ENTRYPOINT [ "/bin/bash", "entrypoint.sh" ]
 # ENTRYPOINT [ "python", "CloudReg/scripts/colm_pipeline.py" ]
