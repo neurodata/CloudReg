@@ -66,13 +66,14 @@ def run_colm_pipeline(
 
     # now run command on instance
     # update the code on the instance
-    update_command = 'mkdir -p ~/ssd1 ~/ssd2; cd CloudReg; git pull;'
+    update_command = 'mkdir -p ~/ssd1 ~/ssd2; git clone https://github.com/neurodata/CloudReg.git; cd CloudReg; git pull;'
     print("updating CloudReg code on EC2 instance...")
     errors_update = run_command_on_server(update_command, ssh_key_path, instance.public_ip_address)
     # mount ssds command
     command1 = 'sudo bash CloudReg/scripts/mount_combined_ssds.sh'
     # colm pipeline command
-    command2 = f'time /home/ubuntu/colm_pipeline_env/bin/python CloudReg/scripts/colm_pipeline.py {input_s3_path} {output_s3_path} {num_channels} {autofluorescence_channel} --log_s3_path {log_s3_path}'
+    # command2 = f'time /home/ubuntu/colm_pipeline_env/bin/python CloudReg/scripts/colm_pipeline.py {input_s3_path} {output_s3_path} {num_channels} {autofluorescence_channel} --log_s3_path {log_s3_path}'
+    command2 = f'cd CloudReg/; time docker-compose run -v ~/ssd1:/root/ssd1 -v ~/ssd2:/root/ssd2 cloudreg {input_s3_path} {output_s3_path} {num_channels} {autofluorescence_channel} --log_s3_path {log_s3_path}'
     print(command2)
     errors1 = run_command_on_server(command1, ssh_key_path, instance.public_ip_address)
     print(errors1)
