@@ -1,3 +1,6 @@
+# local imports
+from .util import tqdm_joblib, chunks, imgResample, upload_file_to_s3, S3Url, s3_object_exists
+
 import time
 import os
 from io import BytesIO
@@ -10,7 +13,6 @@ from tqdm import tqdm
 from joblib import Parallel, delayed, cpu_count
 import math
 import tifffile as tf
-from util import tqdm_joblib, chunks, imgResample, upload_file_to_s3, S3Url, s3_object_exists
 
 
 config = Config(connect_timeout=5, retries={'max_attempts': 5})

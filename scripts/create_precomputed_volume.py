@@ -1,3 +1,6 @@
+# local imports
+from .util import tqdm_joblib
+
 import math
 from cloudvolume import CloudVolume
 import numpy as np
@@ -10,12 +13,7 @@ from PIL import Image
 from psutil import virtual_memory
 from tqdm import tqdm
 import tifffile as tf
-
 import tinybrain
-
-from concurrent.futures.process import ProcessPoolExecutor
-
-from util import tqdm_joblib
 
 PIL.Image.MAX_IMAGE_PIXELS = None
 
@@ -97,7 +95,7 @@ def create_precomputed_volume(
 
     try:
         with tqdm_joblib(tqdm(desc="Creating precomputed volume", total=len(files))) as progress_bar:
-            Parallel(num_procs, timeout=1800, verbose=10)(
+            Parallel(num_procs, timeout=3600, verbose=10)(
                 delayed(process)(
                     z,
                     f,

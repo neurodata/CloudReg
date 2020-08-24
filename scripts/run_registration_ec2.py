@@ -1,13 +1,15 @@
+# local imports
+from .util import get_reorientations, start_ec2_instance
+from .visualization import create_viz_link, ara_annotation_data_link, ara_average_data_link
+from .registration import get_affine_matrix
+
+from scipy.spatial.transform import Rotation
 import argparse
 import boto3
 import paramiko
 import os
-from util import get_reorientations, start_ec2_instance
-from visualization import create_viz_link, ara_annotation_data_link, ara_average_data_link
-from scipy.spatial.transform import Rotation
 import numpy as np
 from cloudvolume import CloudVolume
-from registration import get_affine_matrix
 
 python_path = '/home/ubuntu/colm_pipeline_env/bin/python'
 

@@ -1,5 +1,7 @@
+# local imports
+from .util import tqdm_joblib, chunks, imgResample, upload_file_to_s3, S3Url, s3_object_exists, get_bias_field
+
 import glob
-import time
 import os
 from io import BytesIO
 import argparse
@@ -12,7 +14,6 @@ from joblib import Parallel, delayed, cpu_count
 import math
 import tifffile as tf
 import SimpleITK as sitk
-from util import tqdm_joblib, chunks, imgResample, upload_file_to_s3, S3Url, s3_object_exists, get_bias_field
 
 
 config = Config(connect_timeout=5, retries={'max_attempts': 5})
@@ -58,7 +59,7 @@ def correct_tiles(tiles, outdir, bias, background_value=None):
 
 
 def get_background_value(raw_data_path):
-    first_plane = np.sort(glob.glob(f'{raw_data_path}/LOC*/*PLN0000*.tiff'))
+    first_plane = np.sort(glob.glob(f'{raw_data_path}/*/*PLN0000*.tiff'))
     def _mean(image_path):
         return np.mean(tf.imread(image_path))
     means = Parallel(-1)(
@@ -87,6 +88,7 @@ def correct_raw_data(
 
     # get list of all tiles to correct for  given channel
     all_files = np.sort(glob.glob(f'{raw_data_path}/*/*.tiff'))
+    background_val = 0
     if background_correction: 
         background_val = get_background_value(raw_data_path)
     total_files = len(all_files)

@@ -1,3 +1,6 @@
+# local imports
+from .util import imgResample, tqdm_joblib, get_bias_field
+
 import argparse
 from tqdm import tqdm
 import SimpleITK as sitk
@@ -5,8 +8,6 @@ import numpy as np
 from cloudvolume import CloudVolume
 import tinybrain
 from joblib import Parallel, delayed
-
-from util import imgResample, tqdm_joblib, get_bias_field
 
 
 def process_slice(bias_slice,z,data_orig_path,data_bc_path):

@@ -1,15 +1,17 @@
+# local imports
+from .util import get_reorientations, aws_cli 
+from .visualization import ara_average_data_link, ara_annotation_data_link, create_viz_link
+from .download_data import download_data
+from .ingest_image_stack import ingest_image_stack
+
 import shlex
-from download_data import download_data
 from util import S3Url
 from cloudvolume import CloudVolume
 from scipy.spatial.transform import Rotation
 import numpy as np
-from util import get_reorientations, aws_cli 
-from visualization import ara_average_data_link, ara_annotation_data_link, create_viz_link
 import argparse
 import subprocess
 import os
-from ingest_image_stack import ingest_image_stack
 
 atlas_orientation = "PIR"
 

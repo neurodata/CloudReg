@@ -1,8 +1,10 @@
+# local imports
+from .util import S3Url
+
 import json
 import requests
 from cloudvolume import CloudVolume
 import numpy as np
-from util import S3Url
 import copy
 
 # 100 um

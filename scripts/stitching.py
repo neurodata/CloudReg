@@ -1,3 +1,5 @@
+# local imports
+from .util import S3Url, upload_file_to_s3, download_file_from_s3, download_terastitcher_files, tqdm_joblib, aws_cli
 # generate xml_import and terastitcher commands
 from configparser import ConfigParser
 import math
@@ -6,7 +8,6 @@ from psutil import virtual_memory
 import joblib
 import boto3
 import os
-from util import S3Url, upload_file_to_s3, download_file_from_s3, download_terastitcher_files, tqdm_joblib, aws_cli
 import subprocess
 import shlex
 from glob import glob
@@ -174,11 +175,13 @@ def generate_stitching_commands(
 
 
     # download COLM metadata files
+    # if they don't exist locally
     scanned_cells_path = f'{stack_dir}/Scanned Cells.txt'
     config_file_path = f'{stack_dir}/Experiment.ini'
-    s3 = boto3.resource('s3')
-    s3.Object(metadata_s3_bucket,f'{metadata_s3_path}/Scanned Cells.txt').download_file(scanned_cells_path)
-    s3.Object(metadata_s3_bucket,f'{metadata_s3_path}/Experiment.ini').download_file(config_file_path)
+    if not os.path.exists(scanned_cells_path) or not os.path.exists(config_file_path):
+        s3 = boto3.resource('s3')
+        s3.Object(metadata_s3_bucket,f'{metadata_s3_path}/Scanned Cells.txt').download_file(scanned_cells_path)
+        s3.Object(metadata_s3_bucket,f'{metadata_s3_path}/Experiment.ini').download_file(config_file_path)
 
     # get metadata
     metadata = get_metadata(config_file_path)
@@ -231,11 +234,14 @@ def run_terastitcher(
     )
 
     # run the Terastitcher commands
+    mdata = f'{raw_data_path}/mdata.bin'
     for i in commands:
         print(i)
         subprocess.run(
             shlex.split(i)
         )
+        if os.path.exists(mdata):
+            os.remove(mdata)
     
     # # upload xml results to log_s3_path if not None
     # # and if not stitch_only

@@ -1,4 +1,3 @@
-import time
 from tqdm import tqdm
 import tifffile as tf
 import numpy as np
@@ -11,7 +10,6 @@ import tinybrain
 from psutil import virtual_memory
 import joblib
 from joblib import Parallel, delayed
-# from concurrent.futures import ProcessPoolExecutor
 
 
 def create_cloud_volume(precomputed_path, img_size, voxel_size, dtype='uint16', num_hierarchy_levels=5, parallel=True):
