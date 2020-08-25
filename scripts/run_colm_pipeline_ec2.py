@@ -66,7 +66,7 @@ def run_colm_pipeline(
 
     # now run command on instance
     # update the code on the instance
-    update_command = 'mkdir -p ~/ssd1 ~/ssd2; git clone https://github.com/neurodata/CloudReg.git; cd CloudReg; git pull;'
+    update_command = 'mkdir -p ~/ssd1 ~/ssd2; git clone https://github.com/neurodata/CloudReg.git; cd CloudReg; git pull; docker pull neurodata/cloudreg;'
     print("updating CloudReg code on EC2 instance...")
     errors_update = run_command_on_server(update_command, ssh_key_path, instance.public_ip_address)
     # mount ssds command
