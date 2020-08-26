@@ -1,3 +1,6 @@
+# local imports
+from ARA_stuff.parse_ara import *
+
 import os
 import argparse
 from joblib import Parallel, delayed
@@ -7,7 +10,6 @@ from collections import defaultdict, Counter
 from skimage import transform
 from tqdm import tqdm, trange
 import pandas as pd
-from ARA_stuff.parse_ara import *
 
 def get_region_stats(atlas_s3_path, data_s3_path, z_slice):
     # create vols

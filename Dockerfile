@@ -27,6 +27,9 @@ RUN cd CloudReg && \
     pip install -r requirements.txt && \
     pip install --pre SimpleITK --find-links https://github.com/SimpleITK/SimpleITK/releases/tag/v2.0rc1
 
+# need to upgrade this package as bug fix
+RUN pip install --upgrade protobuf
+
 # installed terastitcher binaries are in /usr/local
 # we want terastitcher, teraconverter, mergedisplacements, mdatagenerator
 RUN apt install -y libscalapack-openmpi-dev openmpi-bin
