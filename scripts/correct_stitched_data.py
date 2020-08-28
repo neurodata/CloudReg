@@ -7,7 +7,8 @@ import SimpleITK as sitk
 import numpy as np
 from cloudvolume import CloudVolume
 import tinybrain
-from joblib import Parallel, delayed
+from joblib import Parallel, delayed, cpu_count
+from psutil import virtual_memory
 
 
 def process_slice(bias_slice, z, data_orig_path, data_bc_path):
@@ -48,6 +49,26 @@ def correct_stitched_data(data_s3_path, out_s3_path, resolution=15, num_procs=12
         if vol.scales[i]["resolution"][0] <= resolution * 1000:
             mip = i
     vol_ds = CloudVolume(data_s3_path, mip, parallel=True, fill_missing=True)
+
+    # make sure num procs isn't too large for amount of memory needed
+    mem = virtual_memory()
+    num_processes = min(
+        math.floor(
+            mem.total
+            / (
+                (np.prod(vol.scales[0]['size'][:2]))
+                # multiply by bytes per voxel (uint16 = 2 bytes)
+                * 2
+                # fudge factor
+                # need 2 copies of full res image, 1 full res bias, 1 full res corrected image
+                * 8
+            )
+        ),
+        cpu_count(),
+    )
+    if num_procs > num_processes:
+        num_procs = num_processes
+    print(f"using {num_procs} processes for bias correction")
 
     # create new vol if it doesnt exist
     vol_bc = CloudVolume(out_s3_path, info=vol.info.copy())
