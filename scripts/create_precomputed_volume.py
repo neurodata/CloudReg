@@ -1,5 +1,5 @@
 # local imports
-from .util import tqdm_joblib
+from .util import tqdm_joblib, calc_hierarchy_levels
 
 import math
 from cloudvolume import CloudVolume
@@ -22,12 +22,14 @@ def create_cloud_volume(
     precomputed_path,
     img_size,
     voxel_size,
-    num_downsampling_levels=6,
+    num_mips=6,
     chunk_size=[1024, 1024, 1],
     parallel=False,
     layer_type="image",
     dtype="uint16",
 ):
+    # compute num_mips from data size
+    num_mips = calc_hierarchy_levels(img_size)
     info = CloudVolume.create_new_info(
         num_channels=1,
         layer_type=layer_type,
@@ -43,7 +45,7 @@ def create_cloud_volume(
     vol = CloudVolume(precomputed_path, info=info, parallel=parallel)
     [
         vol.add_scale((2 ** i, 2 ** i, 1), chunk_size=chunk_size)
-        for i in range(num_downsampling_levels)
+        for i in range(num_mips)
     ]
 
     vol.commit_info()
@@ -97,7 +99,7 @@ def create_precomputed_volume(
         img_size,
         voxel_size * 1000,
         parallel=False,
-        num_downsampling_levels=num_mips,
+        num_mips=num_mips,
     )
 
     # num procs to use based on available memory

@@ -56,12 +56,12 @@ def correct_stitched_data(data_s3_path, out_s3_path, resolution=15, num_procs=12
         math.floor(
             mem.total
             / (
-                (np.prod(vol.scales[0]['size'][:2]))
+                (np.prod(vol.scales[0]["size"][:2]))
                 # multiply by bytes per voxel (uint16 = 2 bytes)
                 * 2
                 # fudge factor
-                # need 2 copies of full res image, 1 full res bias, 1 full res corrected image
-                * 8
+                # need 2 copies of full res image, 1 full res bias, 1 full res corrected image, and image downsampled at 6 resolutions
+                * 16
             )
         ),
         cpu_count(),
