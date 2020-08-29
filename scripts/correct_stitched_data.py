@@ -9,6 +9,7 @@ from cloudvolume import CloudVolume
 import tinybrain
 from joblib import Parallel, delayed, cpu_count
 from psutil import virtual_memory
+import math
 
 
 def process_slice(bias_slice, z, data_orig_path, data_bc_path):
@@ -48,7 +49,7 @@ def correct_stitched_data(data_s3_path, out_s3_path, resolution=15, num_procs=12
         # get low res image smaller than 15 um
         if vol.scales[i]["resolution"][0] <= resolution * 1000:
             mip = i
-    vol_ds = CloudVolume(data_s3_path, mip, parallel=True, fill_missing=True)
+    vol_ds = CloudVolume(data_s3_path, mip, parallel=False, fill_missing=True, progress=True)
 
     # make sure num procs isn't too large for amount of memory needed
     mem = virtual_memory()
@@ -66,8 +67,7 @@ def correct_stitched_data(data_s3_path, out_s3_path, resolution=15, num_procs=12
         ),
         cpu_count(),
     )
-    if num_procs > num_processes:
-        num_procs = num_processes
+    num_procs = num_processes
     print(f"using {num_procs} processes for bias correction")
 
     # create new vol if it doesnt exist
