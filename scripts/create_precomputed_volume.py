@@ -28,8 +28,6 @@ def create_cloud_volume(
     layer_type="image",
     dtype="uint16",
 ):
-    # compute num_mips from data size
-    num_mips = calc_hierarchy_levels(img_size)
     info = CloudVolume.create_new_info(
         num_channels=1,
         layer_type=layer_type,
@@ -85,7 +83,6 @@ def process(z, file_path, layer_path, num_mips):
 def create_precomputed_volume(
     input_path, voxel_size, precomputed_path, extension="tif", num_mips=8
 ):
-
     files_slices = list(
         enumerate(np.sort(glob(f"{input_path}/*.{extension}")).tolist())
     )
@@ -93,6 +90,8 @@ def create_precomputed_volume(
     files = np.array([i[1] for i in files_slices])
 
     img_size = get_image_dims(files)
+    # compute num_mips from data size
+    num_mips = calc_hierarchy_levels(img_size)
     # convert voxel size from um to nm
     vol = create_cloud_volume(
         precomputed_path,
