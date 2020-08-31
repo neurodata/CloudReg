@@ -62,7 +62,7 @@ def correct_stitched_data(data_s3_path, out_s3_path, resolution=15, num_procs=12
                 * 2
                 # fudge factor
                 # need 2 copies of full res image, 1 full res bias, 1 full res corrected image, and image downsampled at 6 resolutions
-                * 16
+                * 2**7
             )
         ),
         cpu_count(),
