@@ -28,6 +28,21 @@ def create_cloud_volume(
     layer_type="image",
     dtype="uint16",
 ):
+    """Create Neuroglancer precomputed volume S3
+
+    Args:
+        precomputed_path (str): S3 Path to location where precomputed layer will be stored
+        img_size (list of int): Size of the image (in 3D) to be uploaded
+        voxel_size ([type]): Voxel size in nanometers
+        num_mips (int, optional): Number of downsampling levels in X and Y. Defaults to 6.
+        chunk_size (list, optional): Size of each chunk stored on S3. Defaults to [1024, 1024, 1].
+        parallel (bool, optional): Whether or not the returned CloudVlue object will use parallel threads. Defaults to False.
+        layer_type (str, optional): Neuroglancer type of layer. Can be image or segmentation. Defaults to "image".
+        dtype (str, optional): Datatype of precomputed volume. Defaults to "uint16".
+
+    Returns:
+        cloudvolume.CloudVolume: CloudVolume object associated with this precomputed volume
+    """
     info = CloudVolume.create_new_info(
         num_channels=1,
         layer_type=layer_type,
@@ -50,16 +65,17 @@ def create_cloud_volume(
     return vol
 
 
-def load_image(path_to_file, transpose=True):
-    image = np.squeeze(np.array(Image.open(path_to_file)))
-    if transpose:
-        return image.T
-    return image
-
-
 def get_image_dims(files):
+    """Get X,Y,Z dimensions of images based on list of files
+
+    Args:
+        files (list of str): Path to 2D tif series 
+
+    Returns:
+        list of int: X,Y,Z size of image in files
+    """
     # get X,Y size of image by loading first slice
-    img = load_image(files[0])
+    img = np.squeeze(np.array(Image.open(files[0]))).T
     # get Z size by number of files in directory
     z_size = len(files)
     x_size, y_size = img.shape
@@ -67,6 +83,14 @@ def get_image_dims(files):
 
 
 def process(z, file_path, layer_path, num_mips):
+    """Upload single slice to S3 as precomputed
+
+    Args:
+        z (int): Z slice number to upload
+        file_path (str): Path to z-th slice
+        layer_path (str): S3 path to store data at
+        num_mips (int): Number of 2x2 downsampling levels in X,Y
+    """
     vols = [
         CloudVolume(layer_path, mip=i, parallel=False, fill_missing=False)
         for i in range(num_mips)
@@ -81,8 +105,16 @@ def process(z, file_path, layer_path, num_mips):
 
 
 def create_precomputed_volume(
-    input_path, voxel_size, precomputed_path, extension="tif", num_mips=8
+    input_path, voxel_size, precomputed_path, extension="tif"
 ):
+    """Create precomputed volume on S3 from 2D TIF series
+
+    Args:
+        input_path (str): Local path to 2D TIF series
+        voxel_size (np.ndarray): Voxel size of image in X,Y,Z in microns
+        precomputed_path (str): S3 path where precomputed volume will be stored
+        extension (str, optional): Extension for image files. Defaults to "tif".
+    """
     files_slices = list(
         enumerate(np.sort(glob(f"{input_path}/*.{extension}")).tolist())
     )
@@ -138,17 +170,10 @@ if __name__ == "__main__":
         "precomputed_path",
         help="Path to location on s3 where precomputed volume should be stored. Example: s3://<bucket>/<experiment>/<channel>",
     )
-    parser.add_argument(
-        "--extension",
-        help="Extension of stitched files. default is tif",
-        default="tif",
-        type=str,
-    )
     args = parser.parse_args()
 
     create_precomputed_volume(
         args.input_path,
         np.array(args.voxel_size),
         args.precomputed_path,
-        args.extension,
     )
