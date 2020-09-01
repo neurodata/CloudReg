@@ -1,6 +1,7 @@
-from .util import start_ec2_instance, run_command_on_server
+from util import start_ec2_instance, run_command_on_server
 import argparse
 import boto3
+
 
 def run_colm_pipeline(
     ssh_key_path,

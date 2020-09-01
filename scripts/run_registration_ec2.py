@@ -1,10 +1,10 @@
 # local imports
-from .util import start_ec2_instance, run_command_on_server
-from .visualization import (
+from util import start_ec2_instance, run_command_on_server
+from visualization import (
     create_viz_link,
     ara_average_data_link,
 )
-from .registration import get_affine_matrix
+from registration import get_affine_matrix
 
 import argparse
 import boto3
