@@ -318,15 +318,15 @@ def download_terastitcher_files(s3_path, local_path):
         "xml_import.xml",
         "xml_displcompute.xml",
         "xml_dislproj.xml",
-        "xml_merging.xml",
         "xml_displthres.xml",
+        "xml_merging.xml"
     ]
     s3 = boto3.resource("s3")
     s3_url = S3Url(s3_path)
     xml_paths = list(
         get_matching_s3_keys(s3_url.bucket, prefix=s3_url.key, suffix="xml")
     )
-    xml_paths = [i for i in xml_paths if i in default_terastitcher_files]
+    xml_paths = [i for i in xml_paths if i.split('/')[-1] in default_terastitcher_files]
     if len(xml_paths) == 0:
         # xml files were not at s3_path
         return False
