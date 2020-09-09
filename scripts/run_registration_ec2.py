@@ -9,7 +9,7 @@ from registration import get_affine_matrix
 import argparse
 import boto3
 
-python_path = "/home/ubuntu/colm_pipeline_env/bin/python"
+python_path = "python3"
 
 
 def run_registration(
