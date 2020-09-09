@@ -1,3 +1,7 @@
+try:
+    from urlparse import urlparse
+except ImportError:
+    from urllib.parse import urlparse
 import requests
 from cloudvolume import CloudVolume
 import numpy as np
@@ -171,6 +175,7 @@ def get_layer_json(s3_layer_path, affine_matrix, output_resolution):
     }
 
     return layer_data
+
 
 # copied because of import issues
 # below code from https://stackoverflow.com/questions/42641315/s3-urls-get-bucket-name-and-path
