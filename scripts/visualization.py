@@ -1,5 +1,5 @@
 # local imports
-from .util import S3Url
+from util import S3Url
 
 import requests
 from cloudvolume import CloudVolume
