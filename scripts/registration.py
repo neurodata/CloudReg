@@ -1,13 +1,13 @@
 # local imports
-from .util import get_reorientations, aws_cli
-from .visualization import (
+from util import get_reorientations, aws_cli
+from visualization import (
     ara_average_data_link,
     ara_annotation_data_link,
     create_viz_link,
     S3Url,
 )
-from .download_data import download_data
-from .ingest_image_stack import ingest_image_stack
+from download_data import download_data
+from ingest_image_stack import ingest_image_stack
 
 import shlex
 from cloudvolume import CloudVolume
