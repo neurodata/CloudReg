@@ -60,7 +60,7 @@ A = initial_affine;
 
 % weight of regularization 
 if ~exist('sigmaR')
-    sigmaR = 5e3;
+    sigmaR = 1e4;
 end
 
 if ~exist('niter')
@@ -500,6 +500,7 @@ for downloop = downloop_start : 2
     
     if ~isempty(coeffsname)
         coeffs = load(coeffsname);
+        coeffs = coeffs.coeffs;
         coeffs_1 = upsample(coeffs(:,:,:,1),[size(J,1),size(J,2),size(J,3)]);
         coeffs_2 = upsample(coeffs(:,:,:,2),[size(J,1),size(J,2),size(J,3)]);
         coeffs_3 = upsample(coeffs(:,:,:,3),[size(J,1),size(J,2),size(J,3)]);
