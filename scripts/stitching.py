@@ -119,11 +119,14 @@ def write_terastitcher_commands(fname_ts, metadata, stitched_dir, do_steps):
     ts_commands = []
 
     if do_steps == STITCH_ONLY:
-        ts_commands.extend([step6])
+        # do step 5 in case xml_merging doesnt exist
+        ts_commands.extend([step5, step6])
     elif do_steps == COMPUTE_ONLY:
-        ts_commands.extend([step2, step3, step4, step5])
+        # do step 5 twice to fix terastitcher issue where placetiles cant find tiffs in folder        
+        ts_commands.extend([step2, step3, step4, step5, step5])
     else:
-        ts_commands.extend([step2, step3, step4, step5, step6])
+        # do step 5 twice to fix terastitcher issue
+        ts_commands.extend([step2, step3, step4, step5, step5, step6])
 
     with open(fname_ts, "w") as fp:
         fp.writelines(ts_commands)
