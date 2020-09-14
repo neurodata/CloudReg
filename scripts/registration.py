@@ -238,20 +238,23 @@ if __name__ == "__main__":
     parser.add_argument(
         "--bias_correction",
         help="Perform bias correction prior to registration.",
-        type=bool,
-        default=False,
+        type=eval,
+        choices=[True, False],
+        default='True',
     )
     parser.add_argument(
         "--missing_data_correction",
         help="Perform missing data correction by ignoring 0 values in image prior to registration.",
-        type=bool,
-        default=True,
+        type=eval,
+        choices=[True, False],
+        default='True',
     )
     parser.add_argument(
         "--grid_correction",
         help="Perform correction for low-intensity grid artifact (COLM data)",
-        type=bool,
-        default=True,
+        type=eval,
+        choices=[True, False],
+        default='True',
     )
 
     # registration params
