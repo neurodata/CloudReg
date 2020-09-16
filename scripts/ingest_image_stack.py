@@ -46,8 +46,7 @@ def create_cloud_volume(
     return vol
 
 
-def process(z, img):
-    global layer_path, num_mips
+def process(z, img, layer_path, num_mips):
     vols = [CloudVolume(layer_path, i, parallel=False) for i in range(num_mips)]
     if img.dtype in (np.uint8, np.uint16, np.float32, np.float64):
         img_pyramid = tinybrain.accelerated.average_pooling_2x2(img, num_mips=num_mips)
@@ -76,7 +75,7 @@ def ingest_image_stack(s3_path, voxel_size, img_stack, extension, dtype):
     )
     print(f"num processes: {num_procs}")
     print(f"layer path: {vol.layer_cloudpath}")
-    global layer_path, num_mips
+    # hard code these
     num_mips = 3
     layer_path = vol.layer_cloudpath
 
@@ -84,8 +83,8 @@ def ingest_image_stack(s3_path, voxel_size, img_stack, extension, dtype):
     files = [i[1] for i in data]
     zs = [i[0] for i in data]
 
-    Parallel(num_procs)(
-        delayed(process)(z, f) for z, f in tqdm(zip(zs, files), total=len(zs))
+    Parallel(num_procs, max_nbytes=None)(
+        delayed(process)(z, f, layer_path, num_mips) for z, f in tqdm(zip(zs, files), total=len(zs))
     )
     # with ProcessPoolExecutor(max_workers=num_procs) as executor:
     #     executor.map(process, zs, files)
