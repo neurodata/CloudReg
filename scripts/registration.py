@@ -268,7 +268,7 @@ if __name__ == "__main__":
         "--iterations",
         help="Number of iterations to do at low resolution. Default is 5000.",
         type=int,
-        default=5000,
+        default=3000,
     )
 
     args = parser.parse_args()
