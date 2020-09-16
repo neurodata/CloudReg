@@ -186,7 +186,7 @@ if __name__ == "__main__":
         "--missing_data_correction",
         help="Perform missing data correction by ignoring 0 values in image prior to registration.",
         type=bool,
-        default=False,
+        default=True,
     )
     parser.add_argument(
         "--grid_correction",
@@ -198,7 +198,7 @@ if __name__ == "__main__":
         "--bias_correction",
         help="Perform bias correction prior to registration.",
         type=bool,
-        default=False,
+        default=True,
     )
 
     # registration params
@@ -206,13 +206,13 @@ if __name__ == "__main__":
         "--regularization",
         help="Weight of the regularization. Bigger value means less regularization. Default is 10000",
         type=float,
-        default=1e4,
+        default=5e3,
     )
     parser.add_argument(
         "--iterations",
         help="Number of iterations to do at low resolution. Default is 5000.",
         type=int,
-        default=5000,
+        default=3000,
     )
 
     args = parser.parse_args()

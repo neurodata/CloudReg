@@ -254,7 +254,7 @@ if __name__ == "__main__":
         help="Perform correction for low-intensity grid artifact (COLM data)",
         type=eval,
         choices=[True, False],
-        default='True',
+        default='False',
     )
 
     # registration params
