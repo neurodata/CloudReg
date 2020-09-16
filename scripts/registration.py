@@ -262,7 +262,7 @@ if __name__ == "__main__":
         "--regularization",
         help="Weight of the regularization. Bigger regularization means less regularization. Default is 5e3",
         type=float,
-        default=1e4,
+        default=5e3,
     )
     parser.add_argument(
         "--iterations",
