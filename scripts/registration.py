@@ -83,7 +83,12 @@ def get_affine_matrix(
     affine[:3, -1] += translation
 
     # scale by fixed_scale
-    affine = np.diag([fixed_scale, fixed_scale, fixed_scale, 1.0]) @ affine
+    if isinstance(fixed_scale, float):
+        affine = np.diag([fixed_scale, fixed_scale, fixed_scale, 1.0]) @ affine
+    elif isinstance(fixed_scale, (list, np.ndarray)) and len(fixed_scale) == 3:
+        affine = np.diag([fixed_scale[0], fixed_scale[1], fixed_scale[2], 1.0]) @ affine 
+    else:
+        affine = np.diag([fixed_scale[0], fixed_scale[0], fixed_scale[0], 1.0]) @ affine
 
     return affine
 
@@ -214,10 +219,11 @@ if __name__ == "__main__":
         "-orientation", help="3-letter orientation of data. i.e. LPS", type=str
     )
     parser.add_argument(
-        "--scale",
+        "--fixed_scale",
         help="Fixed scale of data, uniform in all dimensions. Default is 1.",
+        nargs=3,
         type=float,
-        default=1.0,
+        default=[1.0, 1.0, 1.0]
     )
     parser.add_argument(
         "--translation",
@@ -278,7 +284,7 @@ if __name__ == "__main__":
         args.output_s3_path,
         args.log_s3_path,
         args.orientation,
-        args.scale,
+        args.fixed_scale,
         args.translation,
         args.rotation,
         args.missing_data_correction,

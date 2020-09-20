@@ -9,6 +9,7 @@ from registration import get_affine_matrix
 import argparse
 import boto3
 
+# python_path = "~/colm_pipeline_env/bin/python3"
 python_path = "python3"
 
 
@@ -88,7 +89,9 @@ def run_registration(
     update_command = "cd ~/CloudReg; git pull;"
     _ = run_command_on_server(update_command, ssh_key_path, public_ip_address)
     # matlab registration command
-    command2 = f"time {python_path} CloudReg/scripts/registration.py -input_s3_path {input_s3_path} --output_s3_path {output_s3_path} -orientation {orientation} --rotation {' '.join(map(str,initial_rotation))} --translation {' '.join(map(str,initial_translation))} --scale {fixed_scale} -log_s3_path {log_s3_path} --missing_data_correction {missing_data_correction} --grid_correction {grid_correction} --bias_correction {bias_correction} --regularization {sigma_regularization} --iterations {num_iterations}"
+    fixed_scale_string = ' '.join([f'{i}' for i in fixed_scale])
+    print(fixed_scale_string)
+    command2 = f"time {python_path} CloudReg/scripts/registration.py -input_s3_path {input_s3_path} --output_s3_path {output_s3_path} -orientation {orientation} --rotation {' '.join(map(str,initial_rotation))} --translation {' '.join(map(str,initial_translation))} --scale {fixed_scale_string} -log_s3_path {log_s3_path} --missing_data_correction {missing_data_correction} --grid_correction {grid_correction} --bias_correction {bias_correction} --regularization {sigma_regularization} --iterations {num_iterations}"
     print(command2)
     errors2 = run_command_on_server(command2, ssh_key_path, public_ip_address)
     print(f"errors: {errors2}")
@@ -141,8 +144,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--fixed_scale",
         help="Fixed scale of data, uniform in all dimensions. Default is 1.",
+        nargs='+',
         type=float,
-        default=1.0,
+        default=[1.0, 1.0, 1.0]
     )
     parser.add_argument(
         "--xy",

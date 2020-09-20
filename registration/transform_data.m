@@ -214,6 +214,7 @@ function [] = transform_data(path_to_source,source_voxel_size,path_to_affine,pat
     avw.hdr.dime.pixdim([3,2,4]) = destination_voxel_size;
     avw.img = Idef;
     avw_img_write(avw,path_to_output)
+    disp('deformed image saved')
 
 end
 
