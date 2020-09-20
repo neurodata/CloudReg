@@ -847,7 +847,7 @@ for downloop = downloop_start : 2
                 s = diag(S);
                 s = exp(mean(log(s))) * ones(size(s));
                 if fixed_scale ~= 0
-                    s = [1,1,1]*fixed_scale;
+                    s = [1,1,1] .* fixed_scale;
                 end
                 A(1:3,1:3) = U * diag(s) *  V';
 		
