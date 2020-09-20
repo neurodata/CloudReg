@@ -221,7 +221,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--fixed_scale",
         help="Fixed scale of data, uniform in all dimensions. Default is 1.",
-        nargs=3,
+        nargs='+',
         type=float,
         default=[1.0, 1.0, 1.0]
     )
