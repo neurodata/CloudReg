@@ -176,7 +176,7 @@ def register(
     # upload high res deformed atlas and deformed target to S3
     ingest_image_stack(
         output_s3_path,
-        voxel_size,
+        voxel_size*1000,
         f"{registration_prefix}/downloop_2_labels_to_target_highres.img",
         "img",
         "uint64",
