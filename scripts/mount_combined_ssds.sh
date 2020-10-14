@@ -8,7 +8,7 @@ then
             echo "$blkdev is $mapping formatting and mounting..."
             mkfs.ext4 -E nodiscard -m0 ${blkdev}
             mount -o discard ${blkdev} /home/ubuntu/ssd{i}
-            i++
+            i+=1
         else
             echo "detected unknown drive letter $blkdev: $mapping. Skipping..."
         fi
@@ -30,7 +30,7 @@ else
                 echo ""
             fi
             vgextend LVMVolGroup ${blkdev}
-            i++
+            i+=1
         else
             echo "detected unknown drive letter $blkdev: $mapping. Skipping..."
         fi
