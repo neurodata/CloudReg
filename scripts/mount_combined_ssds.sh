@@ -1,23 +1,23 @@
 mkdir -p ~/ssd1 ~/ssd2
 if [ $(($(lsblk | grep nvme | wc -l) - 2)) -lt $((4)) ]
 then
+    i=1
     for blkdev in $(nvme list | awk '/^\/dev/ { print $1 }'); do
-        i=1
         mapping=$(nvme id-ctrl --raw-binary "${blkdev}" | grep Instance)
         if [[ ${mapping} ]]; then
             echo "$blkdev is $mapping formatting and mounting..."
             mkfs.ext4 -E nodiscard -m0 ${blkdev}
-            mount -o discard ${blkdev} /home/ubuntu/ssd{i}
-            i+=1
+            mount -o discard ${blkdev} /home/ubuntu/ssd${i}
+            i=$((i+1))
         else
             echo "detected unknown drive letter $blkdev: $mapping. Skipping..."
         fi
     done
     chown ubuntu:ubuntu /home/ubuntu/ssd1
-    chown ubuntu:ubuntu /home/ubuntu/ssdo2
+    chown ubuntu:ubuntu /home/ubuntu/ssd2
 
 else
-    vgcreate LVMVolGroup 
+    vgcreate LVMVolGroup
     for blkdev in $(nvme list | awk '/^\/dev/ { print $1 }'); do
         i=0
         mapping=$(nvme id-ctrl --raw-binary "${blkdev}" | grep Instance)
@@ -27,10 +27,10 @@ else
             if [[ ${i} == 0 ]]; then
                 vgcreate LVMVolGroup ${blkdev}
             else
-                echo ""
+                echo "hi"
             fi
             vgextend LVMVolGroup ${blkdev}
-            i+=1
+            i=$((i+1))
         else
             echo "detected unknown drive letter $blkdev: $mapping. Skipping..."
         fi
