@@ -17,7 +17,6 @@ then
     chown ubuntu:ubuntu /home/ubuntu/ssd2
 
 else
-    vgcreate LVMVolGroup
     for blkdev in $(nvme list | awk '/^\/dev/ { print $1 }'); do
         i=0
         mapping=$(nvme id-ctrl --raw-binary "${blkdev}" | grep Instance)
@@ -27,9 +26,8 @@ else
             if [[ ${i} == 0 ]]; then
                 vgcreate LVMVolGroup ${blkdev}
             else
-                echo "hi"
+                vgextend LVMVolGroup ${blkdev}
             fi
-            vgextend LVMVolGroup ${blkdev}
             i=$((i+1))
         else
             echo "detected unknown drive letter $blkdev: $mapping. Skipping..."

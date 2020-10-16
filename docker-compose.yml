@@ -2,7 +2,7 @@ version: "3.8"
 services:
     cloudreg:
         image: neurodata/cloudreg
-        shm_size: 5gb
+        shm_size: 20gb
         secrets:
             - cloudvolume_credentials
 
