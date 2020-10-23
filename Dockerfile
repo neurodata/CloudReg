@@ -25,7 +25,8 @@ RUN git clone https://github.com/neurodata/CloudReg.git --branch master --single
 
 RUN cd CloudReg && \
     pip install -r requirements.txt && \
-    pip install --pre SimpleITK --find-links https://github.com/SimpleITK/SimpleITK/releases/tag/v2.0rc1
+    pip install --pre SimpleITK --find-links https://github.com/SimpleITK/SimpleITK/releases/tag/v2.0rc1 && \
+    pip install mpi4py
 
 # need to upgrade this package as bug fix
 RUN pip install --upgrade protobuf
