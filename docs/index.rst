@@ -1,19 +1,22 @@
-.. CloudReg documentation master file, created by
-   sphinx-quickstart on Thu Oct 22 19:51:55 2020.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+..  -*- coding: utf-8 -*-
 
-Welcome to CloudReg's documentation!
-====================================
+.. _contents:
+
+Overview of CloudReg
+====================
+
+CloudReg is a pipeline for terascale image preprocessing and 3D nonlinear registration between two brain volumes.
+
+
+Documentation
+=============
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 1
 
-   
-   colm_pipeline
-
-
+   install
+   reference/index
+   license
 
 Indices and tables
 ==================
