@@ -2,13 +2,17 @@ close all;
 fclose all;
 
 
-addpath ~/CloudReg/registration/Functions/
-addpath ~/CloudReg/registration/Functions/plotting/
-addpath ~/CloudReg/registration/Functions/nrrd/
-addpath ~/CloudReg/registration/Functions/avwQuiet/
-addpath ~/CloudReg/registration/Functions/downsample/
-addpath ~/CloudReg/registration/Functions/spatially_varying_polynomial/
-addpath ~/CloudReg/registration/Functions/textprogressbar/
+curr_path = mfilename('fullpath');
+curr_path = strsplit(curr_path,'/');
+curr_path(end) = [];
+curr_path = strjoin(curr_path, '/');
+addpath([curr_path,'/Functions/'])
+addpath([curr_path,'/Functions/avwQuiet/'])
+addpath([curr_path,'/Functions/downsample/'])
+addpath([curr_path,'/Functions/plotting/'])
+addpath([curr_path,'/Functions/textprogressbar/'])
+addpath([curr_path,'/Functions/nrrd/'])
+addpath([curr_path,'/Functions/spatially_varying_polynomial/'])
 
 %%%% params for  input files
 if ~exist('base_path')
@@ -50,13 +54,20 @@ end
 
 %%%% params for registration
 if ~exist('fixed_scale')
-    fixed_scale = 1.0
+    fixed_scale = [1.0 1.0 1.0]
 end
 
 if ~exist('initial_affine')
     initial_affine = eye(4)
 end
 A = initial_affine;
+fixed_scale = fixed_scale .* [1 1 1];
+% create fixed_scale with correct orientation for atlas
+A_lin = A(1:3,1:3);
+A_lin( A_lin < min(max(A_lin) ) ) = 0;
+A_lin( A_lin > 0 ) = 1;
+fixed_scale_r = A_lin' * fixed_scale';
+
 
 % weight of regularization 
 if ~exist('sigmaR')
@@ -73,6 +84,10 @@ if ~exist('eV')
     eV = 1e6;
 end
 
+if ~exist('eA')
+    % gauss newton affine step size
+    eA = 0.2;
+end
 
 nT = 10; % number of timesteps over which to integrate flow
 sigmaC = 5.0;
@@ -92,8 +107,6 @@ naffine = 0;
 % larger means smoother velocity field
 a = 500;
 
-% gauss newton affine step size
-eA = 0.2;
 
 
 
@@ -103,8 +116,14 @@ prior = [0.79, 0.2, 0.01];
 
 
 do_GN = 1; % do gauss newton
-uniform_scale_only = 1; % for uniform scaling
 rigid_only  = 0; % constrain affine to be rigid
+uniform_scale_only = 1;
+if ~all(fixed_scale == fixed_scale(1))
+    % fixed scale is nonuniform
+    uniform_scale_only = 0;
+    % GN affine update can be unstable
+    eA = 0.002;
+end
 
 %%%% end parameters %%%%
 
@@ -211,11 +230,11 @@ for downloop = downloop_start : 2
         end
         % downsample J_
         Jd = zeros(nxJ(2),nxJ(1));
-    	WJd = zeros(size(Jd)); % when there is no data, we have value 0
+        WJd = zeros(size(Jd)); % when there is no data, we have value 0
         for i = 1 : down(1)
             for j = 1 : down(2)
                 Jd = Jd + J_(i:down(2):down(2)*nxJ(2), j:down(1):down(1)*nxJ(1))/down(1)/down(2);
-		WJd = WJd + double((J_(i:down(2):down(2)*nxJ(2), j:down(1):down(1)*nxJ(1))/down(1)/down(2)>0));
+        WJd = WJd + double((J_(i:down(2):down(2)*nxJ(2), j:down(1):down(1)*nxJ(1))/down(1)/down(2)>0));
             end
         end
         
@@ -224,7 +243,7 @@ for downloop = downloop_start : 2
             break;
         end
         J(:,:,slice) = J(:,:,slice) + Jd/down(3);
-    	WJ(:,:,slice) = WJ(:,:,slice) + WJd/down(3);
+        WJ(:,:,slice) = WJ(:,:,slice) + WJd/down(3);
         
         if ~mod(f-1,10)
             danfigure(1234);
@@ -232,7 +251,7 @@ for downloop = downloop_start : 2
             axis image
             danfigure(1235);
             imagesc(WJ(:,:,slice));
-            axis image	    
+            axis image        
             drawnow;
         end
     end
@@ -342,64 +361,64 @@ for downloop = downloop_start : 2
     
     % iterate
     if bias_correction
-	
-	    if missing_data_correction
-	        niterhom = 20;
-	    else
-	        niterhom = 10;
-	    end
-	    textprogressbar('correcting inhomogeneity: ');
-	    for it = 1 : niterhom
-	        textprogressbar((it/niterhom)*100);
-	        range = [min(J(:)), max(J(:))];
-	        range = mean(range) + [-1,1]*diff(range)/2*1.25;
-	        
-	        bins = linspace(range(1),range(2),nb);
-	        db = (bins(2)-bins(1));
-	        width = db*1;
-	        
-	        
-	        hist_ = zeros(1,nb);
-	        for b = 1 : nb
-	            hist_(b) = sum(exp(-(J(:) - bins(b)).^2/2/width^2)/sqrt(2*pi*width^2),1);
-	        end
-	        danfigure(10);
-	        plot(bins,hist_)
-	        dhist = gradient(hist_,db);
-	        % now interpolate
-	        F = griddedInterpolant(bins,dhist,'linear','nearest');
-	        histgrad = reshape(F(J(:)),size(J));
-	        % I don't really like this although I do like the sign (tiny slope in flat
-	        % regions)
-	        histgrad = sign(histgrad);
-	        
-	        danfigure(11);
-	        sliceView(xJ,yJ,zJ,histgrad,5,[-1,1]);
-	        histgrad = ifftn(fftn(histgrad).*Kshat,'symmetric');
-	        danfigure(12);
-	        sliceView(xJ,yJ,zJ,histgrad);
-	        
-	        ep = 1e-1;
-	        
-	        
-	        J = J + ep*histgrad;
-	        
-	        % standardize
-	        J = J - mean(J(:));
-	        J = J / std(J(:));
-	        
-	        danfigure(13);
-	        sliceView(xJ,yJ,zJ,exp(J))
-	        
-	        
-	    % disp(['Finished it ' num2str(it)])
-	        drawnow
-	        
-	        
-	        
-	    end
-	    textprogressbar('done correcting inhomogeneity');
-    end	
+    
+        if missing_data_correction
+            niterhom = 20;
+        else
+            niterhom = 10;
+        end
+        textprogressbar('correcting inhomogeneity: ');
+        for it = 1 : niterhom
+            textprogressbar((it/niterhom)*100);
+            range = [min(J(:)), max(J(:))];
+            range = mean(range) + [-1,1]*diff(range)/2*1.25;
+            
+            bins = linspace(range(1),range(2),nb);
+            db = (bins(2)-bins(1));
+            width = db*1;
+            
+            
+            hist_ = zeros(1,nb);
+            for b = 1 : nb
+                hist_(b) = sum(exp(-(J(:) - bins(b)).^2/2/width^2)/sqrt(2*pi*width^2),1);
+            end
+            danfigure(10);
+            plot(bins,hist_)
+            dhist = gradient(hist_,db);
+            % now interpolate
+            F = griddedInterpolant(bins,dhist,'linear','nearest');
+            histgrad = reshape(F(J(:)),size(J));
+            % I don't really like this although I do like the sign (tiny slope in flat
+            % regions)
+            histgrad = sign(histgrad);
+            
+            danfigure(11);
+            sliceView(xJ,yJ,zJ,histgrad,5,[-1,1]);
+            histgrad = ifftn(fftn(histgrad).*Kshat,'symmetric');
+            danfigure(12);
+            sliceView(xJ,yJ,zJ,histgrad);
+            
+            ep = 1e-1;
+            
+            
+            J = J + ep*histgrad;
+            
+            % standardize
+            J = J - mean(J(:));
+            J = J / std(J(:));
+            
+            danfigure(13);
+            sliceView(xJ,yJ,zJ,exp(J))
+            
+            
+        % disp(['Finished it ' num2str(it)])
+            drawnow
+            
+            
+            
+        end
+        textprogressbar('done correcting inhomogeneity');
+    end    
     J = exp(J(padtemp+1:end-padtemp,padtemp+1:end-padtemp,padtemp+1:end-padtemp));
     J = J - mean(J(:));
     J = J/std(J(:));
@@ -805,7 +824,7 @@ for downloop = downloop_start : 2
         end
         if it == 1
             if downloop == 1
-                nitercoeffs = 10;
+                nitercoeffs = 20;
             else
                 nitercoeffs = 30;
             end
@@ -850,7 +869,13 @@ for downloop = downloop_start : 2
                     s = [1,1,1] .* fixed_scale;
                 end
                 A(1:3,1:3) = U * diag(s) *  V';
-		
+        
+            elseif fixed_scale ~= 0
+                [U,S,V] = svd(A(1:3,1:3));
+                % note A = (U*S*U') * (U*V') = (U*V') * (V*S*V')
+                rotpart = U*V'; % note rotation part is on the left
+                A(1:3,1:3) = rotpart * diag(fixed_scale_r);
+
             end
         end
         
@@ -999,4 +1024,3 @@ for downloop = downloop_start : 2
     
     
 end % of downloop
-

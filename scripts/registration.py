@@ -17,8 +17,6 @@ import argparse
 import subprocess
 import os
 
-atlas_orientation = "PIR"
-
 
 def get_affine_matrix(
     translation,
@@ -95,6 +93,8 @@ def get_affine_matrix(
 
 def register(
     input_s3_path,
+    atlas_s3_path,
+    atlas_orientation,
     output_s3_path,
     log_s3_path,
     orientation,
@@ -111,6 +111,7 @@ def register(
 
     Args:
         input_s3_path (str): S3 path to precomputed data to be registered
+        atlas_s3_path (str): S3 path to atlas to register to.
         output_s3_path (str): S3 path to store precomputed volume of atlas transformed to input data
         log_s3_path (str): S3 path to store intermediates at
         orientation (str): 3-letter orientation of input data
@@ -148,8 +149,8 @@ def register(
         )
 
     # initialize affine transformation for data
-    atlas_res = 100
-    atlas_s3_path = ara_average_data_link(atlas_res)
+    # atlas_res = 100
+    # atlas_s3_path = ara_average_data_link(atlas_res)
     initial_affine = get_affine_matrix(
         translation,
         rotation,
@@ -212,6 +213,18 @@ if __name__ == "__main__":
         help="S3 path to store atlas transformed to target as precomputed volume. Should be of the form s3://<bucket>/<path_to_precomputed>. Default is same as input s3_path with atlas_to_target as channel name",
         type=str,
         default=None,
+    )
+    parser.add_argument(
+        "--atlas_s3_path",
+        help="S3 path to atlas we want to register to. Should be of the form s3://<bucket>/<path_to_precomputed>. Default is Allen Reference atlas path",
+        type=str,
+        default=ara_average_data_link(100),
+    )
+    parser.add_argument(
+        "--atlas_orientation",
+        help="3-letter orientation of data. i.e. LPS",
+        type=str,
+        default='PIR'
     )
 
     # affine initialization args
@@ -281,6 +294,8 @@ if __name__ == "__main__":
 
     register(
         args.input_s3_path,
+        args.atlas_s3_path,
+        args.atlas_orientation,
         args.output_s3_path,
         args.log_s3_path,
         args.orientation,
