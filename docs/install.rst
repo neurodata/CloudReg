@@ -1,5 +1,5 @@
-Set up
-======
+Install/Run
+===========
 
 CloudReg is designed to be used in the cloud. We chose to work with Amazon Web Services (AWS) and the below setup instructions are for that.
 
