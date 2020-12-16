@@ -5,11 +5,15 @@
 Overview of CloudReg
 ====================
 
-CloudReg is a pipeline for terascale image preprocessing and 3D nonlinear registration between two brain volumes.
+Motivation
+----------
+
 
 
 Documentation
 =============
+
+CloudReg is a pipeline for terascale image preprocessing and 3D nonlinear registration between two brain volumes.
 
 .. toctree::
    :maxdepth: 1
