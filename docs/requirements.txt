@@ -3,3 +3,15 @@ sphinx_rtd_theme>=0.4.2
 sphinxcontrib-rawfiles
 numpydoc
 nbsphinx
+boto3
+cloud-volume
+tinybrain
+tqdm
+joblib
+tifffile
+awscli
+imagecodecs
+paramiko
+scipy
+h5py
+mpi4py
