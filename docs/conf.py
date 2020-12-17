@@ -38,7 +38,7 @@ extensions = [
 ]
 with open('../requirements.txt', 'r') as fp:
     x = fp.read().splitlines()
-    x.append('SimpleITK')
+    x.extend(['SimpleITK', 'numpy', 'cloudvolume'])
 
 autodoc_mock_imports = x
 
