@@ -14,4 +14,3 @@ imagecodecs
 paramiko
 scipy
 h5py
-mpi4py
