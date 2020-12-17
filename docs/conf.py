@@ -38,6 +38,7 @@ extensions = [
 ]
 with open('../requirements.txt', 'r') as fp:
     x = fp.read().splitlines()
+    x.append('SimpleITK')
 
 autodoc_mock_imports = x
 
