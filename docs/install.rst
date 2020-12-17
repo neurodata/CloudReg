@@ -67,7 +67,7 @@ Set up CORS on S3 Bucket
 3. Click on the S3 Bucket you would like to add CORS to.
 4. Click on the `Permissions` tab
 5. Scroll to the bottom and click `Edit` under `Cross-origin resource sharing (CORS)`
-6. Paste the following text:
+6. Paste the following text::
 
     [
         {
@@ -100,7 +100,7 @@ Set up CloudReg EC2 instance
 6. The default instance type should be `t2.micro`, if not choose change it to that type. Leave the remaining choices as their defaults and click `Review and Launch`.
 7. Verify the EC2 instance information is correct and click `Launch`.
 8. When the key pair pop-up appears, select `Choose an existing key pair` if you have `already created one <https://docs.aws.amazon.com/ground-station/latest/ug/create-ec2-ssh-key-pair.html>`_, or select `Create a new key pair` if you do not already have one. Follow the instructions on-screen to download and save the key pair.
-9. Follow instructions `here <https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-connect-methods.html#ec2-instance-connect-connecting-aws-cli>`_ to connect to this EC2 instance through the command line.
+9. Follow `AWS tutorial <https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-instance-connect-methods.html#ec2-instance-connect-connecting-aws-cli>`_ to connect to this EC2 instance through the command line.
 10. Once you have connected to the instance via SSH, create the `cloud-volume credentials file <https://github.com/seung-lab/cloud-volume/#aws-secretjson-and-matrix-secretjson>`_ on the instance using the CLI text editor of your choice.
 11. After creating the cloud-volume credentials file, run the following command to turn off the EC2 instance: `sudo shutdown now`
 

@@ -36,7 +36,10 @@ extensions = [
     'numpydoc'
 
 ]
-autodoc_mock_imports = ['h5py', 'mpi4py']
+with open('../requirements.txt', 'r') as fp:
+    x = fp.read().splitlines()
+
+autodoc_mock_imports = x
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
