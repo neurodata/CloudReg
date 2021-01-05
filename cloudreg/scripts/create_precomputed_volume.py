@@ -12,7 +12,6 @@ import PIL
 from PIL import Image
 from psutil import virtual_memory
 from tqdm import tqdm
-import tifffile as tf
 import tinybrain
 
 PIL.Image.MAX_IMAGE_PIXELS = None
@@ -93,7 +92,8 @@ def process(z, file_path, layer_path, num_mips):
         for i in range(num_mips)
     ]
     # array = load_image(file_path)[..., None]
-    array = tf.imread(file_path).T[..., None]
+    # array = tf.imread(file_path).T[..., None]
+    array = np.squeeze(np.array(Image.open(file_path))).T[..., None]
     img_pyramid = tinybrain.accelerated.average_pooling_2x2(array, num_mips)
     vols[0][:, :, z] = array
     for i in range(num_mips - 1):
