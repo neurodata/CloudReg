@@ -94,6 +94,7 @@ def get_affine_matrix(
 def register(
     input_s3_path,
     atlas_s3_path,
+    parcellation_s3_path,
     atlas_orientation,
     output_s3_path,
     log_s3_path,
@@ -112,6 +113,7 @@ def register(
     Args:
         input_s3_path (str): S3 path to precomputed data to be registered
         atlas_s3_path (str): S3 path to atlas to register to.
+        parcellation_s3_path (str): S3 path to atlas to register to.
         output_s3_path (str): S3 path to store precomputed volume of atlas transformed to input data
         log_s3_path (str): S3 path to store intermediates at
         orientation (str): 3-letter orientation of input data
@@ -133,20 +135,16 @@ def register(
     # only after stitching autofluorescence channel
     base_path = os.path.expanduser("~/")
     registration_prefix = f"{base_path}/{exp}_{channel}_registration/"
+    atlas_prefix = f'{base_path}/CloudReg/registration/atlases/'
     target_name = f"{base_path}/autofluorescence_data.tif"
+    atlas_name = f"{atlas_prefix}/atlas_data.nrrd"
+    parcellation_name = f"{atlas_prefix}/parcellation_data.tif"
 
     # download downsampled autofluorescence channel
-    print("downloading data for registration...")
+    print("downloading input data for registration...")
     voxel_size = download_data(input_s3_path, target_name)
-    # if high res atlas labels file doesn't exist
-    ara_annotation_10um = os.path.expanduser(
-        "~/CloudReg/registration/atlases/ara_annotation_10um.tif"
-    )
-    if not os.path.exists(ara_annotation_10um):
-        # download it
-        _ = download_data(
-            ara_annotation_data_link(10), ara_annotation_10um, desired_resolution=10000
-        )
+    _ = download_data(atlas_s3_path, atlas_name, 50000)
+    parcellation_voxel_size, parcellation_image_size = download_data(parcellation_s3_path, parcellation_name, 10000,return_size=True)
 
     # initialize affine transformation for data
     # atlas_res = 100
@@ -164,7 +162,7 @@ def register(
     affine_string = [", ".join(map(str, i)) for i in initial_affine]
     affine_string = "; ".join(affine_string)
     matlab_registration_command = f"""
-        matlab -nodisplay -nosplash -nodesktop -r \"niter={num_iterations};sigmaR={regularization};missing_data_correction={int(missing_data_correction)};grid_correction={int(grid_correction)};bias_correction={int(bias_correction)};base_path=\'{base_path}\';target_name=\'{target_name}\';registration_prefix=\'{registration_prefix}\';dxJ0={voxel_size};fixed_scale={fixed_scale};initial_affine=[{affine_string}];run(\'~/CloudReg/registration/registration_script_mouse_GN.m\'); exit;\"
+        matlab -nodisplay -nosplash -nodesktop -r \"niter={num_iterations};sigmaR={regularization};missing_data_correction={int(missing_data_correction)};grid_correction={int(grid_correction)};bias_correction={int(bias_correction)};base_path=\'{base_path}\';target_name=\'{target_name}\';registration_prefix=\'{registration_prefix}\';atlas_prefix=\'{atlas_prefix}\';dxJ0={voxel_size};fixed_scale={fixed_scale};initial_affine=[{affine_string}];parcellation_voxel_size=\'{parcellation_voxel_size}\';parcellation_image_size=\'{parcellation_image_size}\';run(\'~/CloudReg/registration/map_nonuniform_multiscale_v02_mouse_gauss_newton.m\'); exit;\"
     """
     print(matlab_registration_command)
     subprocess.run(shlex.split(matlab_registration_command))
@@ -219,6 +217,12 @@ if __name__ == "__main__":
         help="S3 path to atlas we want to register to. Should be of the form s3://<bucket>/<path_to_precomputed>. Default is Allen Reference atlas path",
         type=str,
         default=ara_average_data_link(100),
+    )
+    parser.add_argument(
+        "--parcellation_s3_path",
+        help="S3 path to corresponding atlas parcellations. If atlas path is provided, this should also be provided. Should be of the form s3://<bucket>/<path_to_precomputed>. Default is Allen Reference atlas parcellations path",
+        type=str,
+        default=ara_annotation_data_link(10),
     )
     parser.add_argument(
         "--atlas_orientation",
@@ -295,6 +299,7 @@ if __name__ == "__main__":
     register(
         args.input_s3_path,
         args.atlas_s3_path,
+        args.parcellation_s3_path,
         args.atlas_orientation,
         args.output_s3_path,
         args.log_s3_path,

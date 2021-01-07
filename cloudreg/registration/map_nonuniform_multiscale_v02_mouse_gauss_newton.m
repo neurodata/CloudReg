@@ -140,12 +140,15 @@ for downloop = downloop_start : 2
     
 
     if downloop == 1
-        template_name = strcat(atlas_prefix,'/average_template_100.nrrd');
-        label_name = strcat(atlas_prefix, '/annotation_100.nrrd');
+        template_name = strcat(atlas_prefix,'/atlas_data.nrrd');
+        % label_name = strcat(atlas_prefix, '/annotation_100.nrrd');
 
+    %% for now make this single scale
     elseif downloop == 2
-        template_name = strcat(atlas_prefix,'/average_template_50.nrrd');
-        label_name = strcat(atlas_prefix, '/annotation_50.nrrd');
+        return
+        % template_name = strcat(atlas_prefix,'/atlas_data.nrrd');
+        % template_name = strcat(atlas_prefix,'/average_template_50.nrrd');
+        % label_name = strcat(atlas_prefix, '/annotation_50.nrrd');
         
     end
     
@@ -207,9 +210,9 @@ for downloop = downloop_start : 2
     fzI = (0:nxI(3)-1)/nxI(3)/dxI(3);
     [FXI,FYI,FZI] = meshgrid(fxI,fyI,fzI);
     
-    [L, meta] = nrrdread(label_name);
-    dxL = diag(sscanf(meta.spacedirections,'(%d,%d,%d) (%d,%d,%d) (%d,%d,%d)',[3,3]))';
-    L = padarray(L,[1,1,1]*npad,0,'both');
+    % [L, meta] = nrrdread(label_name);
+    % dxL = diag(sscanf(meta.spacedirections,'(%d,%d,%d) (%d,%d,%d) (%d,%d,%d)',[3,3]))';
+    % L = padarray(L,[1,1,1]*npad,0,'both');
     
     
     %%
@@ -1024,3 +1027,18 @@ for downloop = downloop_start : 2
     
     
 end % of downloop
+
+% save out high resolution parcellations transformed to input data
+% and input data transformed to parcellations
+parcellation_path = [atlas_prefix 'parcellation.tif'];
+% parcellation_voxel_size = [];
+% atlas_voxel_size = [10.0, 10.0, 10.0]; % microns
+% hard coding ARA 10 um image size
+% atlas_image_size = [1320 800 1140];
+output_path_atlas = [prefix 'labels_to_target_highres.img'];
+output_path_target = [prefix 'target_to_labels_highres.img'];
+vname = [prefix 'v.mat'];
+Aname = [prefix 'A.mat'];
+save([prefix 'transform_params.mat'],'target_name','atlas_path','parcellation_voxel_size','parcellation_image_size','output_path_target','output_path_atlas','nxJ0','dxJ0','dxI','vname','Aname')
+transform_data(atlas_path,parcellation_voxel_size,Aname,vname,dxI,dxJ0,nxJ0,'target',output_path_atlas,'nearest')
+transform_data(target_name,dxJ0,Aname,vname,dxI,parcellation_voxel_size,parcellation_image_size,'atlas',output_path_target,'linear')

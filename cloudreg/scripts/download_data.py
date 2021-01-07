@@ -1,7 +1,7 @@
 from cloudvolume import CloudVolume
 from argparse import ArgumentParser
-import tifffile as tf
 import numpy as np
+import SimpleITK as sitk
 
 
 def get_mip_at_res(vol, resolution):
@@ -23,7 +23,7 @@ def get_mip_at_res(vol, resolution):
     return tmp_mip, tmp_res
 
 
-def download_data(s3_path, outfile, desired_resolution=15000):
+def download_data(s3_path, outfile, desired_resolution=15000,return_size=False):
     """Download whole precomputed volume from S3 at desired resolution
 
     Args:
@@ -38,12 +38,18 @@ def download_data(s3_path, outfile, desired_resolution=15000):
     mip_needed, resolution = get_mip_at_res(vol, np.array([desired_resolution] * 3))
     vol = CloudVolume(s3_path, mip=mip_needed, parallel=True)
 
-    # img is F order
-    img = vol[:, :, :]
-    # save out as C order
-    tf.imsave(outfile, img.T, compress=3)
+    # download img and convert to C order
+    img = np.squeeze(vol[:, :, :]).T
+    # save out as correct file type
+    img = sitk.GetImageFromArray(img)
+    # set spacing in microns
+    img.SetSpacing(np.divide(resolution, 1000.0).tolist())
+    sitk.WriteImage(img, outfile)
+    # tf.imsave(outfile, img.T, compress=3)
 
     # return resolution in um
+    if return_size:
+        return (np.divide(resolution, 1000.0),vol.scales[mip_needed]['size'])
     return np.divide(resolution, 1000.0)
 
 
@@ -55,7 +61,7 @@ if __name__ == "__main__":
         "s3_path",
         help="S3 path to precomputed volume layer in the form s3://<bucket-name>/<path-to-precomputed-volume>",
     )
-    parser.add_argument("outfile", help="name of output file saved as tif stack.")
+    parser.add_argument("outfile", help="name of output file with associated file extension. eg. /path/to/image.tif")
     parser.add_argument(
         "desired_resolution",
         help="Desired minimum resolution for downloaded image in nanometers.",
