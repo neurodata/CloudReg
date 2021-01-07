@@ -30,7 +30,7 @@ end
 
 %  atlas data prefix
 if ~exist('atlas_prefix')
-    atlas_prefix = [base_path 'CloudReg/registration/atlases/']
+    atlas_prefix = [base_path 'CloudReg/cloudreg/registration/atlases/']
 end
 % pixel size is required here as the tif data structure does not store it
 if ~exist('dxJ0')

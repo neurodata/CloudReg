@@ -135,7 +135,7 @@ def register(
     # only after stitching autofluorescence channel
     base_path = os.path.expanduser("~/")
     registration_prefix = f"{base_path}/{exp}_{channel}_registration/"
-    atlas_prefix = f'{base_path}/CloudReg/registration/atlases/'
+    atlas_prefix = f'{base_path}/CloudReg/cloudreg/registration/atlases/'
     target_name = f"{base_path}/autofluorescence_data.tif"
     atlas_name = f"{atlas_prefix}/atlas_data.nrrd"
     parcellation_name = f"{atlas_prefix}/parcellation_data.tif"
@@ -162,7 +162,7 @@ def register(
     affine_string = [", ".join(map(str, i)) for i in initial_affine]
     affine_string = "; ".join(affine_string)
     matlab_registration_command = f"""
-        matlab -nodisplay -nosplash -nodesktop -r \"niter={num_iterations};sigmaR={regularization};missing_data_correction={int(missing_data_correction)};grid_correction={int(grid_correction)};bias_correction={int(bias_correction)};base_path=\'{base_path}\';target_name=\'{target_name}\';registration_prefix=\'{registration_prefix}\';atlas_prefix=\'{atlas_prefix}\';dxJ0={voxel_size};fixed_scale={fixed_scale};initial_affine=[{affine_string}];parcellation_voxel_size=\'{parcellation_voxel_size}\';parcellation_image_size=\'{parcellation_image_size}\';run(\'~/CloudReg/registration/map_nonuniform_multiscale_v02_mouse_gauss_newton.m\'); exit;\"
+        matlab -nodisplay -nosplash -nodesktop -r \"niter={num_iterations};sigmaR={regularization};missing_data_correction={int(missing_data_correction)};grid_correction={int(grid_correction)};bias_correction={int(bias_correction)};base_path=\'{base_path}\';target_name=\'{target_name}\';registration_prefix=\'{registration_prefix}\';atlas_prefix=\'{atlas_prefix}\';dxJ0={voxel_size};fixed_scale={fixed_scale};initial_affine=[{affine_string}];parcellation_voxel_size=\'{parcellation_voxel_size}\';parcellation_image_size=\'{parcellation_image_size}\';run(\'~/CloudReg/cloudreg/registration/map_nonuniform_multiscale_v02_mouse_gauss_newton.m\'); exit;\"
     """
     print(matlab_registration_command)
     subprocess.run(shlex.split(matlab_registration_command))
