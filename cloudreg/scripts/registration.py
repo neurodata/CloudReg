@@ -138,13 +138,18 @@ def register(
     atlas_prefix = f'{base_path}/CloudReg/cloudreg/registration/atlases/'
     target_name = f"{base_path}/autofluorescence_data.tif"
     atlas_name = f"{atlas_prefix}/atlas_data.nrrd"
-    parcellation_name = f"{atlas_prefix}/parcellation_data.tif"
+    parcellation_name = f"{atlas_prefix}/parcellation_data.nrrd"
+    parcellation_hr_name = f"{atlas_prefix}/parcellation_data.tif"
 
     # download downsampled autofluorescence channel
     print("downloading input data for registration...")
+    registration_resolution = 100000 # microns
     voxel_size = download_data(input_s3_path, target_name)
-    _ = download_data(atlas_s3_path, atlas_name, 50000)
-    parcellation_voxel_size, parcellation_image_size = download_data(parcellation_s3_path, parcellation_name, 10000,return_size=True)
+    # download atlas and parcellations at registration resolution
+    _ = download_data(atlas_s3_path, atlas_name, registration_resolution, resample_isotropic=True)
+    _ = download_data(parcellation_s3_path, parcellation_name, registration_resolution, resample_isotropic=True)
+    # also download high resolution parcellations for final transformation
+    parcellation_voxel_size, parcellation_image_size = download_data(parcellation_s3_path, parcellation_hr_name, 10000, return_size=True)
 
     # initialize affine transformation for data
     # atlas_res = 100

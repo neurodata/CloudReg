@@ -141,7 +141,7 @@ for downloop = downloop_start : 2
 
     if downloop == 1
         template_name = strcat(atlas_prefix,'/atlas_data.nrrd');
-        % label_name = strcat(atlas_prefix, '/annotation_100.nrrd');
+        label_name = strcat(atlas_prefix, '/parcellation_data.nrrd');
 
     %% for now make this single scale
     elseif downloop == 2
@@ -210,9 +210,9 @@ for downloop = downloop_start : 2
     fzI = (0:nxI(3)-1)/nxI(3)/dxI(3);
     [FXI,FYI,FZI] = meshgrid(fxI,fyI,fzI);
     
-    % [L, meta] = nrrdread(label_name);
-    % dxL = diag(sscanf(meta.spacedirections,'(%d,%d,%d) (%d,%d,%d) (%d,%d,%d)',[3,3]))';
-    % L = padarray(L,[1,1,1]*npad,0,'both');
+    [L, meta] = nrrdread(label_name);
+    dxL = diag(sscanf(meta.spacedirections,'(%d,%d,%d) (%d,%d,%d) (%d,%d,%d)',[3,3]))';
+    L = padarray(L,[1,1,1]*npad,0,'both');
     
     
     %%
