@@ -114,6 +114,7 @@ def register(
         input_s3_path (str): S3 path to precomputed data to be registered
         atlas_s3_path (str): S3 path to atlas to register to.
         parcellation_s3_path (str): S3 path to atlas to register to.
+        atlas_orientation (str): 3-letter orientation of atlas
         output_s3_path (str): S3 path to store precomputed volume of atlas transformed to input data
         log_s3_path (str): S3 path to store intermediates at
         orientation (str): 3-letter orientation of input data
