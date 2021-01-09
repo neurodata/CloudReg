@@ -10,8 +10,8 @@ from .registration import get_affine_matrix
 import argparse
 import boto3
 
-python_path = "~/colm_pipeline_env/bin/python3"
-# python_path = "python3"
+# python_path = "~/colm_pipeline_env/bin/python3"
+python_path = "python3"
 
 
 def run_registration(
@@ -33,6 +33,7 @@ def run_registration(
     bias_correction,
     sigma_regularization,
     num_iterations,
+    registration_resolution
 ):
     """Run EM-LDDMM registration on an AWS EC2 instance
 
@@ -54,6 +55,7 @@ def run_registration(
         bias_correction (bool): Perform illumination correction
         sigma_regularization (float): Regularization constat in cost function. Higher regularization constant means less regularization
         num_iterations (int): Number of iterations of EM-LDDMM to run
+        registration_resolution (int): Minimum resolution at which the registration is run.
     """
 
     # this is the initialization for registration
@@ -94,7 +96,7 @@ def run_registration(
     # matlab registration command
     fixed_scale_string = ' '.join([f'{i}' for i in fixed_scale])
     print(fixed_scale_string)
-    command2 = f"cd ~/CloudReg; time {python_path} -m cloudreg.scripts.registration -input_s3_path {input_s3_path} --output_s3_path {output_s3_path} --atlas_s3_path {atlas_s3_path} --parcellation_s3_path {parcellation_s3_path} --atlas_orientation {atlas_orientation} -orientation {orientation} --rotation {' '.join(map(str,initial_rotation))} --translation {' '.join(map(str,initial_translation))} --fixed_scale {fixed_scale_string} -log_s3_path {log_s3_path} --missing_data_correction {missing_data_correction} --grid_correction {grid_correction} --bias_correction {bias_correction} --regularization {sigma_regularization} --iterations {num_iterations}"
+    command2 = f"cd ~/CloudReg; time {python_path} -m cloudreg.scripts.registration -input_s3_path {input_s3_path} --output_s3_path {output_s3_path} --atlas_s3_path {atlas_s3_path} --parcellation_s3_path {parcellation_s3_path} --atlas_orientation {atlas_orientation} -orientation {orientation} --rotation {' '.join(map(str,initial_rotation))} --translation {' '.join(map(str,initial_translation))} --fixed_scale {fixed_scale_string} -log_s3_path {log_s3_path} --missing_data_correction {missing_data_correction} --grid_correction {grid_correction} --bias_correction {bias_correction} --regularization {sigma_regularization} --iterations {num_iterations} --registration_resolution {registration_resolution}"
     print(command2)
     errors2 = run_command_on_server(command2, ssh_key_path, public_ip_address)
     print(f"errors: {errors2}")
@@ -240,6 +242,12 @@ if __name__ == "__main__":
         type=int,
         default=3000,
     )
+    parser.add_argument(
+        "--registration_resolution",
+        help="Minimum resolution that the registration is run at (in microns). Default is 100.",
+        type=int,
+        default=100,
+    )
 
     args = parser.parse_args()
 
@@ -262,4 +270,5 @@ if __name__ == "__main__":
         args.bias_correction,
         args.regularization,
         args.iterations,
+        args.registration_resolution
     )

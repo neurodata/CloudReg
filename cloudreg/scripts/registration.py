@@ -107,6 +107,7 @@ def register(
     bias_correction,
     regularization,
     num_iterations,
+    registration_resolution
 ):
     """Run EM-LDDMM registration on precomputed volume at input_s3_path
 
@@ -126,6 +127,7 @@ def register(
         bias_correction (bool): Perform illumination correction
         regularization (float): Regularization constat in cost function. Higher regularization constant means less regularization
         num_iterations (int): Number of iterations of EM-LDDMM to run
+        registration_resolution (int): Minimum resolution at which the registration is run.
     """
 
     # get volume info
@@ -144,7 +146,8 @@ def register(
 
     # download downsampled autofluorescence channel
     print("downloading input data for registration...")
-    registration_resolution = 100000 # microns
+    # convert to nanometers
+    registration_resolution *= 1000.0 
     voxel_size = download_data(input_s3_path, target_name)
     # download atlas and parcellations at registration resolution
     _ = download_data(atlas_s3_path, atlas_name, registration_resolution, resample_isotropic=True)
@@ -299,6 +302,12 @@ if __name__ == "__main__":
         type=int,
         default=3000,
     )
+    parser.add_argument(
+        "--registration_resolution",
+        help="Minimum resolution that the registration is run at (in microns). Default is 100.",
+        type=int,
+        default=100,
+    )
 
     args = parser.parse_args()
 
@@ -318,4 +327,5 @@ if __name__ == "__main__":
         args.bias_correction,
         args.regularization,
         args.iterations,
+        args.registration_resolution
     )
