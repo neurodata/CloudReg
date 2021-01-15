@@ -12,7 +12,6 @@ import PIL
 from PIL import Image
 from psutil import virtual_memory
 from tqdm import tqdm
-import tifffile as tf
 import tinybrain
 
 PIL.Image.MAX_IMAGE_PIXELS = None
@@ -22,8 +21,8 @@ def create_cloud_volume(
     precomputed_path,
     img_size,
     voxel_size,
-    num_mips=6,
-    chunk_size=[1024, 1024, 1],
+    num_mips,
+    chunk_size,
     parallel=False,
     layer_type="image",
     dtype="uint16",
@@ -93,7 +92,8 @@ def process(z, file_path, layer_path, num_mips):
         for i in range(num_mips)
     ]
     # array = load_image(file_path)[..., None]
-    array = tf.imread(file_path).T[..., None]
+    # array = tf.imread(file_path).T[..., None]
+    array = np.squeeze(np.array(Image.open(file_path))).T[..., None]
     img_pyramid = tinybrain.accelerated.average_pooling_2x2(array, num_mips)
     vols[0][:, :, z] = array
     for i in range(num_mips - 1):
@@ -120,14 +120,16 @@ def create_precomputed_volume(
 
     img_size = get_image_dims(files)
     # compute num_mips from data size
-    num_mips = calc_hierarchy_levels(img_size)
+    chunk_size = [128, 128, 1]
+    num_mips = calc_hierarchy_levels(img_size, lowest_res=chunk_size[0])
     # convert voxel size from um to nm
     vol = create_cloud_volume(
         precomputed_path,
         img_size,
         voxel_size * 1000,
+        num_mips,
+        chunk_size,
         parallel=False,
-        num_mips=num_mips,
     )
 
     # num procs to use based on available memory

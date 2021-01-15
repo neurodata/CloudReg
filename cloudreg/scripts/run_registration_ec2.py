@@ -1,15 +1,16 @@
 # local imports
-from util import start_ec2_instance, run_command_on_server
-from visualization import (
+from .util import start_ec2_instance, run_command_on_server
+from .visualization import (
     create_viz_link,
     ara_average_data_link,
+    ara_annotation_data_link
 )
-from registration import get_affine_matrix
+from .registration import get_affine_matrix
 
 import argparse
 import boto3
 
-#python_path = "~/colm_pipeline_env/bin/python3"
+# python_path = "~/colm_pipeline_env/bin/python3"
 python_path = "python3"
 
 
@@ -18,6 +19,9 @@ def run_registration(
     instance_id,
     instance_type,
     input_s3_path,
+    atlas_s3_path,
+    parcellation_s3_path,
+    atlas_orientation,
     output_s3_path,
     log_s3_path,
     initial_translation,
@@ -29,6 +33,7 @@ def run_registration(
     bias_correction,
     sigma_regularization,
     num_iterations,
+    registration_resolution
 ):
     """Run EM-LDDMM registration on an AWS EC2 instance
 
@@ -37,6 +42,8 @@ def run_registration(
         instance_id (str): ID of EC2 instance to use
         instance_type (str): AWS EC2 instance type. Recommended is r5.8xlarge
         input_s3_path (str): S3 path to precomputed data to be registered
+        atlas_s3_path (str): S3 path to atlas data to register to
+        parcellation_s3_path (str): S3 path to corresponding atlas parcellations
         output_s3_path (str): S3 path to store precomputed volume of atlas transformed to input data
         log_s3_path (str): S3 path to store intermediates at
         initial_translation (list of float): Initial translations in x,y,z of input data
@@ -48,12 +55,10 @@ def run_registration(
         bias_correction (bool): Perform illumination correction
         sigma_regularization (float): Regularization constat in cost function. Higher regularization constant means less regularization
         num_iterations (int): Number of iterations of EM-LDDMM to run
+        registration_resolution (int): Minimum resolution at which the registration is run.
     """
 
     # this is the initialization for registration
-    atlas_res = 50
-    atlas_orientation = "PIR"
-    atlas_s3_path = ara_average_data_link(atlas_res)
     atlas_affine_initialization = get_affine_matrix(
         initial_translation,
         initial_rotation,
@@ -91,7 +96,7 @@ def run_registration(
     # matlab registration command
     fixed_scale_string = ' '.join([f'{i}' for i in fixed_scale])
     print(fixed_scale_string)
-    command2 = f"time {python_path} CloudReg/scripts/registration.py -input_s3_path {input_s3_path} --output_s3_path {output_s3_path} -orientation {orientation} --rotation {' '.join(map(str,initial_rotation))} --translation {' '.join(map(str,initial_translation))} --fixed_scale {fixed_scale_string} -log_s3_path {log_s3_path} --missing_data_correction {missing_data_correction} --grid_correction {grid_correction} --bias_correction {bias_correction} --regularization {sigma_regularization} --iterations {num_iterations}"
+    command2 = f"cd ~/CloudReg; time {python_path} -m cloudreg.scripts.registration -input_s3_path {input_s3_path} --output_s3_path {output_s3_path} --atlas_s3_path {atlas_s3_path} --parcellation_s3_path {parcellation_s3_path} --atlas_orientation {atlas_orientation} -orientation {orientation} --rotation {' '.join(map(str,initial_rotation))} --translation {' '.join(map(str,initial_translation))} --fixed_scale {fixed_scale_string} -log_s3_path {log_s3_path} --missing_data_correction {missing_data_correction} --grid_correction {grid_correction} --bias_correction {bias_correction} --regularization {sigma_regularization} --iterations {num_iterations} --registration_resolution {registration_resolution}"
     print(command2)
     errors2 = run_command_on_server(command2, ssh_key_path, public_ip_address)
     print(f"errors: {errors2}")
@@ -136,6 +141,25 @@ if __name__ == "__main__":
         help="S3 path at which registration outputs are stored.",
         type=str,
     )
+    parser.add_argument(
+        "--atlas_s3_path",
+        help="S3 path to atlas we want to register to. Should be of the form s3://<bucket>/<path_to_precomputed>. Default is Allen Reference atlas path",
+        type=str,
+        default=ara_average_data_link(50),
+    )
+    parser.add_argument(
+        "--parcellation_s3_path",
+        help="S3 path to corresponding atlas parcellations. If atlas path is provided, this should also be provided. Should be of the form s3://<bucket>/<path_to_precomputed>. Default is Allen Reference atlas parcellations path",
+        type=str,
+        default=ara_annotation_data_link(10),
+    )
+    parser.add_argument(
+        "--atlas_orientation",
+        help="3-letter orientation of data. i.e. LPS",
+        type=str,
+        default='PIR'
+    )
+
 
     # affine initialization
     parser.add_argument(
@@ -218,6 +242,12 @@ if __name__ == "__main__":
         type=int,
         default=3000,
     )
+    parser.add_argument(
+        "--registration_resolution",
+        help="Minimum resolution that the registration is run at (in microns). Default is 100.",
+        type=int,
+        default=100,
+    )
 
     args = parser.parse_args()
 
@@ -226,6 +256,9 @@ if __name__ == "__main__":
         args.instance_id,
         args.instance_type,
         args.input_s3_path,
+        args.atlas_s3_path,
+        args.parcellation_s3_path,
+        args.atlas_orientation,
         args.output_s3_path,
         args.log_s3_path,
         [args.x, args.y, args.z],
@@ -237,4 +270,5 @@ if __name__ == "__main__":
         args.bias_correction,
         args.regularization,
         args.iterations,
+        args.registration_resolution
     )

@@ -1,13 +1,13 @@
 # local imports
-from util import get_reorientations, aws_cli
-from visualization import (
+from .util import get_reorientations, aws_cli
+from .visualization import (
     ara_average_data_link,
     ara_annotation_data_link,
     create_viz_link,
     S3Url,
 )
-from download_data import download_data
-from ingest_image_stack import ingest_image_stack
+from .download_data import download_data
+from .ingest_image_stack import ingest_image_stack
 
 import shlex
 from cloudvolume import CloudVolume
@@ -16,8 +16,6 @@ import numpy as np
 import argparse
 import subprocess
 import os
-
-atlas_orientation = "PIR"
 
 
 def get_affine_matrix(
@@ -95,6 +93,9 @@ def get_affine_matrix(
 
 def register(
     input_s3_path,
+    atlas_s3_path,
+    parcellation_s3_path,
+    atlas_orientation,
     output_s3_path,
     log_s3_path,
     orientation,
@@ -106,11 +107,15 @@ def register(
     bias_correction,
     regularization,
     num_iterations,
+    registration_resolution
 ):
     """Run EM-LDDMM registration on precomputed volume at input_s3_path
 
     Args:
         input_s3_path (str): S3 path to precomputed data to be registered
+        atlas_s3_path (str): S3 path to atlas to register to.
+        parcellation_s3_path (str): S3 path to atlas to register to.
+        atlas_orientation (str): 3-letter orientation of atlas
         output_s3_path (str): S3 path to store precomputed volume of atlas transformed to input data
         log_s3_path (str): S3 path to store intermediates at
         orientation (str): 3-letter orientation of input data
@@ -122,6 +127,7 @@ def register(
         bias_correction (bool): Perform illumination correction
         regularization (float): Regularization constat in cost function. Higher regularization constant means less regularization
         num_iterations (int): Number of iterations of EM-LDDMM to run
+        registration_resolution (int): Minimum resolution at which the registration is run.
     """
 
     # get volume info
@@ -132,24 +138,26 @@ def register(
     # only after stitching autofluorescence channel
     base_path = os.path.expanduser("~/")
     registration_prefix = f"{base_path}/{exp}_{channel}_registration/"
+    atlas_prefix = f'{base_path}/CloudReg/cloudreg/registration/atlases/'
     target_name = f"{base_path}/autofluorescence_data.tif"
+    atlas_name = f"{atlas_prefix}/atlas_data.nrrd"
+    parcellation_name = f"{atlas_prefix}/parcellation_data.nrrd"
+    parcellation_hr_name = f"{atlas_prefix}/parcellation_data.tif"
 
     # download downsampled autofluorescence channel
-    print("downloading data for registration...")
+    print("downloading input data for registration...")
+    # convert to nanometers
+    registration_resolution *= 1000.0 
     voxel_size = download_data(input_s3_path, target_name)
-    # if high res atlas labels file doesn't exist
-    ara_annotation_10um = os.path.expanduser(
-        "~/CloudReg/registration/atlases/ara_annotation_10um.tif"
-    )
-    if not os.path.exists(ara_annotation_10um):
-        # download it
-        _ = download_data(
-            ara_annotation_data_link(10), ara_annotation_10um, desired_resolution=10000
-        )
+    # download atlas and parcellations at registration resolution
+    _ = download_data(atlas_s3_path, atlas_name, registration_resolution, resample_isotropic=True)
+    _ = download_data(parcellation_s3_path, parcellation_name, registration_resolution, resample_isotropic=True)
+    # also download high resolution parcellations for final transformation
+    parcellation_voxel_size, parcellation_image_size = download_data(parcellation_s3_path, parcellation_hr_name, 10000, return_size=True)
 
     # initialize affine transformation for data
-    atlas_res = 100
-    atlas_s3_path = ara_average_data_link(atlas_res)
+    # atlas_res = 100
+    # atlas_s3_path = ara_average_data_link(atlas_res)
     initial_affine = get_affine_matrix(
         translation,
         rotation,
@@ -163,7 +171,7 @@ def register(
     affine_string = [", ".join(map(str, i)) for i in initial_affine]
     affine_string = "; ".join(affine_string)
     matlab_registration_command = f"""
-        matlab -nodisplay -nosplash -nodesktop -r \"niter={num_iterations};sigmaR={regularization};missing_data_correction={int(missing_data_correction)};grid_correction={int(grid_correction)};bias_correction={int(bias_correction)};base_path=\'{base_path}\';target_name=\'{target_name}\';registration_prefix=\'{registration_prefix}\';dxJ0={voxel_size};fixed_scale={fixed_scale};initial_affine=[{affine_string}];run(\'~/CloudReg/registration/registration_script_mouse_GN.m\'); exit;\"
+        matlab -nodisplay -nosplash -nodesktop -r \"niter={num_iterations};sigmaR={regularization};missing_data_correction={int(missing_data_correction)};grid_correction={int(grid_correction)};bias_correction={int(bias_correction)};base_path=\'{base_path}\';target_name=\'{target_name}\';registration_prefix=\'{registration_prefix}\';atlas_prefix=\'{atlas_prefix}\';dxJ0={voxel_size};fixed_scale={fixed_scale};initial_affine=[{affine_string}];parcellation_voxel_size=\'{parcellation_voxel_size}\';parcellation_image_size=\'{parcellation_image_size}\';run(\'~/CloudReg/cloudreg/registration/map_nonuniform_multiscale_v02_mouse_gauss_newton.m\'); exit;\"
     """
     print(matlab_registration_command)
     subprocess.run(shlex.split(matlab_registration_command))
@@ -212,6 +220,24 @@ if __name__ == "__main__":
         help="S3 path to store atlas transformed to target as precomputed volume. Should be of the form s3://<bucket>/<path_to_precomputed>. Default is same as input s3_path with atlas_to_target as channel name",
         type=str,
         default=None,
+    )
+    parser.add_argument(
+        "--atlas_s3_path",
+        help="S3 path to atlas we want to register to. Should be of the form s3://<bucket>/<path_to_precomputed>. Default is Allen Reference atlas path",
+        type=str,
+        default=ara_average_data_link(100),
+    )
+    parser.add_argument(
+        "--parcellation_s3_path",
+        help="S3 path to corresponding atlas parcellations. If atlas path is provided, this should also be provided. Should be of the form s3://<bucket>/<path_to_precomputed>. Default is Allen Reference atlas parcellations path",
+        type=str,
+        default=ara_annotation_data_link(10),
+    )
+    parser.add_argument(
+        "--atlas_orientation",
+        help="3-letter orientation of data. i.e. LPS",
+        type=str,
+        default='PIR'
     )
 
     # affine initialization args
@@ -276,11 +302,20 @@ if __name__ == "__main__":
         type=int,
         default=3000,
     )
+    parser.add_argument(
+        "--registration_resolution",
+        help="Minimum resolution that the registration is run at (in microns). Default is 100.",
+        type=int,
+        default=100,
+    )
 
     args = parser.parse_args()
 
     register(
         args.input_s3_path,
+        args.atlas_s3_path,
+        args.parcellation_s3_path,
+        args.atlas_orientation,
         args.output_s3_path,
         args.log_s3_path,
         args.orientation,
@@ -292,4 +327,5 @@ if __name__ == "__main__":
         args.bias_correction,
         args.regularization,
         args.iterations,
+        args.registration_resolution
     )

@@ -1,3 +1,8 @@
+sphinx>=1.8.1
+sphinx_rtd_theme>=0.4.2
+sphinxcontrib-rawfiles
+numpydoc
+nbsphinx
 boto3
 cloud-volume
 tinybrain
@@ -9,4 +14,4 @@ imagecodecs
 paramiko
 scipy
 h5py
-mpi4py
+SimpleITK

@@ -1,4 +1,4 @@
-from util import start_ec2_instance, run_command_on_server
+from .util import start_ec2_instance, run_command_on_server
 import argparse
 import boto3
 
@@ -38,7 +38,7 @@ def run_colm_pipeline(
         update_command, ssh_key_path, public_ip_address
     )
     # mount ssds command
-    command1 = "sudo bash CloudReg/scripts/mount_combined_ssds.sh"
+    command1 = "sudo bash CloudReg/cloudreg/scripts/mount_combined_ssds.sh"
     # colm pipeline command
     # command2 = f'time /home/ubuntu/colm_pipeline_env/bin/python CloudReg/scripts/colm_pipeline.py {input_s3_path} {output_s3_path} {num_channels} {autofluorescence_channel} --log_s3_path {log_s3_path}'
     command2 = f"cd CloudReg/; time docker-compose run -v ~/ssd1:/root/ssd1 -v ~/ssd2:/root/ssd2 cloudreg {input_s3_path} {output_s3_path} {num_channels} {autofluorescence_channel} --log_s3_path {log_s3_path}"

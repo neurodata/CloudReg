@@ -12,6 +12,7 @@ from collections import defaultdict
 import uuid
 import argparse
 from scipy.io import loadmat
+import json
 
 
 def loadmat_v73(mat_path):
@@ -98,6 +99,7 @@ class Fiducial:
         self.point = np.asarray(point) - self.origin
         self.description = description
         self.orientation = orientation
+        self.ng_point = np.asarray(point)
 
     def _set_origin(self):
         self.origin = (self.image_shape - 1) * self.voxel_size / 2
@@ -194,7 +196,7 @@ def get_distances(points1, points2):
             distances[i] = np.linalg.norm(points1[i] - points2[i])
         except KeyError:
             continue
-            distances[i] = np.linalg.norm(points1[i] - points2[i.lower()])
+            # distances[i] = np.linalg.norm(points1[i] - points2[i.lower()])
     return distances
 
 
@@ -246,8 +248,9 @@ def compute_regisration_accuracy(
         base_path = os.path.expanduser("~/CloudReg/registration")
         transformed_points_path = "./transformed_points.mat"
 
+        matlab_path = 'matlab'
         matlab_command = f"""
-            matlab -nodisplay -nosplash -nodesktop -r \"addpath(\'{base_path}\');Aname=\'{affine_path}\';vname=\'{velocity_path}\';v_size=[{v_size}];points=[{points_string}];points_t = transform_points(points,Aname,vname,v_size,\'atlas\');save(\'./transformed_points.mat\',\'points_t\');exit;\"
+            {matlab_path} -nodisplay -nosplash -nodesktop -r \"addpath(\'{base_path}\');Aname=\'{affine_path}\';vname=\'{velocity_path}\';v_size=[{v_size}];points=[{points_string}];points_t = transform_points(points,Aname,vname,v_size,\'atlas\');save(\'./transformed_points.mat\',\'points_t\');exit;\"
         """
         print(matlab_command)
         subprocess.run(shlex.split(matlab_command),)
@@ -255,8 +258,14 @@ def compute_regisration_accuracy(
         # transformed_points.m created now
         points_t = loadmat(transformed_points_path)["points_t"]
         points = {i.description: j for i, j in zip(target_fiducials, points_t)}
+        points_ng = {i.description: np.array(j) + k.origin for i, j, k in zip(target_fiducials, points_t, atlas_fiducials)}
+        points_ng_json = target_viz.get_annotations(points_ng)
+        with open('./transformed_points.json', 'w') as fp:
+            json.dump(points_ng_json,fp)
+
     else:
         points = {i.description: i.point for i in target_fiducials}
+        # points_ng = [np.array(j) + k.origin for j, k in zip(,rgeti atlas_fiducials)]
 
     atlas_points = {i.description: i.point for i in atlas_fiducials}
     distances = get_distances(atlas_points, points)
