@@ -150,9 +150,15 @@ def get_layer_json(s3_layer_path, affine_matrix, output_resolution):
     else:
         # convert translations from microns to voxels and convert output resolution from m to um
         affine_matrix[:3, -1] /= output_resolution * 1e6
-
-    if s3_url.bucket == "colm-precomputed-volumes":
-        url = f"precomputed://https://dlab-colm.neurodata.io/{s3_url.key}"
+        # mapping from S3 bucket to cloudfront
+    mapping = {
+        "colm-precomputed-volumes": "https://dlab-colm.neurodata.io",
+        "smartspim-precomputed-volumes": "https://dlab-colm.neurodata.io",
+        "colm-land-preprocessed": "https://d1o9rpg615hgq7.cloudfront.net"
+    }
+    
+    if s3_url.bucket in list(mapping.keys()):
+        url = f"precomputed://{mapping[s3_url.bucket]}/{s3_url.key}"
     else:
         url = f"precomputed://{s3_layer_path}"
 
