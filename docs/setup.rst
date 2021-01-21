@@ -111,18 +111,48 @@ Set up MATLAB EC2 instance
 1. Follow instructions `here <https://github.com/mathworks-ref-arch/matlab-on-aws>` on setting up MATLAB on an EC2 instance. Be sure to create this instance in the same region as your S3 buckets.
 
 
-Set up AWS Web Application Firewall
------------------------------------
-
-1. Log into `AWS console <https://console.aws.amazon.com/>`_
-2. Navigate to `CloudFront section <https://console.aws.amazon.com/cloudfront/>`_ of console
-
-
-
 Set up AWS CloudFront
 ---------------------
 
 1. Log into `AWS console <https://console.aws.amazon.com/>`_
 2. Navigate to `CloudFront section <https://console.aws.amazon.com/cloudfront/>`_ of console
+3. Click "Create Distribution" and then click "Get Started".
+4. Click in the "Origin Domain Name" box and select the S3 bucket you previously created to store preprocessed data for visualization. Once you select your S3 bucket from the drop-down menu, the Origin ID should populate automatically.
+5. Leave all other default parameters under "Origin Settings".
+6. See the video below on how to set up the remaining parameters.
+7. After following the video, click "Create Distribution".
+NOTE: Be sure to save the cloudfront URL that is created for that distribution. It can be found at the CloudFront console homepage after clicking on the distribution you created. It should appear next to "Domain Name".
+
+.. raw:: html 
+
+    <video controls src="_static/yoga.mp4"></video> 
+
+
+
+Set up AWS Web Application Firewall
+-----------------------------------
+
+1. Before setting up the Web Application Firewall, please find the IP address(es) you would like to give access to. Oftentimes this information can be discovered by emailing IT at your institution or going to `whatismyip <https://whatismyip.com>`_ for just your IP address.
+2. Log into `AWS console <https://console.aws.amazon.com/>`_
+3. Navigate to `WAF section <https://console.aws.amazon.com/wafv2/home#/webacls>`_ of console. This link will redirec you to WAF classic in order to implement our firewall.
+4. In the drop-down menu next to "Filter", select "Global (CloudFront)".
+5. Click "Create Web ACL".
+6. Choose a name that is unique for your web ACL and leave the CloudWatch metric name and Region Name as is.
+7.  Click on the drop-down next "AWS resource to associate" and choose the CloudFront distribution you created previously.
+8. Click "Next"
+9. To the right of "IP Match Conditions", click "Create Condition".
+10. Choose a unique name and leave the region as "Global".
+11. Next IP address range, input the IP range that you obtained in step 1. You can verify this range with a `CIDR calculator <https://www.ipaddressguide.com/cidr>`_
+12. Click "Create" at the bottom right and then click "Next".
+13. Click "Create Rule" to the right of "Add rules to web ACL".
+14. Choose a name and leave the other 2 parameters as default.
+15. Under "Add conditions", choose "does" and "originate from an IP address in"
+16. Under the third drop-down, choose the rule you created in step 14.
+17. Under "If a request matches all of the conditions in a rule, take the corresponding action", choose allow.
+18. Under "If a request doesn't match any rules, take the default action" choose "block all requests that don't match rules"
+19. Click "Review and Create" and then on the next page choose, "Confirm and create".
+
+
+
 
 
