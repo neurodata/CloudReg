@@ -9,5 +9,4 @@ imagecodecs
 paramiko
 scipy
 h5py
-mpi4py
 SimpleITK>=2.0.0
