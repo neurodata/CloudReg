@@ -31,6 +31,13 @@ CloudReg is a pipeline for terascale image preprocessing and 3D nonlinear regist
    reference/index
    license
 
+.. toctree::
+   :maxdepth: 1
+   :caption: Useful Links
+
+   CloudReg @ GitHub <http://www.github.com/neurodata/CloudReg/>
+
+
 Indices and tables
 ==================
 
