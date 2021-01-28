@@ -1,18 +1,12 @@
 # CloudReg
-[![Docs shield](https://img.shields.io/readthedocs/CloudReg)](https://CloudReg.readthedocs.io/)
+[![Documentation Status](https://readthedocs.org/projects/cloudreg/badge/?version=latest)](https://cloudreg.readthedocs.io/en/latest/?badge=latest)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
+## `CloudReg` is a tool for cross-modal, nonlinear, image registration between arbitrary image volumes.
 
-
-## `CloudReg` is a package for cross-modal, nonlinear, image registration between arbitrary image volumes.
-- [CloudReg](#cloudreg)
-  - [`CloudReg` is a package for cross-modal, nonlinear, image registration between arbitrary image volumes.](#cloudreg-is-a-package-for-cross-modal-nonlinear-image-registration-between-arbitrary-image-volumes)
 - [Overview](#overview)
 - [Documentation](#documentation)
 - [System Requirements](#system-requirements)
-  - [Hardware requirements](#hardware-requirements)
-  - [Software requirements](#software-requirements)
-    - [OS Requirements](#os-requirements)
 - [Installation Guide](#installation-guide)
 - [License](#license)
 - [Issues](#issues)
@@ -49,5 +43,4 @@ We appreciate detailed bug reports and feature requests (though we appreciate pu
 # Citing `CloudReg`
 If you find `CloudReg` useful in your work, please cite the tool via the [CloudReg paper](https://www.biorxiv.org/content/10.1101/2021.01.26.428355v1)
 
-> Chung, J., Pedigo, B. D., Bridgeford, E. W., Varjavand, B. K., Helm, H. S., & Vogelstein, J. T. (2019). GraSPy: Graph Statistics in Python. Journal of Machine Learning Research, 20(158), 1-7.
-
+> Vikram Chandrashekhar, Daniel Jacob Tward, Devin G Crowley, Ailey K Crow, Matthew A Wright, Brian Y Hsueh, Felicity Gore, Timothy A Machado, Audrey Branch, Jared S Rosenblum, Karl Deisseroth, Joshua Tzvi Vogelstein bioRxiv 2021.01.26.428355; doi: https://doi.org/10.1101/2021.01.26.428355
