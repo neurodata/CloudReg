@@ -4,14 +4,9 @@
 
 ## `CloudReg` is a tool for cross-modal, nonlinear, image registration between arbitrary image volumes.
 
-- [CloudReg](#cloudreg)
-  - [`CloudReg` is a tool for cross-modal, nonlinear, image registration between arbitrary image volumes.](#cloudreg-is-a-tool-for-cross-modal-nonlinear-image-registration-between-arbitrary-image-volumes)
 - [Overview](#overview)
 - [Documentation](#documentation)
 - [System Requirements](#system-requirements)
-  - [Hardware requirements](#hardware-requirements)
-  - [Software requirements](#software-requirements)
-    - [OS Requirements](#os-requirements)
 - [Installation Guide](#installation-guide)
 - [License](#license)
 - [Issues](#issues)
