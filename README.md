@@ -19,7 +19,7 @@ Quantifying terascale multi-modal human and animal imaging data requires scalabl
 # Documentation
 The official documentation with usage is at https://cloudreg.neurodata.io
 
-Please visit the [Run section](https://cloudreg.neurodata.io/setup.html) in the official website for more in depth usage.
+Please visit the [Run section](https://cloudreg.neurodata.io/run.html) in the official website for more in depth usage.
 
 # System Requirements
 ## Hardware requirements
