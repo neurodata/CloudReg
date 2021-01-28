@@ -12,16 +12,13 @@ Quantifying terascale multi-modal human and animal imaging data requires scalabl
 
 Results
 -------
-.. figure:: 
-   :scale: 50
-   :alt: CLARITY registered to Allen Reference Atlas
+.. figure:: _static/cloudreg_results.png
+   :alt: CloudReg pipeline registration outputs from multiple species imaged with various modalities
 
-   This is the caption of the figure (a simple paragraph).
+   Each row demonstrates registration of either mouse, rat, macaque, or human brain imaging data to the corresponding atlas using CloudReg. The leftmost column of images shows the input data; the data from the autofluorescence channel is used for samples imaged with a light-sheet microscope (LSM). The rightmost column shows the atlas parcellations overlaid on one hemisphere of the atlas image data. The second and third columns show the respective atlas parcellations transformed to and overlaid on the original samples and vice-versa, respectively. CLARITY, Clear Lipid-exchanged Anatomically Rigid Imaging/immunostaining-compatible Tissue Hydrogel; COLM, CLARITY-Optimized Light-sheet Microscopy; GB, Gigabyte; iDISCO, immunolabeling-enabled three-dimensional imaging of solvent-cleared organs; MB, Megabyte; Micro-CT, Micro-Computed Tomography; TB, Terabyte.
 
 Documentation
 =============
-
-CloudReg is a pipeline for terascale image preprocessing and 3D nonlinear registration between two image volumes wth polynomial intensity correspondence.
 
 .. toctree::
    :maxdepth: 1

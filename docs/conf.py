@@ -38,6 +38,8 @@ extensions = [
 
 ]
 
+# to enable code blocks with syntax highlighting
+pygments_style = 'sphinx'
 # with open('../requirements.txt', 'r') as fp:
     # x = fp.read().splitlines()
 

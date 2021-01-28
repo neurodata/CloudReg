@@ -14,33 +14,38 @@ Preprocessing
 The below steps are to run local intensity correction, stitching, global intensity corection, and upload back to S3 for visualiztion with neuroglancer.
 
 1. Open a new Terminal window and Navigate to the CloudReg directory
-2. Run `source cloudreg_env/bin/activate`
-3. Run `python -m cloudreg.scripts.run_colm_pipeline_ec2 -ssh_key_path <path to ssh key from set up> -instance_id <instance id> -input_s3_path <s3://path/to/raw/data> -output_s3_path <s3://path/to/output/data> -num_channels <number of channels imaged in raw data> -autofluorescence_channel <integer between 0 and max number of channels>`
+2. Run :code:`source cloudreg_env/bin/activate`
+3. Run:: 
 
-Replace the above parameters between "<>" with your own. In order to get more information about the parameters ru:
-`python -m cloudreg.scripts.run_col_pipeline_ec2 -h`
+    python -m cloudreg.scripts.run_colm_pipeline_ec2 -ssh_key_path <path to ssh key from set up> -instance_id <instance id> -input_s3_path <s3://path/to/raw/data> -output_s3_path <s3://path/to/output/data> -num_channels <number of channels imaged in raw data> -autofluorescence_channel <integer between 0 and max number of channels>
+    
+Replace the above parameters between "<>" with your own. In order to get more information about the parameters see `here <https://cloudreg.neurodata.io#cloudreg.scripts.run_registration_ec2.run_colm_pipeline_ec2>`_
 
 
 Registration
 ------------
-The following commands can be used to register mouse brain data. For more information on how to register any two image volumes in precomputed format see `<https://cloudreg.neurodata.io#cloudreg.scripts.run_registration_ec2.run_registration>`_ about paramters
+The following commands can be used to register mouse brain data.
 
 1. Open a new Terminal window and Navigate to the CloudReg directory
-2. Run `source cloudreg_env/bin/activate`
-3. Run 
-    `python -m cloudreg.scripts.run_registration_ec2 -ssh_key_path <path to ssh key from set up> -instance_id <instance id> -input_s3_path <s3://path/to/raw/data> -output_s3_path <s3://path/to/output/data>  -orientation <3-letter orientation scheme <http://www.grahamwideman.com/gw/brain/orientation/orientterms.htm>> >`
+2. Run :code:`source cloudreg_env/bin/activate`
+3. Run::
+
+    python -m cloudreg.scripts.run_registration_ec2 -ssh_key_path <path to ssh key from set up> -instance_id <instance id> -input_s3_path <s3://path/to/raw/data> -output_s3_path <s3://path/to/output/data>  -orientation <3-letter orientation scheme>
 
 4. The above command will print out a Neuroglancer visulization link showing the affine initialization of the registration that you can view in a web browser (Chrome or Firefox).
-5a. If your input data and the atlas look sufficiently aligned (only rough alignment is necessary), in your terminal type 'y' and hit enter at the prompt.
-5b. If your input data and the atlas DO NOT look sufficiently aligned, the alignment can be adjusted with translation and rotation parameters (See <https://cloudreg.neurodata.io#cloudreg.scripts.run_registration_ec2.run_registration> for more information on script parameters.)
+5. If your input data and the atlas look sufficiently aligned (only rough alignment is necessary), see `5a`, else see `5b`
+    a) If your input data and the atlas look sufficiently aligned (only rough alignment is necessary), in your terminal type 'y' and hit enter at the prompt.
+    b) If your input data and the atlas DO NOT look sufficiently aligned, the alignment can be adjusted with translation and rotation parameters. 
+
+See `here <https://cloudreg.neurodata.io#cloudreg.scripts.run_registration_ec2.run_registration>`_ for more information on registration parameters
 
 
 Visualization
 -------------
-All visualization is enabled through Neurodata's deployment of Neuroglancer: <https://viz.neurodata.io>
+All visualization is enabled through Neurodata's deployment of `Neuroglancer <https://viz.neurodata.io>`_
 In order to visualize your data you will need the CloudFront Domain Name created during setup.
 
-1. Go to <https://viz.neurodata.io> in a web browser. 
+1. Go to https://viz.neurodata.io in a web browser. 
 2. Click on the '+' on the top left of the Neuroglancer window (see image below). |ngl1|
 3. In the window that appears on the right side, choose precomputed from the drop-down menu (see image below). |ngl2|
 4. After 'precomputed://' type the S3 path to the image layer (same as output_s3_path in preprocessing step above). |ngl3|
