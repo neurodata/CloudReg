@@ -148,7 +148,8 @@ def register(
     print("downloading input data for registration...")
     # convert to nanometers
     registration_resolution *= 1000.0 
-    voxel_size = download_data(input_s3_path, target_name)
+    # download raw data at lowest 15 microns
+    voxel_size = download_data(input_s3_path, target_name, 15000)
     # download atlas and parcellations at registration resolution
     _ = download_data(atlas_s3_path, atlas_name, registration_resolution, resample_isotropic=True)
     _ = download_data(parcellation_s3_path, parcellation_name, registration_resolution, resample_isotropic=True)

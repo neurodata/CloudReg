@@ -29,14 +29,14 @@ def get_mip_at_res(vol, resolution):
     return tmp_mip, tmp_res
 
 
-def download_data(s3_path, outfile, desired_resolution=15000, resample_isotropic=False, return_size=False):
+def download_data(s3_path, outfile, desired_resolution, resample_isotropic=False, return_size=False):
     """Download whole precomputed volume from S3 at desired resolution and optionally resample data to be isotropic
 
     Args:
         s3_path (str): S3 path to precomputed volume
         outfile (str): Path to output file
-        desired_resolution (int, optional): Lowest resolution (in nanometers) at which to download data if desired res isnt available. Defaults to 15000.
-        resample_isotropic (bool, optional): If true, resample data to be isotropic.
+        desired_resolution (int): Lowest resolution (in nanometers) at which to download data if desired_resolution isnt available.
+        resample_isotropic (bool, optional): If true, resample data to be isotropic at desired_resolution.
 
     Returns:
         resolution: Resoluton of downloaded data in microns
@@ -53,7 +53,7 @@ def download_data(s3_path, outfile, desired_resolution=15000, resample_isotropic
     resolution = np.divide(resolution, 1000.0).tolist()
     img_s.SetSpacing(resolution)
     if resample_isotropic:
-        img_s = imgResample(img_s, [np.max(resolution)]*3)
+        img_s = imgResample(img_s, np.divide([desired_resolution]*3,1000.))
     # if output is tiff, use tiffile
     if 'tif' in outfile.split('.')[-1]:
         tf.imwrite(outfile, sitk.GetArrayFromImage(img_s))
@@ -79,11 +79,13 @@ if __name__ == "__main__":
     parser.add_argument("outfile", help="name of output file with associated file extension. eg. /path/to/image.tif")
     parser.add_argument(
         "desired_resolution",
-        help="Desired minimum resolution for downloaded image in nanometers.",
-        nargs="+",
+        help="Desired minimum resolution for downloaded image in nanometers. Resolution assumed to be same in all 3 dimensions.",
+        type='int'
     )
     args = parser.parse_args()
 
     download_data(
-        args.s3_path, args.outfile,
+        args.s3_path, 
+        args.outfile, 
+        args.desired_resolution
     )
