@@ -80,12 +80,14 @@ if __name__ == "__main__":
     parser.add_argument(
         "desired_resolution",
         help="Desired minimum resolution for downloaded image in nanometers. Resolution assumed to be same in all 3 dimensions.",
-        type='int'
+        type=int
     )
+    parser.add_argument("--isotropic", help="Resample data to isotropic at desired_resolution.", action='store_true')
     args = parser.parse_args()
 
     download_data(
         args.s3_path, 
         args.outfile, 
-        args.desired_resolution
+        args.desired_resolution,
+        resample_isotropic=args.isotropic
     )
