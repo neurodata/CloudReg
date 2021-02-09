@@ -122,7 +122,7 @@ if __name__ == "__main__":
         "--instance_type",
         help="EC2 instance type to run registration on. Default is r5.8xlarge",
         type=str,
-        default="r5.8xlarge",
+        default="r5.12xlarge",
     )
 
     # data params

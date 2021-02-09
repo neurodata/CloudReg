@@ -149,12 +149,12 @@ def register(
     # convert to nanometers
     registration_resolution *= 1000.0 
     # download raw data at lowest 15 microns
-    voxel_size = download_data(input_s3_path, target_name, 15000)
-    # download atlas and parcellations at registration resolution
-    _ = download_data(atlas_s3_path, atlas_name, registration_resolution, resample_isotropic=True)
-    _ = download_data(parcellation_s3_path, parcellation_name, registration_resolution, resample_isotropic=True)
-    # also download high resolution parcellations for final transformation
-    parcellation_voxel_size, parcellation_image_size = download_data(parcellation_s3_path, parcellation_hr_name, 10000, return_size=True)
+    #voxel_size = download_data(input_s3_path, target_name, 15000)
+    ## download atlas and parcellations at registration resolution
+    #_ = download_data(atlas_s3_path, atlas_name, registration_resolution, resample_isotropic=True)
+    #_ = download_data(parcellation_s3_path, parcellation_name, registration_resolution, resample_isotropic=True)
+    ## also download high resolution parcellations for final transformation
+    #parcellation_voxel_size, parcellation_image_size = download_data(parcellation_s3_path, parcellation_hr_name, 10000, return_size=True)
 
     # initialize affine transformation for data
     # atlas_res = 100
@@ -171,6 +171,7 @@ def register(
     # run registration
     affine_string = [", ".join(map(str, i)) for i in initial_affine]
     affine_string = "; ".join(affine_string)
+    print(affine_string)
     matlab_registration_command = f"""
         matlab -nodisplay -nosplash -nodesktop -r \"niter={num_iterations};sigmaR={regularization};missing_data_correction={int(missing_data_correction)};grid_correction={int(grid_correction)};bias_correction={int(bias_correction)};base_path=\'{base_path}\';target_name=\'{target_name}\';registration_prefix=\'{registration_prefix}\';atlas_prefix=\'{atlas_prefix}\';dxJ0={voxel_size};fixed_scale={fixed_scale};initial_affine=[{affine_string}];parcellation_voxel_size=\'{parcellation_voxel_size}\';parcellation_image_size=\'{parcellation_image_size}\';run(\'~/CloudReg/cloudreg/registration/map_nonuniform_multiscale_v02_mouse_gauss_newton.m\'); exit;\"
     """

@@ -129,7 +129,7 @@ end
 
 
 downloop_start = 1;
-for downloop = downloop_start : 2
+for downloop = downloop_start : 1
 
     if downloop > 1
         eV = eV/2;
@@ -145,7 +145,7 @@ for downloop = downloop_start : 2
 
     %% for now make this single scale
     elseif downloop == 2
-        return
+        % return
         % template_name = strcat(atlas_prefix,'/atlas_data.nrrd');
         % template_name = strcat(atlas_prefix,'/average_template_50.nrrd');
         % label_name = strcat(atlas_prefix, '/annotation_50.nrrd');
@@ -1030,7 +1030,7 @@ end % of downloop
 
 % save out high resolution parcellations transformed to input data
 % and input data transformed to parcellations
-parcellation_path = [atlas_prefix 'parcellation.tif'];
+parcellation_path = [atlas_prefix 'parcellation_data.tif'];
 % parcellation_voxel_size = [];
 % atlas_voxel_size = [10.0, 10.0, 10.0]; % microns
 % hard coding ARA 10 um image size

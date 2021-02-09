@@ -67,7 +67,10 @@ def ingest_image_stack(s3_path, voxel_size, img_stack, extension, dtype):
     img = np.asarray(img, dtype=dtype)
 
     img_size = img.shape[::-1]
+    # hard code these
+    num_mips = 3
     vol = create_cloud_volume(s3_path, img_size, voxel_size, dtype=dtype)
+    layer_path = vol.layer_cloudpath
 
     mem = virtual_memory()
     num_procs = min(
@@ -75,9 +78,6 @@ def ingest_image_stack(s3_path, voxel_size, img_stack, extension, dtype):
     )
     print(f"num processes: {num_procs}")
     print(f"layer path: {vol.layer_cloudpath}")
-    # hard code these
-    num_mips = 3
-    layer_path = vol.layer_cloudpath
 
     data = [(i, img.T[:, :, i]) for i in range(img.shape[0])]
     files = [i[1] for i in data]
