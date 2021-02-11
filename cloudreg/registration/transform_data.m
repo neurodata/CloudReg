@@ -29,7 +29,8 @@ function [] = transform_data(path_to_source,source_voxel_size,path_to_affine,pat
 
     % load source data and downsample
     % to about same res as target
-    down = round(destination_voxel_size./dxI0)
+    down = round(destination_voxel_size./dxI0);
+    down( down==0 ) = 1;
     textprogressbar('reading source: ')
     for f = 1 : length(info)
         %disp(['File ' num2str(f) ' of ' num2str(length(info))])

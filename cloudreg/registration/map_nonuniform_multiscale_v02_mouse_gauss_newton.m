@@ -1039,6 +1039,14 @@ output_path_atlas = [prefix 'labels_to_target_highres.img'];
 output_path_target = [prefix 'target_to_labels_highres.img'];
 vname = [prefix 'v.mat'];
 Aname = [prefix 'A.mat'];
-save([prefix 'transform_params.mat'],'target_name','atlas_path','parcellation_voxel_size','parcellation_image_size','output_path_target','output_path_atlas','nxJ0','dxJ0','dxI','vname','Aname')
-transform_data(atlas_path,parcellation_voxel_size,Aname,vname,dxI,dxJ0,nxJ0,'target',output_path_atlas,'nearest')
+% since transformation takes lots of memory, use dxJ0 = [10 10 5] and set nxJ0 acordingly
+dxJT = [10 10 5];
+scalef = (dxJ0./dxJT);
+nxJT = fix(nxJ0.*scalef);
+save([prefix 'transform_params.mat'],'target_name','parcellation_path','parcellation_voxel_size','parcellation_image_size','output_path_target','output_path_atlas','nxJ0','dxJ0','nxJT','dxJT','dxI','vname','Aname')
+% since this may take lots of memory, use dxJ0 = [10 10 5] and set nxJ0 acordingly
+dxJT = [10 10 5];
+scalef = (dxJ0./dxJT);
+nxJT = fix(nxJ0.*scalef);
+transform_data(parcellation_path,parcellation_voxel_size,Aname,vname,dxI,dxJT,nxJT,'target',output_path_atlas,'nearest')
 transform_data(target_name,dxJ0,Aname,vname,dxI,parcellation_voxel_size,parcellation_image_size,'atlas',output_path_target,'linear')
