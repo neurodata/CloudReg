@@ -1,6 +1,8 @@
 # local imports
 from ARA_stuff.parse_ara import *
+from util import imgResample, tqdm_joblib
 
+import SimpleITK as sitk
 import os
 import argparse
 from joblib import Parallel, delayed
@@ -10,31 +12,50 @@ from collections import defaultdict, Counter
 from skimage import transform
 from tqdm import tqdm, trange
 import pandas as pd
+#import pickle
 
 
 def get_region_stats(atlas_s3_path, data_s3_path, z_slice):
+    """
+    atlas_s3_path (str): s3 path to atlas labels transformed to data
+    data_s3_path (str): s3 path to raw data
+    z_slice (int): z slice of the atlas data to process
+    """
     # create vols
     atlas_vol = CloudVolume(atlas_s3_path, parallel=False, progress=False)
     data_vol = CloudVolume(data_s3_path, parallel=False, progress=False)
-    data_size = data_vol.scales[0]["size"][::-1]
+    scale = atlas_vol.resolution/data_vol.resolution
+    #data_size = data_vol.scales[0]["size"][::-1]
     # use vols
     fluorescence_sum = defaultdict(lambda: 0)
     region_volume = defaultdict(lambda: 0)
-    atlas_slice = np.squeeze(atlas_vol[:, :, z_slice]).T
-    atlas_slice_upsampled = transform.resize(
-        atlas_slice, data_size[1:], order=0, preserve_range=True
-    )
-    unique_vals = np.unique(atlas_slice_upsampled)
-    data_slice = np.squeeze(data_vol[:, :, z_slice]).T
-    for j in unique_vals:
-        if j == 0:
-            continue
-        idx = atlas_slice_upsampled == j
-        fluorescence_sum[j] += np.sum(data_slice[idx])
-        region_volume[j] += np.count_nonzero(idx)
-    # print(f"{z_slice} z slice done")
-    #     with open('fluorescence_quantification_vglut3_539', 'wb') as fp:
-    #         pickle.dump([fluorescence_sum,region_volume], fp)
+    # download atlas data
+    atlas_slice = np.squeeze(atlas_vol[:, :, z_slice]).T[None,:,:]
+    # get unique values 
+    unique_vals = np.unique(atlas_slice)
+    # upsample slice to match input data resolution
+    atlas_slice_s = sitk.GetImageFromArray(atlas_slice)
+    atlas_slice_s.SetSpacing((atlas_vol.resolution/1e6).astype('float').tolist())
+    # upsampled size of the atlas slice
+    upsize = [int(data_vol.shape[0]), int(data_vol.shape[1]), int(scale[-1])]
+    atlas_slice_u = imgResample(atlas_slice_s,(data_vol.resolution/1e6).tolist(),size=upsize,useNearest=True)
+    atlas_slice_upsampled = sitk.GetArrayViewFromImage(atlas_slice_u)
+
+#    atlas_slice_upsampled = transform.resize(
+#        atlas_slice, data_size[1:], order=0, preserve_range=True
+#    )
+    for i_a,i_d in enumerate(range(z_slice*int(scale[-1]),z_slice*int(scale[-1])+int(scale[-1]),1)):
+        #print(i_a,i_d)
+        data_slice = np.squeeze(data_vol[:, :, i_d]).T
+        for j in unique_vals:
+            if j == 0:
+                continue
+            idx = atlas_slice_upsampled[i_a,:,:] == j
+            fluorescence_sum[j] += np.sum(data_slice[idx])
+            region_volume[j] += np.count_nonzero(idx)
+#        print(f"{i_d} z slice done")
+#    with open(f"{data_s3_path.split('/')[-1]}", 'wb') as fp:
+#        pickle.dump([fluorescence_sum,region_volume], fp)
     return fluorescence_sum, region_volume
 
 
@@ -85,13 +106,14 @@ def main():
     )
     args = parser.parse_args()
     data_vol = CloudVolume(args.data_s3_path)
+    atlas_vol = CloudVolume(args.atlas_s3_path)
     id2name = get_ara_dict(args.path_to_ontology)
     experiment_name = "_".join(args.data_s3_path.split("/")[-2:])
 
-    results = Parallel(args.num_procs)(
-        delayed(get_region_stats)(args.atlas_s3_path, args.data_s3_path, i)
-        for i in trange(data_vol.scales[0]["size"][-1])
-    )
+    with tqdm_joblib(trange(int(atlas_vol.shape[2]))) as progress_bar:
+        results = Parallel(args.num_procs)(
+            delayed(get_region_stats)(args.atlas_s3_path, args.data_s3_path, i) for i in range(int(atlas_vol.shape[2]))
+        )
     total_fluorescence, total_volume = combine_results(results)
     fluorescence_density = defaultdict(float)
     for i, j in total_fluorescence.items():
