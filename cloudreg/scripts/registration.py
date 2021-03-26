@@ -198,7 +198,7 @@ def register(
         [input_s3_path, output_s3_path], output_resolution=np.array([5] * 3) / 1e6
     )
     print("###################")
-    print(f"VIZ LINK: {viz_link}")
+    print(f"VIZ LINK (atlas overlayed on data): {viz_link}")
     print("###################")
 
 

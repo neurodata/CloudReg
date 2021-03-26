@@ -62,10 +62,11 @@ if ~exist('initial_affine')
 end
 A = initial_affine;
 fixed_scale = fixed_scale .* [1 1 1];
+
 % create fixed_scale with correct orientation for atlas
 A_lin = A(1:3,1:3);
-A_lin( A_lin < min(max(A_lin) ) ) = 0;
-A_lin( A_lin > 0 ) = 1;
+A_lin( abs(A_lin) < min(max(abs(A_lin)) ) ) = 0;
+A_lin( abs(A_lin) > 0 ) = 1;
 fixed_scale_r = A_lin' * fixed_scale';
 
 
@@ -1039,14 +1040,11 @@ output_path_atlas = [prefix 'labels_to_target_highres.img'];
 output_path_target = [prefix 'target_to_labels_highres.img'];
 vname = [prefix 'v.mat'];
 Aname = [prefix 'A.mat'];
-% since transformation takes lots of memory, use dxJ0 = [10 10 5] and set nxJ0 acordingly
-dxJT = [10 10 5];
+% since transformation takes lots of memory, use dxJ0 = [10 10 10] and set nxJ0 acordingly
+dxJT = [15 15 5];
+% nxJT = nxJ0;
 scalef = (dxJ0./dxJT);
 nxJT = fix(nxJ0.*scalef);
 save([prefix 'transform_params.mat'],'target_name','parcellation_path','parcellation_voxel_size','parcellation_image_size','output_path_target','output_path_atlas','nxJ0','dxJ0','nxJT','dxJT','dxI','vname','Aname')
-% since this may take lots of memory, use dxJ0 = [10 10 5] and set nxJ0 acordingly
-dxJT = [10 10 5];
-scalef = (dxJ0./dxJT);
-nxJT = fix(nxJ0.*scalef);
-transform_data(parcellation_path,parcellation_voxel_size,Aname,vname,dxI,dxJT,nxJT,'target',output_path_atlas,'nearest')
 transform_data(target_name,dxJ0,Aname,vname,dxI,parcellation_voxel_size,parcellation_image_size,'atlas',output_path_target,'linear')
+transform_data(parcellation_path,parcellation_voxel_size,Aname,vname,dxI,dxJT,nxJT,'target',output_path_atlas,'nearest')

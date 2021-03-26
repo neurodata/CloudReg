@@ -17,7 +17,7 @@ def create_cloud_volume(
     img_size,
     voxel_size,
     dtype="uint16",
-    num_hierarchy_levels=5,
+    num_mips=5,
     parallel=True,
 ):
     if dtype == "uint64":
@@ -40,7 +40,7 @@ def create_cloud_volume(
     # add mip 1
     [
         vol.add_scale((2 ** i, 2 ** i, 1), chunk_size=[512, 512, 1])
-        for i in range(num_hierarchy_levels)
+        for i in range(num_mips)
     ]
     vol.commit_info()
     return vol
@@ -63,13 +63,14 @@ def ingest_image_stack(s3_path, voxel_size, img_stack, extension, dtype):
         img = tf.imread(os.path.expanduser(img_stack))
     else:
         tmp = sitk.ReadImage(os.path.expanduser(img_stack))
+        voxel_size = np.array(tmp.GetSize()) * 1e3 # convert from um to nm
         img = sitk.GetArrayFromImage(tmp)
     img = np.asarray(img, dtype=dtype)
 
     img_size = img.shape[::-1]
     # hard code these
-    num_mips = 3
-    vol = create_cloud_volume(s3_path, img_size, voxel_size, dtype=dtype)
+    num_mips = 4
+    vol = create_cloud_volume(s3_path, img_size, voxel_size, dtype=dtype, num_mips=num_mips)
     layer_path = vol.layer_cloudpath
 
     mem = virtual_memory()
