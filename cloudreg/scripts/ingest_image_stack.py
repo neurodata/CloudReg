@@ -63,7 +63,7 @@ def ingest_image_stack(s3_path, voxel_size, img_stack, extension, dtype):
         img = tf.imread(os.path.expanduser(img_stack))
     else:
         tmp = sitk.ReadImage(os.path.expanduser(img_stack))
-        voxel_size = np.array(tmp.GetSize()) * 1e3 # convert from um to nm
+        # voxel_size = np.array(tmp.GetSize()) * 1e3 # convert from um to nm
         img = sitk.GetArrayFromImage(tmp)
     img = np.asarray(img, dtype=dtype)
 

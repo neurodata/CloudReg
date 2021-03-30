@@ -54,6 +54,7 @@ def download_data(s3_path, outfile, desired_resolution, resample_isotropic=False
     img_s.SetSpacing(resolution)
     if resample_isotropic:
         img_s = imgResample(img_s, np.divide([desired_resolution]*3,1000.))
+        resolution = np.divide([desired_resolution]*3,1000.)
     # if output is tiff, use tiffile
     if 'tif' in outfile.split('.')[-1]:
         tf.imwrite(outfile, sitk.GetArrayFromImage(img_s))
