@@ -129,14 +129,16 @@ def create_precomputed_volume(
         voxel_size * 1000,
         num_mips,
         chunk_size,
+        num_procs=None,
         parallel=False,
     )
 
-    # num procs to use based on available memory
-    num_procs = min(
-        math.floor(virtual_memory().total / (img_size[0] * img_size[1] * 8)),
-        joblib.cpu_count(),
-    )
+    if num_procs == None:
+        # num procs to use based on available memory
+        num_procs = min(
+            math.floor(virtual_memory().total / (img_size[0] * img_size[1] * 8)),
+            joblib.cpu_count(),
+        )
 
     try:
         with tqdm_joblib(
@@ -169,8 +171,14 @@ if __name__ == "__main__":
         "precomputed_path",
         help="Path to location on s3 where precomputed volume should be stored. Example: s3://<bucket>/<experiment>/<channel>",
     )
+    parser.add_argument(
+        "--num_procs",
+        help="Number of processes to use in parallel. It is possible we may exceed the request rate so you may want to reduce the number of cores.",
+        default=None,
+        type=int
+    )
     args = parser.parse_args()
 
     create_precomputed_volume(
-        args.input_path, np.array(args.voxel_size), args.precomputed_path,
+        args.input_path, np.array(args.voxel_size), args.precomputed_path, args.num_procs
     )
