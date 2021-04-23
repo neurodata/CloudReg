@@ -102,7 +102,7 @@ def process(z, file_path, layer_path, num_mips):
 
 
 def create_precomputed_volume(
-    input_path, voxel_size, precomputed_path, extension="tif"
+    input_path, voxel_size, precomputed_path,num_procs=None, extension="tif"
 ):
     """Create precomputed volume on S3 from 2D TIF series
 
@@ -129,7 +129,6 @@ def create_precomputed_volume(
         voxel_size * 1000,
         num_mips,
         chunk_size,
-        num_procs=None,
         parallel=False,
     )
 
