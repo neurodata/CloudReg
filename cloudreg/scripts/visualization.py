@@ -82,6 +82,15 @@ def create_viz_link(
     viz_link = f"{neuroglancer_link}{json_url}"
     return viz_link
 
+def create_viz_link_from_json(
+    ngl_json,
+    url="https://json.neurodata.io/v1",
+    neuroglancer_link="https://ara.viz.neurodata.io/?json_url=",
+):
+    r = requests.post(url, json=ngl_json)
+    json_url = r.json()["uri"]
+    viz_link = f"{neuroglancer_link}{json_url}"
+    return viz_link
 
 def get_neuroglancer_json(s3_layer_paths, affine_matrices, output_resolution):
     """Generate Neuroglancer state json.

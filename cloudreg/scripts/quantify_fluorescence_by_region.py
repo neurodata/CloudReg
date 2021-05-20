@@ -63,33 +63,13 @@ def save_results_to_csv(fluorescence_dict, columns, out_path):
     df.to_csv(out_path)
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "data_s3_path",
-        help="full s3 path to data of interest as precomputed volume. must be of the form `s3://bucket-name/path/to/channel`",
-    )
-    parser.add_argument(
-        "atlas_s3_path",
-        help="full s3 path to transfomed atlas. must have the same number of slices as native resolution data.",
-    )
-    parser.add_argument("out_path", help="path to save output results")
-    parser.add_argument(
-        "--path_to_ontology",
-        help="path to save output results",
-        type=str,
-        default=os.path.expanduser("~/MBAC/scripts/ARA_stuff/ara_ontology.json"),
-    )
-    parser.add_argument(
-        "--num_procs", help="number of processes to use", default=16, type=int
-    )
-    args = parser.parse_args()
-    data_vol = CloudVolume(args.data_s3_path)
-    id2name = get_ara_dict(args.path_to_ontology)
-    experiment_name = "_".join(args.data_s3_path.split("/")[-2:])
+def quantify_fluorescence_by_region(data_s3_path,atlas_s3_path,path_to_ontology,outfile='./quantification.csv',num_procs=-1):
+    data_vol = CloudVolume(data_s3_path)
+    id2name = get_ara_dict(path_to_ontology)
+    experiment_name = "_".join(data_s3_path.split("/")[-2:])
 
-    results = Parallel(args.num_procs)(
-        delayed(get_region_stats)(args.atlas_s3_path, args.data_s3_path, i)
+    results = Parallel(num_procs)(
+        delayed(get_region_stats)(atlas_s3_path, data_s3_path, i)
         for i in trange(data_vol.scales[0]["size"][-1])
     )
     total_fluorescence, total_volume = combine_results(results)
@@ -101,7 +81,7 @@ def main():
     }
     # density by roi
     columns = ["atlas id", "fluorescence density"]
-    outfile = f"{args.out_path}"
+    # outfile = f"{outfile}"
     fluorescence_density_roi = defaultdict(float)
     for i, j in fluorescence_density_sorted.items():
         fluorescence_density_roi[id2name[i]] = [i, j]
@@ -120,4 +100,35 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "data_s3_path",
+        help="full s3 path to data of interest as precomputed volume. must be of the form `s3://bucket-name/path/to/channel`",
+    )
+    parser.add_argument(
+        "atlas_s3_path",
+        help="full s3 path to transfomed atlas. must have the same number of slices as native resolution data.",
+    )
+    parser.add_argument("out_path", help="path to save output results")
+    parser.add_argument(
+        "--path_to_ontology",
+        help="path to save output results",
+        type=str,
+        default=os.path.expanduser("~/CloudReg/cloudreg/scripts/ARA_stuff/ara_ontology.json"),
+    )
+    parser.add_argument(
+        "--num_procs", help="number of processes to use", default=16, type=int
+    )
+    parser.add_argument(
+        "--outfile", help="path to CSV to store results. Example: /path/to/data/quantification.csv",
+        default='./quantification.csv',
+        type=str
+    )
+    args = parser.parse_args()
+    quantify_fluorescence_by_region(
+        args.data_s3_path,
+        args.atlas_s3_path,
+        args.path_to_ontology,
+        args.outfile,
+        args.num_procs
+    )
