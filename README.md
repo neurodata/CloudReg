@@ -1,6 +1,7 @@
 # CloudReg
 [![Documentation Status](https://readthedocs.org/projects/cloudreg/badge/?version=latest)](https://cloudreg.readthedocs.io/en/latest/?badge=latest)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![DOI](https://zenodo.org/badge/204720122.svg)](https://zenodo.org/badge/latestdoi/204720122)
 
 ## `CloudReg` is a tool for cross-modal, nonlinear, image registration between arbitrary image volumes.
 
