@@ -1,19 +1,22 @@
 Setup
 =====
 
-CloudReg is designed to be used in the cloud. We chose to work with Amazon Web Services (AWS) and the below setup instructions are for that.
+CloudReg is designed to be used in the cloud but components of the CloudReg pipeline can also be run locally. For instructions on full local use see here. For cloud setup please see below.
+We chose to work with Amazon Web Services (AWS) and the below setup instructions are for that.
+
 
 Requirements
 ------------
 - AWS account
 - IAM Role and User with credentials to access EC2 and S3
 - S3 Bucket to store raw data
-- S3 Bucket to store processed data
+- S3 Bucket to store processed data (can be the same bucket as above)
 - EC2 instance with Docker 
 - EC2 instance with MATLAB
-- CloudFront CDN with HTTP/2 enabled for fast visualization
-- Web Application Firewall for IP-address restriction on data access.
 - Local machine with required dependencies installed
+- (Optional) CloudFront CDN with HTTP/2 enabled for fast visualization
+- (Optional) Web Application Firewall for IP-address restriction on data access.
+
 
 Create AWS account
 ------------------
@@ -61,8 +64,8 @@ Create S3 Bucket
 5. Uncheck *Block All Public Access*. We will restrict access to the data using CloudFront and a Firewall.
 6. The remaining settings can be left as is. Click *Create Bucket*
 
-Set up CORS on S3 Bucket
-------------------------
+Set up CORS on S3 Bucket containing processed data/results
+----------------------------------------------------------
 
 1. Log into `AWS console <https://console.aws.amazon.com/>`_
 2. Navigate to `S3 section <https://console.aws.amazon.com/s3/>`_ of console
@@ -172,8 +175,7 @@ On a local machine of your choice follow the instructions below. The following i
 3. Navigate to a directory where you would like to save the CloudReg code.
 4. Run :code:`git clone https://github.com/neurodata/CloudReg.git`
 5. Navigate to the CloudReg directory: :code:`cd CloudReg`
-6. Run :code:`source cloudreg_env/bin/activate`
-7. Run :code:`aws configure` and follow the prompts. Use the credentials generated in the setup phase for the IAM User that was created.
-8. Run :code:`deactivate` and close the Terminal window.
+6. Create a Python 3 virtual environment
+7. Activate environment and install required dependencies: :code:`pip install -r requirements_local.txt`
 
 
