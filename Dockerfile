@@ -41,6 +41,8 @@ ADD https://api.github.com/repos/google/neuroglancer/git/refs/heads/master versi
 RUN git clone https://github.com/google/neuroglancer.git --branch master --single-branch
 
 EXPOSE 8887
+EXPOSE 9000
 
+WORKDIR ~/CloudReg
 
 CMD [ "/bin/bash" ]

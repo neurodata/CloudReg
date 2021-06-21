@@ -102,8 +102,8 @@ Registration
 ------------
 The following commands can be used to register two image volumes.
 
-1. Open a new Terminal window
-2. Once the previous command finishes, run:: 
+1. Open a new Terminal window.
+2. Run:: 
 
     python3 -m cloudreg.scripts.registration -input_s3_path file://</path/to/local/volume>  --output_s3_path file://</path/to/local/volume>  -log_s3_path file://</path/to/local/volume> -orientation RIP 
 
@@ -113,19 +113,28 @@ More  information on `local registration parameters <https://cloudreg.neurodata.
 Visualization
 -------------
 All visualization is enabled through Neurodata's deployment of `Neuroglancer <https://viz.neurodata.io>`_
-In order to visualize your data you will need the CloudFront Domain Name created during setup.
+We will use a script to serve local data for visualization with our deployment of Neuroglancer.
 
-1. Go to https://viz.neurodata.io in a web browser. 
-2. Click on the '+' on the top left of the Neuroglancer window (see image below). |ngl1l|
-3. In the window that appears on the right side, choose precomputed from the drop-down menu (see image below). |ngl2l|
-4. After 'precomputed://' type the local path to the image layer (same as output_s3_path in preprocessing step above). |ngl3l|
-5. If you have CloudFront set up, you can replace the 's3://' with your cloudfront domain name. |ngl4l|
-6. Hit enter and click "Create Image Layer" in the botom right of the Neurglancer window. |ngl5l|
-7. The data should start to load in 3 of the 4 quadrants. The bottom left quadrant is a 3D view of slices.
+
+1. Open a new Terminal window.
+2. Start the local CloudReg Docker image in interactive mode. Replace the below parameters between "<>" with your own. Run:: 
+        
+    docker run --rm -v <path/to/precomputed/data>:/data/input -p 8887:8887 -p 9000:9000 -ti neurodata/cloudreg:local
+
+3. Run::
+
+    cd ../neuroglancer; python cors_webserver.py -d /data/input/
+    
+4. Now, in Google Chrome, go to https://viz.neurodata.io 
+5. Click on the '+' on the top left of the Neuroglancer window (see image below). |ngl1l|
+6. In the window that appears on the right side, choose precomputed from the drop-down menu (see image below). |ngl2l|
+7. After 'precomputed://' type the local path to the image layer preceded by 'http://localhost:9000' (same as output_s3_path in create precomputed volume step above). |ngl3l|
+9.  Hit enter and click "Create Image Layer" in the botom right of the Neurglancer window. |ngl5l|
+10. The data should start to load in 3 of the 4 quadrants. The bottom left quadrant is a 3D view of slices.
 
 .. |ngl1l| image:: _static/ngl1.png
 .. |ngl2l| image:: _static/ngl2.png
-.. |ngl3l| image:: _static/ngl3.png
+.. |ngl3l| image:: _static/ngl3l.png
 .. |ngl4l| image:: _static/ngl4.png
 .. |ngl5l| image:: _static/ngl5.png
 
