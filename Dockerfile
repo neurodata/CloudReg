@@ -36,8 +36,13 @@ RUN pip install --upgrade protobuf
 RUN apt install -y libscalapack-openmpi-dev openmpi-bin
 COPY --from=terastitcher /usr/local/bin/terastitcher /usr/local/bin/teraconverter /usr/local/bin/mdatagenerator /usr/local/bin/mergedisplacements /usr/local/bin/
 
-ADD entrypoint.sh entrypoint.sh
+# clone neuroglancer repo
+ADD https://api.github.com/repos/google/neuroglancer/git/refs/heads/master version.json
+RUN git clone https://github.com/google/neuroglancer.git --branch master --single-branch
 
-ENTRYPOINT [ "/bin/bash", "entrypoint.sh" ]
-CMD [ "-h" ]
-# ENTRYPOINT [ "python", "CloudReg/scripts/colm_pipeline.py" ]
+EXPOSE 8887
+EXPOSE 9000
+
+WORKDIR ~/CloudReg
+
+CMD [ "/bin/bash" ]
