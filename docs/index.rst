@@ -7,11 +7,19 @@ Overview of CloudReg
 
 Motivation
 ----------
-Quantifying terascale multi-modal human and animal imaging data requires scalable analysis tools. We developed CloudReg, an automated, terascale, cloud-based image analysis pipeline for preprocessing and cross-modal, non-linear registration between volumetric datasets with artifacts. CloudReg was developed using cleared murine brain light-sheet microscopy images, but is also accurate in registering the following datasets to their respective atlases: in vivo human and ex vivo macaque brain magnetic resonance imaging, ex vivo murine brain micro-computed tomography.
+Quantifying terascale multi-modal human and animal imaging data requires scalable analysis tools. We developed CloudReg, an automated, terascale, cloud-compliant image analysis pipeline for preprocessing and cross-modal, non-linear registration between volumetric datasets with artifacts. CloudReg was developed using cleared murine brain light-sheet microscopy images, but is also accurate in registering the following datasets to their respective atlases: in vivo human and ex vivo macaque brain magnetic resonance imaging, ex vivo murine brain micro-computed tomography.
 
 
-Results
--------
+Pipeline Overview
+-----------------
+.. figure:: _static/cloudreg_schematic.png
+   :alt: CloudReg pipeline schematic showing example data through each step of processing
+
+   CloudReg pipeline schematic showing example data through each step of processing. The gray box indicates operations/services that are performed in the cloud.
+
+
+Example Results
+---------------
 .. figure:: _static/cloudreg_results.png
    :alt: CloudReg pipeline registration outputs from multiple species imaged with various modalities
 

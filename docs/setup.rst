@@ -1,19 +1,27 @@
+#####
 Setup
-=====
+#####
 
-CloudReg is designed to be used in the cloud. We chose to work with Amazon Web Services (AWS) and the below setup instructions are for that.
+*************
+Setup (Cloud)
+*************
+
+CloudReg is designed to be used in the cloud but components of the CloudReg pipeline can also be run locally. For instructions on full local use see here. For cloud setup please see below.
+We chose to work with Amazon Web Services (AWS) and the below setup instructions are for that.
+
 
 Requirements
 ------------
 - AWS account
 - IAM Role and User with credentials to access EC2 and S3
 - S3 Bucket to store raw data
-- S3 Bucket to store processed data
+- S3 Bucket to store processed data (can be the same bucket as above)
 - EC2 instance with Docker 
 - EC2 instance with MATLAB
-- CloudFront CDN with HTTP/2 enabled for fast visualization
-- Web Application Firewall for IP-address restriction on data access.
-- Local machine with required dependencies installed
+- Local computer (used to send commands to cloud services)
+- (Optional) CloudFront CDN with HTTP/2 enabled for fast visualization
+- (Optional) Web Application Firewall for IP-address restriction on data access.
+
 
 Create AWS account
 ------------------
@@ -61,8 +69,9 @@ Create S3 Bucket
 5. Uncheck *Block All Public Access*. We will restrict access to the data using CloudFront and a Firewall.
 6. The remaining settings can be left as is. Click *Create Bucket*
 
-Set up CORS on S3 Bucket
-------------------------
+
+Set up CORS on S3 Bucket containing processed data/results
+----------------------------------------------------------
 
 1. Log into `AWS console <https://console.aws.amazon.com/>`_
 2. Navigate to `S3 section <https://console.aws.amazon.com/s3/>`_ of console
@@ -91,7 +100,7 @@ Set up CORS on S3 Bucket
 7. click *Save Changes*
 
 
-Set up CloudReg EC2 instance
+Set up Docker EC2 instance
 ----------------------------
 
 1. Log into `AWS console <https://console.aws.amazon.com/>`_
@@ -128,6 +137,7 @@ Set up AWS CloudFront
 5. Leave all other default parameters under "Origin Settings".
 6. See the video below on how to set up the remaining parameters.
 7. After following the video, click "Create Distribution".
+
 NOTE: Be sure to save the CloudFront URL that is created for that distribution. It can be found at the CloudFront console homepage after clicking on the distribution you created. It should appear next to "Domain Name".
 
 .. raw:: html 
@@ -162,18 +172,41 @@ Set up AWS Web Application Firewall
 19. Click "Review and Create" and then on the next page choose, "Confirm and create".
 
 
+Local machine setup
+-------------------
+
+On a local machine of your choice follow the instructions below. The following instructions should be followed from within a terminal window (command line). The below steps only need to be done the FIRST TIME you set up the pipeline.
+
+1. Install `Docker <https://docs.docker.com/get-docker/>`_
+2. Make sure Docker is open and running.
+3. Open a new Terminal window.
+4. Pull the CloudReg docker image: :code:`docker pull neurodata/cloudreg:local`
+
+
+
+*************
+Setup (Local)
+*************
+
+CloudReg is designed to be used in the cloud but components of the CloudReg pipeline can also be run locally. Instructions for local setup are below.
+
+
+Requirements
+------------
+
+- Local Machine
+- MATLAB license
+
+
 Local Machine Setup
 -------------------
 
-On a local machine of your choice follow the instructions below. The following instructions should be followed from within a terminal window (command line). The below steps only need to be done the FIRST TIME you are running the pipeline.
+On a local machine of your choice follow the instructions below. The following instructions should be followed from within a terminal window (command line). The below steps only need to be done the FIRST TIME you set up the pipeline.
 
-1. Open a new Terminal window. 
-2. `Install git <https://git-scm.com/book/en/v2/Getting-Started-Installing-Git>`_
-3. Navigate to a directory where you would like to save the CloudReg code.
-4. Run :code:`git clone https://github.com/neurodata/CloudReg.git`
-5. Navigate to the CloudReg directory: :code:`cd CloudReg`
-6. Run :code:`source cloudreg_env/bin/activate`
-7. Run :code:`aws configure` and follow the prompts. Use the credentials generated in the setup phase for the IAM User that was created.
-8. Run :code:`deactivate` and close the Terminal window.
-
+1. Install `Docker <https://docs.docker.com/get-docker/>`_.
+2. Install `MATLAB <https://www.mathworks.com/products/get-matlab.html>`_.
+3. Make the :code:`matlab` command available from the terminal.
+4. Open a new Terminal window.
+5. Make sure Docker is open and running.
+6. Pull the CloudReg Docker image: :code:`docker pull neurodata/cloudreg:local`.
 
