@@ -42,6 +42,6 @@ This project is covered under the Apache 2.0 License.
 We appreciate detailed bug reports and feature requests (though we appreciate pull requests even more!). Please visit our [issues](https://github.com/neurodata/CloudReg/issues) page if you have questions or ideas.
 
 # Citing `CloudReg`
-If you find `CloudReg` useful in your work, please cite the tool via the [CloudReg paper](https://www.biorxiv.org/content/10.1101/2021.01.26.428355v1)
+If you find `CloudReg` useful in your work, please cite the tool via the [CloudReg paper](https://www.nature.com/articles/s41592-021-01218-z#citeas)
 
-> Vikram Chandrashekhar, Daniel Jacob Tward, Devin G Crowley, Ailey K Crow, Matthew A Wright, Brian Y Hsueh, Felicity Gore, Timothy A Machado, Audrey Branch, Jared S Rosenblum, Karl Deisseroth, Joshua Tzvi Vogelstein bioRxiv 2021.01.26.428355; doi: https://doi.org/10.1101/2021.01.26.428355
+> Chandrashekhar, V., Tward, D.J., Crowley, D. et al. CloudReg: automatic terabyte-scale cross-modal brain volume registration. Nat Methods (2021). https://doi.org/10.1038/s41592-021-01218-z
