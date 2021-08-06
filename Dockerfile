@@ -29,7 +29,7 @@ RUN cd CloudReg && \
     pip install mpi4py
 
 # need to upgrade this package as bug fix
-RUN pip install --upgrade protobuf
+RUN pip install --upgrade protobuf numpy
 
 # installed terastitcher binaries are in /usr/local
 # we want terastitcher, teraconverter, mergedisplacements, mdatagenerator
