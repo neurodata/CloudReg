@@ -17,8 +17,8 @@ then
     chown ubuntu:ubuntu /home/ubuntu/ssd2
 
 else
+    i=0
     for blkdev in $(nvme list | awk '/^\/dev/ { print $1 }'); do
-        i=0
         mapping=$(nvme id-ctrl --raw-binary "${blkdev}" | grep Instance)
         if [[ ${mapping} ]]; then
             echo "$blkdev is $mapping formatting and mounting..."
