@@ -1,3 +1,4 @@
+from bz2 import compress
 from tqdm import tqdm
 import tifffile as tf
 import numpy as np
@@ -34,9 +35,9 @@ def create_cloud_volume(
         # Pick a convenient size for your underlying chunk representation
         # Powers of two are recommended, doesn't need to cover image exactly
         chunk_size=[512, 512, 1],  # units are voxels
-        volume_size=img_size,  # e.g. a cubic millimeter dataset
+        volume_size=img_size,  # e.g. a cubic millimeter dataset,
     )
-    vol = CloudVolume(precomputed_path, info=info, parallel=parallel)
+    vol = CloudVolume(precomputed_path, info=info, parallel=parallel, compress=False)
     # add mip 1
     [
         vol.add_scale((2 ** i, 2 ** i, 1), chunk_size=[512, 512, 1])
@@ -47,7 +48,7 @@ def create_cloud_volume(
 
 
 def process(z, img, layer_path, num_mips):
-    vols = [CloudVolume(layer_path, i, parallel=False) for i in range(num_mips)]
+    vols = [CloudVolume(layer_path, i, parallel=False, compress=False) for i in range(num_mips)]
     if img.dtype in (np.uint8, np.uint16, np.float32, np.float64):
         img_pyramid = tinybrain.accelerated.average_pooling_2x2(img, num_mips=num_mips)
     else:
