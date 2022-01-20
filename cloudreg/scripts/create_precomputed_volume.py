@@ -55,7 +55,7 @@ def create_cloud_volume(
         volume_size=img_size,  # e.g. a cubic millimeter dataset
     )
     vol = CloudVolume(precomputed_path, info=info, parallel=parallel)
-    [vol.add_scale((2 ** i, 2 ** i, 2 ** i), chunk_size=chunk_size) for i in range(num_mips)]
+    [vol.add_scale((2 ** i, 2 ** i, 1), chunk_size=chunk_size) for i in range(num_mips)]
 
     vol.commit_info()
     return vol
@@ -94,7 +94,7 @@ def process(z, file_path, layer_path, num_mips):
     # array = load_image(file_path)[..., None]
     # array = tf.imread(file_path).T[..., None]
     array = np.squeeze(np.array(Image.open(file_path))).T[..., None]
-    img_pyramid = tinybrain.accelerated.average_pooling_2x2x2(array, num_mips)
+    img_pyramid = tinybrain.accelerated.average_pooling_2x2(array, num_mips)
     vols[0][:, :, z] = array
     for i in range(num_mips - 1):
         vols[i + 1][:, :, z] = img_pyramid[i]
@@ -120,8 +120,8 @@ def create_precomputed_volume(
 
     img_size = get_image_dims(files)
     # compute num_mips from data size
-    chunk_size = [128, 128, 128]
-    num_mips = calc_hierarchy_levels(img_size, lowest_res=chunk_size[0])
+    chunk_size = [128, 128, 1]
+    num_mips = 1 #calc_hierarchy_levels(img_size, lowest_res=chunk_size[0])
     # convert voxel size from um to nm
     vol = create_cloud_volume(
         precomputed_path,
