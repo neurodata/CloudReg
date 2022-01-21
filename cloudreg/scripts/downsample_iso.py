@@ -23,4 +23,5 @@ tasks = tc.create_downsampling_tasks(
   )
 
 tq.insert(tasks)
+tq.execute()
 print("Done!")
