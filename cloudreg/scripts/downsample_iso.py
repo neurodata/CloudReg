@@ -17,7 +17,7 @@ print(f"chunk size: {vol.chunk_size}, shape: {vol.shape}")
 tasks = tc.create_transfer_tasks(
   src_layer_path, dest_layer_path, 
   chunk_size=[128,128,128], compress=False,
-  factor=(2,2,2)
+  skip_downsamples = True
 )
 
 tq.insert(tasks)
