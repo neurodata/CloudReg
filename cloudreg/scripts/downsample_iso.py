@@ -13,7 +13,6 @@ print(f"chunk size: {vol.chunk_size}, shape: {vol.shape}")
 vol = CloudVolume(dest_layer_path, mip=0)
 print(f"chunk size: {vol.chunk_size}, shape: {vol.shape}")
 
-raise ValueError()
 
 tasks = tc.create_transfer_tasks(
   src_layer_path, dest_layer_path, 
