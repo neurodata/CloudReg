@@ -120,7 +120,7 @@ def create_precomputed_volume(
 
     img_size = get_image_dims(files)
     # compute num_mips from data size
-    chunk_size = [128, 128, 1]
+    chunk_size = [1024, 1024, 1]
     num_mips = 1 #calc_hierarchy_levels(img_size, lowest_res=chunk_size[0])
     # convert voxel size from um to nm
     vol = create_cloud_volume(
