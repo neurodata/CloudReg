@@ -1,6 +1,7 @@
 from taskqueue import LocalTaskQueue
 import igneous.task_creation as tc
 from cloudvolume import CloudVolume
+import argparse
 
 def downsample_isotropically(input_path, output_path):
   tq = LocalTaskQueue(parallel=8)
