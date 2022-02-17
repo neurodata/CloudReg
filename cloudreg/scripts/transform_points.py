@@ -248,7 +248,7 @@ def transform_points(
         points = [i.point for i in fiducials]
         points_chunks = [points[i:i+2000] for i in range(0, len(points), 2000)]
         points_total = []
-        for points in points_chunks:
+        for points in points_chunks[:2]:
             points_string = [", ".join(map(str, i)) for i in points]
             points_string = "; ".join(points_string)
             # velocity field voxel size
@@ -266,8 +266,8 @@ def transform_points(
 
             # transformed_points.m created now
             points_t = loadmat(transformed_points_path)["points_t"]
-            break
-            # points_total += points_t
+            points_total.append(points_t)
+        points_t = np.concatenate(points_total, axis=0)
         points_ng = {i.description: (j + other_fid.physical_origin)/dest_vox_size for i, j in zip(fiducials, points_t)}
         print(f"fiduc len: {len(fiducials)} points shape: {points_t.shape} pints type: {type(points_t)}")
         points_ng_json = viz.get_annotations(points_ng)
