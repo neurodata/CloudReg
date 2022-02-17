@@ -246,6 +246,7 @@ def transform_points(
     if affine_path != "" and velocity_path != "":
         points = [i.point for i in fiducials]
         points_chunks = [points[i:i+2000] for i in range(0, len(points), 2000)]
+        points_total = []
         for points in points_chunks:
             points_string = [", ".join(map(str, i)) for i in points]
             points_string = "; ".join(points_string)
@@ -264,7 +265,8 @@ def transform_points(
 
             # transformed_points.m created now
             points_t = loadmat(transformed_points_path)["points_t"]
-            print(f"pointst: {points_t}")
+            points_total.append(points_t)
+        points_t = np.concatenate(points_total, axis=0)
         points_ng = {i.description: (j + other_fid.physical_origin)/dest_vox_size for i, j in zip(fiducials, points_t)}
         points_ng_json = viz.get_annotations(points_ng)
         with open('./transformed_points.json', 'w') as fp:
