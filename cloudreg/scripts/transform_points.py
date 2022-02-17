@@ -357,6 +357,7 @@ if __name__ == "__main__":
             }   
         )
         target_viz_link = create_viz_link_from_json(ngl_json)
+        print(f"VIZ LINK WITH ORIGINAL POINTS: {target_viz_link}")
     else:
         target_viz_link = args.target_viz_link
 
