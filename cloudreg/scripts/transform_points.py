@@ -30,15 +30,17 @@ class NGLink:
         self.json_link = json_link
         self._set_json_from_link()
 
-    def get_annotations(self, points):
+    def get_annotations(self, points, desc=True):
         annotations = []
         for i, j in points.items():
             x = {
                 "point": j.tolist(),
                 "type": "point",
                 "id": f"{uuid.uuid1().hex}",
-                "description": i,
+                #"description": i,
             }
+            if desc:
+                x["description"] = i
             annotations.append(x)
         return annotations
 
@@ -351,12 +353,12 @@ if __name__ == "__main__":
                 coord = np.array([float(parts[0][1:]),float(parts[1]),float(parts[2][:-1])])
                 coords[str(counter)] = coord
                 counter += 1
-        annotations = target_viz.get_annotations(coords)
+        annotations = target_viz.get_annotations(coords, desc=False)
         print(f"***********annotation1: {annotations[0]}")
         ngl_json['layers'].append(
             {
                 "type": "annotation",
-                "annotations": [],
+                "annotations": annotations,
                 "name": "original_points"
             }   
         )
