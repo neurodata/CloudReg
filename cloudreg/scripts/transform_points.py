@@ -14,6 +14,7 @@ import uuid
 import argparse
 from scipy.io import loadmat
 import json
+import random
 
 
 def loadmat_v73(mat_path):
@@ -245,10 +246,11 @@ def transform_points(
     # run matlab command to get transformed fiducials
     # split into sets of 2000 because matlab can only process limited number of points at a time
     if affine_path != "" and velocity_path != "":
+        random.shuffle(fiducials)
         points = [i.point for i in fiducials]
         points_chunks = [points[i:i+2000] for i in range(0, len(points), 2000)]
         points_total = []
-        for points in points_chunks[:6]:
+        for points in points_chunks[:5]:
             points_string = [", ".join(map(str, i)) for i in points]
             points_string = "; ".join(points_string)
             # velocity field voxel size
@@ -269,7 +271,7 @@ def transform_points(
             points_total.append(points_t)
         points_t = np.concatenate(points_total, axis=0)
         points_ng = {i.description: (j + other_fid.physical_origin)/dest_vox_size for i, j in zip(fiducials, points_t)}
-        print(f"fiduc len: {len(fiducials)} points shape: {points_t.shape} pints type: {type(points_t)}")
+        print(f"fiduc len: {len(fiducials)} points shape: {points_t.shape} points type: {type(points_t)}")
         points_ng_json = viz.get_annotations(points_ng)
         with open('./transformed_points.json', 'w') as fp:
             json.dump(points_ng_json, fp)
