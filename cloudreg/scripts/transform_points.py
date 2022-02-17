@@ -248,7 +248,7 @@ def transform_points(
         points = [i.point for i in fiducials]
         points_chunks = [points[i:i+2000] for i in range(0, len(points), 2000)]
         points_total = []
-        for points in points_chunks[:2]:
+        for points in points_chunks:
             points_string = [", ".join(map(str, i)) for i in points]
             points_string = "; ".join(points_string)
             # velocity field voxel size
