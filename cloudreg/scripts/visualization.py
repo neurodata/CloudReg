@@ -88,7 +88,6 @@ def create_viz_link_from_json(
     neuroglancer_link="https://ara.viz.neurodata.io/?json_url=",
 ):
     r = requests.post(url, json=ngl_json)
-    print(f"********json{r.json()}")
     json_url = r.json()["uri"]
     viz_link = f"{neuroglancer_link}{json_url}"
     return viz_link

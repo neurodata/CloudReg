@@ -353,13 +353,13 @@ if __name__ == "__main__":
                 counter += 1
         annotations = target_viz.get_annotations(coords)
         print(f"***********annotation1: {annotations[0]}")
-        ngl_json['layers'].append(
-            {
-                "type": "annotation",
-                "annotations": annotations,
-                "name": "original_points"
-            }   
-        )
+        # ngl_json['layers'].append(
+        #     {
+        #         "type": "annotation",
+        #         "annotations": annotations,
+        #         "name": "original_points"
+        #     }   
+        # )
         target_viz_link = create_viz_link_from_json(ngl_json)
         print(f"VIZ LINK WITH ORIGINAL POINTS: {target_viz_link}")
     else:
