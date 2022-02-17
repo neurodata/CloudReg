@@ -245,7 +245,7 @@ def transform_points(
     # run matlab command to get transformed fiducials
     if affine_path != "" and velocity_path != "":
         points = [i.point for i in fiducials]
-        points = points[:1000]
+        points = points[:5000]
         points_string = [", ".join(map(str, i)) for i in points]
         points_string = "; ".join(points_string)
         # velocity field voxel size
