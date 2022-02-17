@@ -344,6 +344,7 @@ if __name__ == "__main__":
         coords = []
         with open(args.soma_path) as f:
             for line in f:
+                line = ' '.join(line.split())
                 parts = line.split(",")
                 coord = [float(parts[0][1:]),float(parts[1]),float(parts[2][:-1])]
                 coords.append(coord)
