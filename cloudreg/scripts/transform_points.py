@@ -245,7 +245,7 @@ def transform_points(
     # run matlab command to get transformed fiducials
     if affine_path != "" and velocity_path != "":
         points = [i.point for i in fiducials]
-        points = points[:100]
+        points = points[:1000]
         points_string = [", ".join(map(str, i)) for i in points]
         points_string = "; ".join(points_string)
         # velocity field voxel size
@@ -343,7 +343,6 @@ if __name__ == "__main__":
     if args.soma_path is not None:
         target_viz = NGLink(args.target_viz_link.split("json_url=")[-1])
         ngl_json = target_viz._json
-        print(f"******************ngl_json: {ngl_json}")
 
         coords = {}
         counter = 0
@@ -355,7 +354,6 @@ if __name__ == "__main__":
                 coords[str(counter)] = coord
                 counter += 1
         annotations = target_viz.get_annotations(coords, desc=False)
-        print(f"***********annotation1: {annotations[0]}")
         ngl_json['layers'].append(
             {
                 "type": "annotation",
