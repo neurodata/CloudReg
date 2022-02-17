@@ -347,7 +347,7 @@ if __name__ == "__main__":
             for line in f:
                 line = ' '.join(line.split())
                 parts = line.split(",")
-                coord = [float(parts[0][1:]),float(parts[1]),float(parts[2][:-1])]
+                coord = np.array([float(parts[0][1:]),float(parts[1]),float(parts[2][:-1])])
                 coords[counter] = coord
                 counter += 1
         annotations = target_viz.get_annotations(coords)
