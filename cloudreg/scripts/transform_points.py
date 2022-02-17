@@ -286,7 +286,7 @@ if __name__ == "__main__":
         "Transform points in Neuroglancer from one space to another given a transformation."
     )
     parser.add_argument(
-        "-target_viz_link", help="Neuroglancer viz link to target with fiducials labelled.", type=str
+        "--target_viz_link", help="Neuroglancer viz link to target with fiducials labelled.", type=str
     )
     parser.add_argument(
         "--atlas_viz_link", help="Neuroglancer viz link to atlas (optionally with fiducials labelled if transforming to input data space). Default is link to ARA.", 
