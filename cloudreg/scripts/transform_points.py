@@ -356,7 +356,7 @@ if __name__ == "__main__":
         ngl_json['layers'].append(
             {
                 "type": "annotation",
-                "annotations": annotations,
+                "annotations": [],
                 "name": "original_points"
             }   
         )
