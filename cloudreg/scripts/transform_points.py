@@ -340,6 +340,7 @@ if __name__ == "__main__":
     if args.soma_path is not None:
         target_viz = NGLink(args.target_viz_link.split("json_url=")[-1])
         ngl_json = target_viz._json
+        print(f"******************ngl_json: {ngl_json}")
 
         coords = {}
         counter = 0
@@ -351,6 +352,7 @@ if __name__ == "__main__":
                 coords[counter] = coord
                 counter += 1
         annotations = target_viz.get_annotations(coords)
+        print(f"***********annotation1: {annotations[0]}")
         ngl_json['layers'].append(
             {
                 "type": "annotation",
