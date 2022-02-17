@@ -341,18 +341,20 @@ if __name__ == "__main__":
         target_viz = NGLink(args.target_viz_link.split("json_url=")[-1])
         ngl_json = target_viz._json
 
-        coords = []
+        coords = {}
+        counter = 0
         with open(args.soma_path) as f:
             for line in f:
                 line = ' '.join(line.split())
                 parts = line.split(",")
                 coord = [float(parts[0][1:]),float(parts[1]),float(parts[2][:-1])]
-                coords.append(coord)
-
+                coords[counter] = coord
+                counter += 1
+        annotations = target_viz.get_annotations(coords)
         ngl_json['layers'].append(
             {
-                "type": "pointAnnotation",
-                "points": str(coords),
+                "type": "annotation",
+                "annotations": annotations,
                 "name": "original_points"
             }   
         )
