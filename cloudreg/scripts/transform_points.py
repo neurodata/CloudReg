@@ -317,6 +317,11 @@ if __name__ == "__main__":
         type=str,
         default='atlas'
     )
+    parser.add_argument(
+        "--soma_path", help="path to txt file containing soma coordinates in target space",
+        type=str,
+        default=None
+    )
     # parser.add_argument('-ssh_key_path', help='path to identity file used to ssh into given instance')
     # parser.add_argument('-instance_id', help='EC2 Instance ID of instance to run COLM pipeline on.')
     # parser.add_argument('--instance_type', help='EC2 instance type to run pipeline on. minimum r5d.16xlarge',  type=str, default='r5d.16xlarge')
@@ -332,8 +337,31 @@ if __name__ == "__main__":
         aws_cli(shlex.split(f"s3 cp {args.velocity_path} ./v.mat"))
         args.velocity_path = "./v.mat"
 
+    if args.soma_path is not None:
+        target_viz = NGLink(args.target_viz_link.split("json_url=")[-1])
+        ngl_json = target_viz._json
+
+        coords = []
+        with open(args.soma_path) as f:
+            for line in f:
+                parts = line.split(",")
+                coord = [float(parts[0][1:]),float(parts[1]),float(parts[2][:-1])]
+                coords.append(coord)
+
+        ngl_json['layers'].append(
+            {
+                "type": "pointAnnotation",
+                "points": str(coords),
+                "name": "original_points"
+            }   
+        )
+        target_viz_link = create_viz_link_from_json(ngl_json)
+    else:
+        target_viz_link = args.target_viz_link
+
+
     transform_points(
-        args.target_viz_link,
+        target_viz_link,
         args.atlas_viz_link,
         args.affine_path,
         args.velocity_path,
