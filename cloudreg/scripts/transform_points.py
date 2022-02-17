@@ -37,9 +37,8 @@ class NGLink:
                 "point": j.tolist(),
                 "type": "point",
                 "id": f"{uuid.uuid1().hex}",
-                #"description": i,
             }
-            if desc:
+            if desc: # because I would get errors when this was a simple integer or string or something
                 x["description"] = i
             annotations.append(x)
         return annotations
@@ -246,6 +245,7 @@ def transform_points(
     # run matlab command to get transformed fiducials
     if affine_path != "" and velocity_path != "":
         points = [i.point for i in fiducials]
+        points = points[:100]
         points_string = [", ".join(map(str, i)) for i in points]
         points_string = "; ".join(points_string)
         # velocity field voxel size
@@ -339,6 +339,7 @@ if __name__ == "__main__":
         aws_cli(shlex.split(f"s3 cp {args.velocity_path} ./v.mat"))
         args.velocity_path = "./v.mat"
 
+    # read soma points text file then create target link with them
     if args.soma_path is not None:
         target_viz = NGLink(args.target_viz_link.split("json_url=")[-1])
         ngl_json = target_viz._json
