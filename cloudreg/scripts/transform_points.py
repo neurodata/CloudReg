@@ -245,24 +245,26 @@ def transform_points(
     # run matlab command to get transformed fiducials
     if affine_path != "" and velocity_path != "":
         points = [i.point for i in fiducials]
-        points = points[:2000]
-        points_string = [", ".join(map(str, i)) for i in points]
-        points_string = "; ".join(points_string)
-        # velocity field voxel size
-        v_size = ", ".join(str(i) for i in velocity_field_vsize)
-        # get current file path and set path to transform_points
-        base_path = pathlib.Path(__file__).parent.parent.absolute() / 'registration'
-        # base_path = os.path.expanduser("~/CloudReg/registration")
-        transformed_points_path = "./transformed_points.mat"
+        points_chunks = [points[i:i+2000] for i in range(0, len(points), 2000)]
+        for points in points_chunks:
+            points_string = [", ".join(map(str, i)) for i in points]
+            points_string = "; ".join(points_string)
+            # velocity field voxel size
+            v_size = ", ".join(str(i) for i in velocity_field_vsize)
+            # get current file path and set path to transform_points
+            base_path = pathlib.Path(__file__).parent.parent.absolute() / 'registration'
+            # base_path = os.path.expanduser("~/CloudReg/registration")
+            transformed_points_path = "./transformed_points.mat"
 
-        matlab_path = 'matlab'
-        matlab_command = f"""
-            {matlab_path} -nodisplay -nosplash -nodesktop -r \"addpath(\'{base_path}\');Aname=\'{affine_path}\';vname=\'{velocity_path}\';v_size=[{v_size}];points=[{points_string}];points_t = transform_points(points,Aname,vname,v_size,\'{transformation_direction}\');save(\'./transformed_points.mat\',\'points_t\');exit;\"
-        """
-        subprocess.run(shlex.split(matlab_command),)
+            matlab_path = 'matlab'
+            matlab_command = f"""
+                {matlab_path} -nodisplay -nosplash -nodesktop -r \"addpath(\'{base_path}\');Aname=\'{affine_path}\';vname=\'{velocity_path}\';v_size=[{v_size}];points=[{points_string}];points_t = transform_points(points,Aname,vname,v_size,\'{transformation_direction}\');save(\'./transformed_points.mat\',\'points_t\');exit;\"
+            """
+            subprocess.run(shlex.split(matlab_command),)
 
-        # transformed_points.m created now
-        points_t = loadmat(transformed_points_path)["points_t"]
+            # transformed_points.m created now
+            points_t = loadmat(transformed_points_path)["points_t"]
+            print(f"pointst: {points_t}")
         points_ng = {i.description: (j + other_fid.physical_origin)/dest_vox_size for i, j in zip(fiducials, points_t)}
         points_ng_json = viz.get_annotations(points_ng)
         with open('./transformed_points.json', 'w') as fp:
