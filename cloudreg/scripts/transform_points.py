@@ -269,7 +269,7 @@ def transform_points(
             points_total.append(points_t)
         points_t = np.concatenate(points_total, axis=0)
         points_ng = {i.description: (j + other_fid.physical_origin)/dest_vox_size for i, j in zip(fiducials, points_t)}
-        print(f"fiduc len: {len(fiducials)} points shape: {points_t.shape}")
+        print(f"fiduc: {fiducials} \n pts: {points_t} \nfiduc len: {len(fiducials)} points shape: {points_t.shape} \n ")
         points_ng_json = viz.get_annotations(points_ng)
         with open('./transformed_points.json', 'w') as fp:
             json.dump(points_ng_json, fp)
