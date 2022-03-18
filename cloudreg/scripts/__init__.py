@@ -1,1 +1,1 @@
-from cloudreg.scripts import *
+import cloudreg.scripts.downsample_iso
