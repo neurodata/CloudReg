@@ -13,7 +13,7 @@ from PIL import Image
 from psutil import virtual_memory
 from tqdm import tqdm
 import tinybrain
-from downsample_iso import downsample_isotropically
+from .downsample_iso import downsample_isotropically
 
 PIL.Image.MAX_IMAGE_PIXELS = None
 
