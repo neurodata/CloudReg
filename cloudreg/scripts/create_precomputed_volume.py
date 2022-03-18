@@ -13,6 +13,7 @@ from PIL import Image
 from psutil import virtual_memory
 from tqdm import tqdm
 import tinybrain
+from downsample_iso import downsample_isotropically
 
 PIL.Image.MAX_IMAGE_PIXELS = None
 
@@ -102,7 +103,7 @@ def process(z, file_path, layer_path, num_mips):
 
 
 def create_precomputed_volume(
-    input_path, voxel_size, precomputed_path,num_procs=None, extension="tif"
+    input_path, voxel_size, precomputed_path,num_procs=None, resample_iso=False, extension="tif"
 ):
     """Create precomputed volume on S3 from 2D TIF series
 
@@ -151,6 +152,10 @@ def create_precomputed_volume(
         print(e)
         print("timed out on a slice. moving on to the next step of pipeline")
 
+    if resample_iso:
+        precomputed_path_iso = precomputed_path + "_iso"
+        downsample_isotropically(precomputed_path, precomputed_path_iso)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -176,8 +181,14 @@ if __name__ == "__main__":
         default=None,
         type=int
     )
+    parser.add_argument(
+        "--resample_iso",
+        help="Whether to immediately write another version of the volume that has isotropic chunks to be able to use several views on neuroglancer.",
+        default=None,
+        type=bool
+    )
     args = parser.parse_args()
 
     create_precomputed_volume(
-        args.input_path, np.array(args.voxel_size), args.precomputed_path, args.num_procs
+        args.input_path, np.array(args.voxel_size), args.precomputed_path, args.num_procs, args.resample_iso
     )
