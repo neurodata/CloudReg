@@ -202,6 +202,7 @@ if __name__ == "__main__":
         default=False,
     )
     args = parser.parse_args()
+    print(f"comopress: {args.compress}, {type(args.compress)}")
 
     create_precomputed_volume(
         args.input_path,
