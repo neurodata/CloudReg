@@ -3,7 +3,7 @@ import igneous.task_creation as tc
 from cloudvolume import CloudVolume
 import argparse
 
-def downsample_isotropically(input_path, output_path):
+def downsample_isotropically(input_path, output_path, compress=False):
   tq = LocalTaskQueue(parallel=8)
 
   vol = CloudVolume(input_path)
@@ -11,7 +11,7 @@ def downsample_isotropically(input_path, output_path):
 
   tasks = tc.create_transfer_tasks(
     input_path, output_path, 
-    chunk_size=[128,128,128], compress=False,
+    chunk_size=[128,128,128], compress=compress,
     skip_downsamples = True
   )
 
@@ -23,7 +23,7 @@ def downsample_isotropically(input_path, output_path):
 
   tasks = tc.create_downsampling_tasks(
       output_path, # e.g. 'gs://bucket/dataset/layer'
-      compress=False, # None, 'gzip', and 'br' (brotli) are options
+      compress=compress, # None, 'gzip', and 'br' (brotli) are options
       factor=(2,2,2), # common options are (2,2,1) and (2,2,2)
     )
 
