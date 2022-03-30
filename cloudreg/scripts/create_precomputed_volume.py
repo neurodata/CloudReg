@@ -80,7 +80,7 @@ def get_image_dims(files):
     return [x_size, y_size, z_size]
 
 
-def process(z, file_path, layer_path, num_mips):
+def process(z, file_path, layer_path, num_mips, compress):
     """Upload single slice to S3 as precomputed
 
     Args:
@@ -90,7 +90,7 @@ def process(z, file_path, layer_path, num_mips):
         num_mips (int): Number of 2x2 downsampling levels in X,Y
     """
     vols = [
-        CloudVolume(layer_path, mip=i, parallel=False, fill_missing=False)
+        CloudVolume(layer_path, mip=i, parallel=False, fill_missing=False, compress=compress)
         for i in range(num_mips)
     ]
     # array = load_image(file_path)[..., None]
@@ -147,7 +147,7 @@ def create_precomputed_volume(
             tqdm(desc="Creating precomputed volume", total=len(files))
         ) as progress_bar:
             Parallel(num_procs, timeout=3600, verbose=10)(
-                delayed(process)(z, f, vol.layer_cloudpath, num_mips,)
+                delayed(process)(z, f, vol.layer_cloudpath, num_mips, compress)
                 for z, f in zip(zs, files)
             )
     except Exception as e:
