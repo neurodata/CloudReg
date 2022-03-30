@@ -125,6 +125,7 @@ def create_precomputed_volume(
     files_slices = list(
         enumerate(np.sort(glob(f"{input_path}/*.{extension}")).tolist())
     )
+    print(files_slices)
     zs = [i[0] for i in files_slices]
     files = np.array([i[1] for i in files_slices])
 
