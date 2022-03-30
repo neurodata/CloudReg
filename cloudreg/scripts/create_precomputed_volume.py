@@ -189,7 +189,6 @@ if __name__ == "__main__":
         default=False,
         type=bool
     )
-    args = parser.parse_args()
     parser.add_argument(
         "--resample_iso",
         help="Whether to immediately write another version of the volume that has isotropic chunks to be able to use several views on neuroglancer.",
