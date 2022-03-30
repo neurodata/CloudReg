@@ -194,8 +194,6 @@ if __name__ == "__main__":
         default=False,
     )
     args = parser.parse_args()
-    print(f"{args.resample_iso}, {args.compress}")
-    raise ValueError()
 
     create_precomputed_volume(
         args.input_path, np.array(args.voxel_size), args.precomputed_path, args.num_procs, args.compress, args.resample_iso
