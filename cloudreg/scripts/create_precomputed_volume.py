@@ -27,6 +27,7 @@ def create_cloud_volume(
     parallel=False,
     layer_type="image",
     dtype="uint16",
+    compress = None,
 ):
     """Create Neuroglancer precomputed volume S3
 
@@ -55,7 +56,7 @@ def create_cloud_volume(
         chunk_size=chunk_size,  # units are voxels
         volume_size=img_size,  # e.g. a cubic millimeter dataset
     )
-    vol = CloudVolume(precomputed_path, info=info, parallel=parallel)
+    vol = CloudVolume(precomputed_path, info=info, parallel=parallel, compress = compress)
     [vol.add_scale((2 ** i, 2 ** i, 1), chunk_size=chunk_size) for i in range(num_mips)]
 
     vol.commit_info()
@@ -103,7 +104,7 @@ def process(z, file_path, layer_path, num_mips):
 
 
 def create_precomputed_volume(
-    input_path, voxel_size, precomputed_path,num_procs=None, resample_iso=False, extension="tif"
+    input_path, voxel_size, precomputed_path,num_procs=None, compress=None, resample_iso=False, extension="tif"
 ):
     """Create precomputed volume on S3 from 2D TIF series
 
@@ -131,6 +132,7 @@ def create_precomputed_volume(
         num_mips,
         chunk_size,
         parallel=False,
+        compress = compress
     )
 
     if num_procs == None:
@@ -182,6 +184,13 @@ if __name__ == "__main__":
         type=int
     )
     parser.add_argument(
+        "--compress",
+        help="Whether to use a compressed format for the precomputed volume.",
+        default=False,
+        type=bool
+    )
+    args = parser.parse_args()
+    parser.add_argument(
         "--resample_iso",
         help="Whether to immediately write another version of the volume that has isotropic chunks to be able to use several views on neuroglancer.",
         default=None,
@@ -190,5 +199,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     create_precomputed_volume(
-        args.input_path, np.array(args.voxel_size), args.precomputed_path, args.num_procs, args.resample_iso
+        args.input_path, np.array(args.voxel_size), args.precomputed_path, args.num_procs, args.compress, args.resample_iso
     )
