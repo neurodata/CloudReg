@@ -27,7 +27,7 @@ def create_cloud_volume(
     parallel=False,
     layer_type="image",
     dtype="uint16",
-    compress = None,
+    compress=None,
 ):
     """Create Neuroglancer precomputed volume S3
 
@@ -56,8 +56,8 @@ def create_cloud_volume(
         chunk_size=chunk_size,  # units are voxels
         volume_size=img_size,  # e.g. a cubic millimeter dataset
     )
-    vol = CloudVolume(precomputed_path, info=info, parallel=parallel, compress = compress)
-    [vol.add_scale((2 ** i, 2 ** i, 1), chunk_size=chunk_size) for i in range(num_mips)]
+    vol = CloudVolume(precomputed_path, info=info, parallel=parallel, compress=compress)
+    [vol.add_scale((2**i, 2**i, 1), chunk_size=chunk_size) for i in range(num_mips)]
 
     vol.commit_info()
     return vol
@@ -67,7 +67,7 @@ def get_image_dims(files):
     """Get X,Y,Z dimensions of images based on list of files
 
     Args:
-        files (list of str): Path to 2D tif series 
+        files (list of str): Path to 2D tif series
 
     Returns:
         list of int: X,Y,Z size of image in files
@@ -90,7 +90,9 @@ def process(z, file_path, layer_path, num_mips, compress):
         num_mips (int): Number of 2x2 downsampling levels in X,Y
     """
     vols = [
-        CloudVolume(layer_path, mip=i, parallel=False, fill_missing=False, compress=compress)
+        CloudVolume(
+            layer_path, mip=i, parallel=False, fill_missing=False, compress=compress
+        )
         for i in range(num_mips)
     ]
     # array = load_image(file_path)[..., None]
@@ -104,7 +106,13 @@ def process(z, file_path, layer_path, num_mips, compress):
 
 
 def create_precomputed_volume(
-    input_path, voxel_size, precomputed_path,num_procs=None, compress=None, resample_iso=False, extension="tif"
+    input_path,
+    voxel_size,
+    precomputed_path,
+    num_procs=None,
+    compress=None,
+    resample_iso=False,
+    extension="tif",
 ):
     """Create precomputed volume on S3 from 2D TIF series
 
@@ -132,7 +140,7 @@ def create_precomputed_volume(
         num_mips,
         chunk_size,
         parallel=False,
-        compress = compress
+        compress=compress,
     )
 
     if num_procs == None:
@@ -181,7 +189,7 @@ if __name__ == "__main__":
         "--num_procs",
         help="Number of processes to use in parallel. It is possible we may exceed the request rate so you may want to reduce the number of cores.",
         default=None,
-        type=int
+        type=int,
     )
     parser.add_argument(
         "--compress",
@@ -196,5 +204,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     create_precomputed_volume(
-        args.input_path, np.array(args.voxel_size), args.precomputed_path, args.num_procs, args.compress, args.resample_iso
+        args.input_path,
+        np.array(args.voxel_size),
+        args.precomputed_path,
+        num_procs=args.num_procs,
+        compress=args.compress,
+        resample_iso=args.resample_iso,
     )
