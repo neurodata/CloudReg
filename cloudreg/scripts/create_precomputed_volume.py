@@ -187,13 +187,11 @@ if __name__ == "__main__":
         "--compress",
         help="Whether to use a compressed format for the precomputed volume.",
         default=False,
-        action="store_true"
     )
     parser.add_argument(
         "--resample_iso",
         help="Whether to immediately write another version of the volume that has isotropic chunks to be able to use several views on neuroglancer.",
         default=False,
-        type="store_true"
     )
     args = parser.parse_args()
     print(f"{args.resample_iso}, {args.compress}")
