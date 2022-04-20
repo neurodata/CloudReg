@@ -1,6 +1,6 @@
 import argparse
 import numpy as np
-from create_precomputed_volume import create_precomputed_volume
+from .create_precomputed_volume import create_precomputed_volume
 
 if __name__ == "__main__":
     def str2bool(v):
@@ -78,5 +78,5 @@ if __name__ == "__main__":
             precomputed_path,
             num_procs=args.num_procs,
             compress=args.compress,
-            resample_iso=args.resample_iso,
+            resample_iso=False,
         )
