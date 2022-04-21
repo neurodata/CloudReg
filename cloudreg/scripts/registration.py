@@ -172,6 +172,7 @@ def register(
     affine_string = [", ".join(map(str, i)) for i in initial_affine]
     affine_string = "; ".join(affine_string)
     print(affine_string)
+    # make sure the version of matlab is correct (e.g. CIS computers may call old version of matlab)
     matlab_registration_command = f"""
         matlab -nodisplay -nosplash -nodesktop -r \"niter={num_iterations};sigmaR={regularization};missing_data_correction={int(missing_data_correction)};grid_correction={int(grid_correction)};bias_correction={int(bias_correction)};base_path=\'{base_path}\';target_name=\'{target_name}\';registration_prefix=\'{registration_prefix}\';atlas_prefix=\'{atlas_prefix}\';dxJ0={voxel_size};fixed_scale={fixed_scale};initial_affine=[{affine_string}];parcellation_voxel_size={parcellation_voxel_size};parcellation_image_size={parcellation_image_size};run(\'~/CloudReg/cloudreg/registration/map_nonuniform_multiscale_v02_mouse_gauss_newton.m\'); exit;\"
     """
