@@ -71,7 +71,7 @@ if __name__ == "__main__":
 
 
     for input_path, precomputed_path in zip(args.local_input_paths, args.local_output_paths):
-        print(f"**************Writing {input_path} to {precomputed_path} on s3*****************")
+        print(f"**************Writing {input_path} to {precomputed_path} locally*****************")
         create_precomputed_volume(
             input_path,
             np.array(args.voxel_size),
