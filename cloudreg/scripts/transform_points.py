@@ -76,7 +76,7 @@ class NGLink:
         return layer_data
 
     def _parse_image_layer(self, layer_data):
-        vol = CloudVolume(layer_data["source"]["url"].split("precomputed://")[-1])
+        vol = CloudVolume(layer_data["source"].split("precomputed://")[-1])
         self.image_shape = np.array(vol.scales[0]["size"])
         # converting from nm to um
         self.image_voxel_size = np.array(vol.scales[0]["resolution"]) / 1e3
