@@ -59,13 +59,12 @@ class NGLink:
     def _parse_layer(self, layer_data):
         if layer_data["type"] == "image":
             return self._parse_image_layer(layer_data)
-        elif layer_data["type"] == "annotation":
+        elif layer_data["type"] == "annotation" or layer_data["type"] == "pointAnnotation":
             return self._parse_annotation_layer(layer_data)
         else:
             return
 
     def _parse_annotation_layer(self, layer_data):
-        # points in physical units
         for i in layer_data["annotations"]:
             if i["type"] != "point":
                 continue
@@ -76,7 +75,11 @@ class NGLink:
         return layer_data
 
     def _parse_image_layer(self, layer_data):
-        vol = CloudVolume(layer_data["source"]["url"].split("precomputed://")[-1])
+        if isinstance(layer_data["source"], str):
+            url = layer_data["source"]
+        else:
+            url = layer_data["source"]["url"]
+        vol = CloudVolume(url.split("precomputed://")[-1])
         self.image_shape = np.array(vol.scales[0]["size"])
         # converting from nm to um
         self.image_voxel_size = np.array(vol.scales[0]["resolution"]) / 1e3
