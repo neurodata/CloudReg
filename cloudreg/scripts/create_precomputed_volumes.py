@@ -90,6 +90,9 @@ if __name__ == "__main__":
             print(f"Writing {i} to {j}")
         for i,j in zip(local_input_paths, local_output_paths):
             print(f"Writing {i} to {j}")
+        cont = input("Are these paths correct? (y/n)")
+        if cont != "y":
+            raise ValueError("User chose not to proceed with writing volumes (did not enter y)")
 
     for input_path, precomputed_path in zip(s3_input_paths, s3_output_paths):
         print(f"**************Writing {input_path} to {precomputed_path} on s3*****************")
