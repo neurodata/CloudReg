@@ -93,6 +93,7 @@ if __name__ == "__main__":
         for i,j in zip(local_input_paths, local_input_paths):
             print(f"Writing {i} to {j}")
 
+    raise ValueError()
     for input_path, precomputed_path in zip(s3_input_paths, s3_output_paths):
         print(f"**************Writing {input_path} to {precomputed_path} on s3*****************")
         create_precomputed_volume(
