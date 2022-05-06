@@ -83,12 +83,12 @@ if __name__ == "__main__":
         local_input_paths = [os.path.join(args.input_parent_dir, channel) for channel in channels_in[:1]]
 
         s3_output_paths = [os.path.join(args.s3_output_parent_dir, channel) for channel in channels_out]
-        local_input_paths = [os.path.join(args.local_output_parent_dir, channel) for channel in channels_out[:1]]
+        local_output_paths = [os.path.join(args.local_output_parent_dir, channel) for channel in channels_out[:1]]
 
         print("Generated input/output paths automatically:")
         for i,j in zip(s3_input_paths, s3_output_paths):
             print(f"Writing {i} to {j}")
-        for i,j in zip(local_input_paths, local_input_paths):
+        for i,j in zip(local_input_paths, local_output_paths):
             print(f"Writing {i} to {j}")
 
     for input_path, precomputed_path in zip(s3_input_paths, s3_output_paths):
