@@ -79,6 +79,8 @@ if __name__ == "__main__":
     else:
         channels_in = ["Ex_561_Em_600_stitched", "Ex_488_Em_525_stitched", "Ex_647_Em_680_stitched"]
         channels_out = ["Ch_561", "Ch_488", "Ch_647"]
+        print(args.input_parent_dir)
+        print(channels_in[0])
         s3_input_paths = [os.path.join(args.input_parent_dir, channel) for channel in channels_in]
         local_input_paths = [os.path.join(args.input_parent_dir, channel) for channel in channels_in[:1]]
 
