@@ -1,6 +1,7 @@
 import argparse
 import numpy as np
 from .create_precomputed_volume import create_precomputed_volume
+import os
 
 if __name__ == "__main__":
     def str2bool(v):
@@ -15,6 +16,18 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
         description="Convert local volume into precomputed volume on S3."
+    )
+    parser.add_argument(
+        "--input_parent_dir",
+        help="Path to parent of directories containing stitched tiles named sequentially.", nargs='+', default=[]
+    )
+    parser.add_argument(
+        "--s3_output_parent_dir",
+        help="Path to parent of directories containing stitched tiles named sequentially.", nargs='+', default=[]
+    )
+    parser.add_argument(
+        "--local_output_parent_dir",
+        help="Path to parent of directories containing stitched tiles named sequentially.", nargs='+', default=[]
     )
     parser.add_argument(
         "--s3_input_paths",
@@ -58,7 +71,27 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    for input_path, precomputed_path in zip(args.s3_input_paths, args.s3_output_paths):
+    if args.input_parent_dir == None:
+        s3_input_paths = args.s3_input_paths
+        s3_output_paths = args.s3_output_paths
+        local_input_paths = args.local_output_paths
+        local_output_paths = args.local_output_paths
+    else:
+        channels_in = ["Ex_561_Em_600_stitched", "Ex_488_Em_525_stitched", "Ex_647_Em_680_stitched"]
+        channels_out = ["Ch_561", "Ch_488", "Ch_647"]
+        s3_input_paths = [os.path.join(args.input_parent_dir, channel) for channel in channels_in]
+        local_input_paths = [os.path.join(args.input_parent_dir, channel) for channel in channels_in[:1]]
+
+        s3_output_paths = [os.path.join(args.s3_output_parent_dir, channel) for channel in channels_out]
+        local_input_paths = [os.path.join(args.local_output_parent_dir, channel) for channel in channels_out[:1]]
+
+        print("Generated input/output paths automatically:")
+        for i,j in zip(s3_input_paths, s3_output_paths):
+            print(f"Writing {i} to {j}")
+        for i,j in zip(local_input_paths, local_input_paths):
+            print(f"Writing {i} to {j}")
+
+    for input_path, precomputed_path in zip(s3_input_paths, s3_output_paths):
         print(f"**************Writing {input_path} to {precomputed_path} on s3*****************")
         create_precomputed_volume(
             input_path,
@@ -70,7 +103,7 @@ if __name__ == "__main__":
         )
 
 
-    for input_path, precomputed_path in zip(args.local_input_paths, args.local_output_paths):
+    for input_path, precomputed_path in zip(local_input_paths, local_output_paths):
         print(f"**************Writing {input_path} to {precomputed_path} locally*****************")
         create_precomputed_volume(
             input_path,
