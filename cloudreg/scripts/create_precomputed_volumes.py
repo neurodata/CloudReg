@@ -19,15 +19,15 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--input_parent_dir",
-        help="Path to parent of directories containing stitched tiles named sequentially.", nargs='+'
+        help="Path to parent of directories containing stitched tiles named sequentially."
     )
     parser.add_argument(
         "--s3_output_parent_dir",
-        help="Path to parent of directories containing stitched tiles named sequentially.", nargs='+'
+        help="Path to parent of directories containing stitched tiles named sequentially."
     )
     parser.add_argument(
         "--local_output_parent_dir",
-        help="Path to parent of directories containing stitched tiles named sequentially.", nargs='+'
+        help="Path to parent of directories containing stitched tiles named sequentially."
     )
     parser.add_argument(
         "--s3_input_paths",
