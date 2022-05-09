@@ -16,6 +16,9 @@ from scipy.io import loadmat
 import json
 import random
 
+from os import listdir
+from os.path import isfile, join
+
 
 def loadmat_v73(mat_path):
     arrays = {}
@@ -206,6 +209,7 @@ def transform_points(
     # transformation direction
     # can be 'atlas' or 'target'
     transformation_direction,
+    name=""
 ):
     # get json link from viz link
     target_viz = NGLink(target_viz_link.split("json_url=")[-1])
@@ -249,7 +253,7 @@ def transform_points(
     # run matlab command to get transformed fiducials
     # split into sets of 2000 because matlab can only process limited number of points at a time
     if affine_path != "" and velocity_path != "":
-        random.shuffle(fiducials)
+        #random.shuffle(fiducials)
         points = [i.point for i in fiducials]
         points_chunks = [points[i:i+2000] for i in range(0, len(points), 2000)]
         points_total = []
@@ -276,7 +280,7 @@ def transform_points(
         points_ng = {i.description: (j + other_fid.physical_origin)/dest_vox_size for i, j in zip(fiducials, points_t)}
         print(f"fiduc len: {len(fiducials)} points shape: {points_t.shape} points type: {type(points_t)}")
         points_ng_json = viz.get_annotations(points_ng)
-        with open('./transformed_points.json', 'w') as fp:
+        with open('./transformed_points' + name + '.json', 'w') as fp:
             json.dump(points_ng_json, fp)
 
         ngl_json = atlas_viz._json
@@ -352,37 +356,56 @@ if __name__ == "__main__":
 
     # read soma points text file then create target link with them
     if args.soma_path is not None:
-        target_viz = NGLink(args.target_viz_link.split("json_url=")[-1])
-        ngl_json = target_viz._json
+        if args.soma_path[-4:] == '.txt':
+            soma_paths = [args.soma_path]
+            names = [args.soma_path.split("/")[-1][:-4]]
+        else:
+            soma_paths = [join(args.soma_path, f) for f in listdir(args.soma_path) if isfile(join(args.soma_path, f))]
+            names = [f[:-4] for f in listdir(args.soma_path) if isfile(join(args.soma_path, f))]
+        print(f"processing files: {names}")
 
-        coords = {}
-        counter = 0
-        with open(args.soma_path) as f:
-            for line in f:
-                line = ' '.join(line.split())
-                parts = line.split(",")
-                coord = np.array([float(parts[0][1:]),float(parts[1]),float(parts[2][:-1])])
-                coords[str(counter)] = coord
-                counter += 1
-        annotations = target_viz.get_annotations(coords, desc=False)
-        ngl_json['layers'].append(
-            {
-                "type": "annotation",
-                "annotations": annotations,
-                "name": "original_points"
-            }   
-        )
-        target_viz_link = create_viz_link_from_json(ngl_json)
-        print(f"VIZ LINK WITH ORIGINAL POINTS: {target_viz_link}")
+        for soma_path, name in zip(soma_paths, names):
+            target_viz = NGLink(args.target_viz_link.split("json_url=")[-1])
+            ngl_json = target_viz._json
+
+            coords = {}
+            counter = 0
+            with open(soma_path) as f:
+                for line in f:
+                    line = ' '.join(line.split())
+                    parts = line.split(",")
+                    coord = np.array([float(parts[0][1:]),float(parts[1]),float(parts[2][:-1])])
+                    coords[str(counter)] = coord
+                    counter += 1
+            annotations = target_viz.get_annotations(coords, desc=False)
+            ngl_json['layers'].append(
+                {
+                    "type": "annotation",
+                    "annotations": annotations,
+                    "name": "original_points"
+                }   
+            )
+            target_viz_link = create_viz_link_from_json(ngl_json)
+            print(f"VIZ LINK WITH ORIGINAL POINTS: {target_viz_link}")
+
+            transform_points(
+                target_viz_link,
+                args.atlas_viz_link,
+                args.affine_path,
+                args.velocity_path,
+                args.velocity_voxel_size,
+                args.transformation_direction,
+                name = name
+            )
     else:
         target_viz_link = args.target_viz_link
 
 
-    transform_points(
-        target_viz_link,
-        args.atlas_viz_link,
-        args.affine_path,
-        args.velocity_path,
-        args.velocity_voxel_size,
-        args.transformation_direction,
-    )
+        transform_points(
+            target_viz_link,
+            args.atlas_viz_link,
+            args.affine_path,
+            args.velocity_path,
+            args.velocity_voxel_size,
+            args.transformation_direction,
+        )
