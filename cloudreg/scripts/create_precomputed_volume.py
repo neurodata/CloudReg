@@ -163,7 +163,10 @@ def create_precomputed_volume(
         print("timed out on a slice. moving on to the next step of pipeline")
 
     if resample_iso:
-        precomputed_path_iso = precomputed_path + "_iso"
+        if precomputed_path[-1] == "/":
+            precomputed_path_iso = precomputed_path[:-1] + "_iso"
+        else:
+            precomputed_path_iso = precomputed_path + "_iso"
         downsample_isotropically(precomputed_path, precomputed_path_iso, compress)
 
 
