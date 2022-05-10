@@ -74,7 +74,7 @@ if __name__ == "__main__":
     if args.input_parent_dir == None:
         s3_input_paths = args.s3_input_paths
         s3_output_paths = args.s3_output_paths
-        local_input_paths = args.local_output_paths
+        local_input_paths = args.local_input_paths
         local_output_paths = args.local_output_paths
     else:
         channels_in = ["Ex_561_Em_600_stitched/", "Ex_488_Em_525_stitched/", "Ex_647_Em_680_stitched/"]
