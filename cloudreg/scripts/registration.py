@@ -34,7 +34,7 @@ def get_affine_matrix(
         rotation (list of float): x,y,z rotations respectively in degrees
         from_orientation (str): 3-letter orientation of source data 
         to_orientation (str): 3-letter orientation of target data
-        fixed_scale (float): Isotropic scale factor
+        fixed_scale (list of float): x,y,z isotropic scale factors
         s3_path (str): S3 path to precomputed volume for source data
         center (bool, optional): If true, center image at it's origin. Defaults to False.
 
