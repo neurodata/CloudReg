@@ -18,6 +18,11 @@ with open(all_somas_path, "r") as f:
 
         
 print(f"{len(points_ng_json)} total somas")
+if len(points_ng_json) > 2000:
+    points_ng_json = points_ng_json[:2000]
+    name = "detected_somas_partial"
+else:
+    name = "detected_somas"
 
 
 viz_link = "https://viz.neurodata.io/?json_url=https://json.neurodata.io/v1?NGStateID=NRFI2aWmv3d0Ww"
@@ -28,7 +33,7 @@ ngl_json['layers'].append(
     {
         "type": "annotation",
         "points": points_ng_json,
-        "name": "transformed_points"
+        "name": name
     }   
 )
 
