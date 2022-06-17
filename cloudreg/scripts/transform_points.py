@@ -80,7 +80,7 @@ class NGLink:
             vol = CloudVolume(layer_data["source"])
         else:
             path = layer_data["source"]
-            if not isinstance(source, str):
+            if not isinstance(path, str):
                 path = path["url"]
             vol = CloudVolume(path.split("precomputed://")[-1])
         self.image_shape = np.array(vol.scales[0]["size"])
