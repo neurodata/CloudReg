@@ -79,7 +79,7 @@ class NGLink:
         if isinstance(layer_data["source"], str):
             vol = CloudVolume(layer_data["source"])
         else:
-            vol = CloudVolume(layer_data["source"]["url"].split("precomputed://")[-1])
+            vol = CloudVolume(layer_data["source"].split("precomputed://")[-1])
         self.image_shape = np.array(vol.scales[0]["size"])
         # converting from nm to um
         self.image_voxel_size = np.array(vol.scales[0]["resolution"]) / 1e3
