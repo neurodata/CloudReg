@@ -32,11 +32,11 @@ def transform_data(
             source_voxel_size = list(np.array(target_vol.resolution) / 1000)
             break
 
-    print("Downloading layer...")
-    img = np.squeeze(np.array(target_vol[:,:,:]))
-
-    file_dir = pathlib.Path(affine_path).parent.parent
+    file_dir = pathlib.Path(path_to_affine).parent.parent
     path_to_source = file_dir / f"target_mip{mip}.tif"
+
+    print(f"Downloading layer to {path_to_source}...")
+    img = np.squeeze(np.array(target_vol[:,:,:]))
     io.imsave(path_to_source, img)
 
     atlas_vol = CloudVolume(atlas_viz_link)
