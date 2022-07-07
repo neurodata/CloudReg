@@ -13,7 +13,7 @@ from collections import defaultdict
 import uuid
 import argparse
 from scipy.io import loadmat
-from skimage import io
+from skimage.io import imsave
 import json
 import random
 
@@ -35,9 +35,10 @@ def transform_data(
     file_dir = pathlib.Path(path_to_affine).parent.parent
     path_to_source = file_dir / f"target_mip{mip}.tif"
 
-    print(f"Downloading layer of shape {target_vol.shape} to {path_to_source}...")
+    print(f"Downloading layer of mip {mip}...")
     img = np.squeeze(np.array(target_vol[:,:,:]))
-    io.imsave(path_to_source, img)
+    print(f"Saving image of shape {img.shape} to {path_to_source}...")
+    imsave(path_to_source, img)
 
     atlas_vol = CloudVolume(atlas_viz_link)
 
