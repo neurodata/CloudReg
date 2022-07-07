@@ -13,29 +13,25 @@ from collections import defaultdict
 import uuid
 import argparse
 from scipy.io import loadmat
-from skimage.io import imsave
+from skimage.io import imsave, imread
 import json
 import random
 
 def transform_data(
     target_layer_source,
-    atlas_viz_link,
+    transformed_layer_source,
     path_to_affine,
     path_to_velocity,
     # voxel size of velocity field
     velocity_voxel_size,
 ):
-
-    base_path = pathlib.Path(__file__).parent.parent.absolute() / 'registration'
-    print(base_path)
-
-
     # identify layer to downlooad
     for mip in range(5):
         target_vol = CloudVolume(target_layer_source, mip=mip)
         if (target_vol.resolution > 10000).any():
             source_voxel_size = list(np.array(target_vol.resolution) / 1000)
             break
+    transformed_vol = CloudVolume(transformed_layer_source)
 
     file_dir = pathlib.Path(path_to_affine).parent.parent
     path_to_source = file_dir / f"target_mip{mip}.tif"
@@ -63,8 +59,12 @@ def transform_data(
             {matlab_path} -nodisplay -nosplash -nodesktop -r \"addpath(\'{base_path}\');path_to_source=\'{path_to_source}\';source_voxel_size=[{source_voxel_size}];path_to_affine=\'{path_to_affine}\';path_to_velocity=\'{path_to_velocity}\';velocity_voxel_size=[{velocity_voxel_size}];destination_voxel_size=[10,10,10];destination_shape=[1320,800,1140];transformation_direction=\'atlas\';path_to_output=\'{transformed_file}\';interpolation_method=\'nearest\';transform_data(path_to_source,source_voxel_size,path_to_affine,path_to_velocity,velocity_voxel_size,destination_voxel_size,destination_shape,transformation_direction,path_to_output,interpolation_method);exit;\"
         """
         subprocess.run(shlex.split(matlab_command),)
-
         print(f"Transformed image saved at: {transformed_file}")
+
+        img_trans = imread(transformed_file)
+        print(f"Uploading transformed image...")
+        transformed_vol[:,:,:] = img_trans[:,:,:]
+        print(f"Transformed image uploaded to: {transformed_layer_source}")
 
     else:
         raise Exception
