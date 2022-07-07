@@ -62,8 +62,7 @@ def transform_data(
         print(f"Transformed image saved at: {transformed_file}")
 
         img_trans = imread(str(transformed_file) + ".img")
-        print(transformed_vol.shape)
-        print(img_trans.shape)
+        img_trans = np.swapaxes(img_trans, 0, 2)
         print(f"Uploading transformed image...")
         transformed_vol[:,:,:] = img_trans[:,:,:]
         print(f"Transformed image uploaded to: {transformed_layer_source}")
