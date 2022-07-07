@@ -12,7 +12,8 @@ from cloudvolume import CloudVolume
 from collections import defaultdict
 import uuid
 import argparse
-from scipy.io import loadmat, imsave
+from scipy.io import loadmat
+from skimage import io
 import json
 import random
 
@@ -31,6 +32,7 @@ def transform_data(
             source_voxel_size = list(np.array(target_vol.resolution) / 1000)
             break
 
+    print("Downloading layer...")
     img = np.squeeze(np.array(target_vol[:,:,:]))
 
     file_dir = pathlib.Path(affine_path).parent.parent
