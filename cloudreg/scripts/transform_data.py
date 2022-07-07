@@ -78,7 +78,7 @@ if __name__ == "__main__":
         "--target_layer_source", help="Source URL to target data layer to be transformed", type=str
     )
     parser.add_argument(
-        "--atlas_viz_link", help="Neuroglancer viz link to atlas (optionally with fiducials labelled if transforming to input data space). Default is link to ARA.", 
+        "--transformed_layer_source", help="Neuroglancer viz link to atlas (optionally with fiducials labelled if transforming to input data space). Default is link to ARA.", 
         type=str,
         default="https://ara.viz.neurodata.io/?json_url=https://json.neurodata.io/v1?NGStateID=ifm4oFKOl10eiA"
     )
@@ -116,7 +116,7 @@ if __name__ == "__main__":
 
     transform_data(
         args.target_layer_source,
-        args.atlas_viz_link,
+        args.transformed_layer_source,
         args.affine_path,
         args.velocity_path,
         args.velocity_voxel_size,
