@@ -25,6 +25,11 @@ def transform_data(
     # voxel size of velocity field
     velocity_voxel_size,
 ):
+
+    base_path = pathlib.Path(__file__).parent.parent.absolute() / 'registration'
+    print(base_path)
+
+
     # identify layer to downlooad
     for mip in range(5):
         target_vol = CloudVolume(target_layer_source, mip=mip)
@@ -50,6 +55,7 @@ def transform_data(
         v_size = ", ".join(str(i) for i in velocity_voxel_size)
         # get current file path and set path to transform_points
         base_path = pathlib.Path(__file__).parent.parent.absolute() / 'registration'
+        print(base_path)
         # base_path = os.path.expanduser("~/CloudReg/registration")
 
         matlab_path = 'matlab'
