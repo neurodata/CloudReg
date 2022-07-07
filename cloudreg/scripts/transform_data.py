@@ -43,7 +43,7 @@ def transform_data(
 
     # TODO atlas stuff
 
-    transformed_file = file_dir / f"transformed_mip{mip}.tif"
+    transformed_file = file_dir / f"transformed_mip{mip}"
 
     # run matlab command to get transformed layer
     if path_to_affine != "" and path_to_velocity != "":
@@ -61,7 +61,9 @@ def transform_data(
         subprocess.run(shlex.split(matlab_command),)
         print(f"Transformed image saved at: {transformed_file}")
 
-        img_trans = imread(transformed_file)
+        img_trans = imread(str(transformed_file) + ".img")
+        print(transformed_vol.shape)
+        print(img_trans.shape)
         print(f"Uploading transformed image...")
         transformed_vol[:,:,:] = img_trans[:,:,:]
         print(f"Transformed image uploaded to: {transformed_layer_source}")
