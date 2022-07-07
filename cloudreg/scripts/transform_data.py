@@ -37,7 +37,7 @@ def transform_data(
 
     file_dir = pathlib.Path(affine_path).parent.parent
     path_to_source = file_dir / f"target_mip{mip}.tif"
-    imsave(path_to_source, img)
+    io.imsave(path_to_source, img)
 
     atlas_vol = CloudVolume(atlas_viz_link)
 
