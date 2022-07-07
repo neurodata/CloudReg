@@ -40,7 +40,7 @@ def transform_data(
     print(f"Saving image of shape {img.shape} to {path_to_source}...")
     imsave(path_to_source, img, plugin="tifffile")
 
-    atlas_vol = CloudVolume(atlas_viz_link)
+    # TODO atlas stuff
 
     transformed_file = file_dir / f"transformed_mip{mip}.tif"
 
@@ -51,7 +51,6 @@ def transform_data(
         # get current file path and set path to transform_points
         base_path = pathlib.Path(__file__).parent.parent.absolute() / 'registration'
         # base_path = os.path.expanduser("~/CloudReg/registration")
-        transformed_points_path = "./transformed_points.mat"
 
         matlab_path = 'matlab'
         matlab_command = f"""
