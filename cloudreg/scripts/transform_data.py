@@ -38,7 +38,7 @@ def transform_data(
     print(f"Downloading layer of mip {mip}...")
     img = np.squeeze(np.array(target_vol[:,:,:]))
     print(f"Saving image of shape {img.shape} to {path_to_source}...")
-    imsave(path_to_source, img)
+    imsave(path_to_source, img, plugin="tifffile")
 
     atlas_vol = CloudVolume(atlas_viz_link)
 
