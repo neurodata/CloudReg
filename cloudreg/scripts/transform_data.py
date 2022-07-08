@@ -36,10 +36,10 @@ def transform_data(
     file_dir = pathlib.Path(path_to_affine).parent.parent
     path_to_source = file_dir / f"target_mip{mip}.tif"
 
-    print(f"Downloading layer of mip {mip}...")
-    img = np.squeeze(np.array(target_vol[:,:,:]))
-    print(f"Saving image of shape {img.shape} to {path_to_source}...")
-    imsave(path_to_source, img, plugin="tifffile")
+    # print(f"Downloading layer of mip {mip}...")
+    # img = np.squeeze(np.array(target_vol[:,:,:]))
+    # print(f"Saving image of shape {img.shape} to {path_to_source}...")
+    # imsave(path_to_source, img, plugin="tifffile")
 
     transformed_file = file_dir / f"transformed_mip{mip}"
 
@@ -54,7 +54,7 @@ def transform_data(
 
         matlab_path = 'matlab'
         matlab_command = f"""
-            {matlab_path} -nodisplay -nosplash -nodesktop -r \"addpath(\'{base_path}\');path_to_source=\'{path_to_source}\';source_voxel_size=[{source_voxel_size}];path_to_affine=\'{path_to_affine}\';path_to_velocity=\'{path_to_velocity}\';velocity_voxel_size=[{velocity_voxel_size}];destination_voxel_size=[25,25,25];destination_shape=[528,320,456];transformation_direction=\'atlas\';path_to_output=\'{transformed_file}\';interpolation_method=\'linear\';transform_data(path_to_source,source_voxel_size,path_to_affine,path_to_velocity,velocity_voxel_size,destination_voxel_size,destination_shape,transformation_direction,path_to_output,interpolation_method);exit;\"
+            {matlab_path} -nodisplay -nosplash -nodesktop -r \"addpath(\'{base_path}\');path_to_source=\'{path_to_source}\';source_voxel_size=[{source_voxel_size}];path_to_affine=\'{path_to_affine}\';path_to_velocity=\'{path_to_velocity}\';velocity_voxel_size=[{velocity_voxel_size}];destination_voxel_size=[10,10,10];destination_shape=[1320,800,1140];transformation_direction=\'atlas\';path_to_output=\'{transformed_file}\';interpolation_method=\'linear\';transform_data(path_to_source,source_voxel_size,path_to_affine,path_to_velocity,velocity_voxel_size,destination_voxel_size,destination_shape,transformation_direction,path_to_output,interpolation_method);exit;\"
         """
         subprocess.run(shlex.split(matlab_command),)
         print(f"Transformed image saved at: {transformed_file}")
