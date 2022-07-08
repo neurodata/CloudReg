@@ -28,7 +28,7 @@ def transform_data(
     # identify layer to downlooad
     for mip in range(5):
         target_vol = CloudVolume(target_layer_source, mip=mip)
-        if (target_vol.resolution > 10000).any():
+        if (target_vol.resolution > 5000).any():
             source_voxel_size = list(np.array(target_vol.resolution) / 1000)
             break
     transformed_vol = CloudVolume(transformed_layer_source)
