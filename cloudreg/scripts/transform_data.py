@@ -36,10 +36,10 @@ def transform_data(
     file_dir = pathlib.Path(path_to_affine).parent.parent
     path_to_source = file_dir / f"target_mip{mip}.tif"
 
-    # print(f"Downloading layer of mip {mip}...")
-    # img = np.squeeze(np.array(target_vol[:,:,:]))
-    # print(f"Saving image of shape {img.shape} to {path_to_source}...")
-    # imsave(path_to_source, img, plugin="tifffile")
+    print(f"Downloading layer of mip {mip}...")
+    img = np.squeeze(np.array(target_vol[:,:,:]))
+    print(f"Saving image of shape {img.shape} to {path_to_source}...")
+    imsave(path_to_source, img, plugin="tifffile")
 
     transformed_file = file_dir / f"transformed_mip{mip}"
 
