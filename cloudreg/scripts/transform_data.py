@@ -37,7 +37,7 @@ def transform_data(
     path_to_source = file_dir / f"target_mip{mip}.tif"
 
     print(f"Downloading layer of mip {mip}...")
-    img = np.squeeze(np.array(target_vol[:,:,:]))
+    img = np.squeeze(np.array(target_vol[:,:,:])).T
     print(f"Saving image of shape {img.shape} to {path_to_source}...")
     imsave(path_to_source, img, plugin="tifffile")
 
