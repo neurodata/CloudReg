@@ -62,10 +62,8 @@ def transform_data(
         img_trans = imread(str(transformed_file) + ".img")
         img_trans = np.swapaxes(img_trans, 0, 2)
         img_trans = img_trans.astype(transformed_vol.data_type)
-        print(f"Uploading transformed image...")
+        print(f"Uploading transformed image of shape {img_trans.shape} to {transformed_layer_source}...")
         transformed_vol[:,:,:] = img_trans[:,:,:]
-        print(f"Transformed image uploaded to: {transformed_layer_source}")
-
     else:
         raise Exception
 
@@ -78,9 +76,8 @@ if __name__ == "__main__":
         "--target_layer_source", help="Source URL to target data layer to be transformed", type=str
     )
     parser.add_argument(
-        "--transformed_layer_source", help="Neuroglancer viz link to atlas (optionally with fiducials labelled if transforming to input data space). Default is link to ARA.", 
-        type=str,
-        default="https://ara.viz.neurodata.io/?json_url=https://json.neurodata.io/v1?NGStateID=ifm4oFKOl10eiA"
+        "--transformed_layer_source", help="URL for destination of transformed data.", 
+        type=str
     )
     parser.add_argument(
         "--affine_path",
