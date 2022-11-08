@@ -191,6 +191,9 @@ function [] = transform_data(path_to_source,source_voxel_size,path_to_affine,pat
     % due to memory issues, I'm going to have to loop through slices,
     % so this will be a bit slow
     %Idef = zeros(destination_shape);
+    disp('clearing vars')
+    clearvars -except yIp xIp zIp Ip interpolation_method Atransy Atransx Atransz destination_shape destination_voxel_size path_to_output
+    
     F = griddedInterpolant({yIp,xIp,zIp},Ip,interpolation_method,'nearest');
     Idef = F(Atransy,Atransx,Atransz);
     disp('done applying deformation to source image')
