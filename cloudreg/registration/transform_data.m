@@ -195,7 +195,10 @@ function [] = transform_data(path_to_source,source_voxel_size,path_to_affine,pat
     % so this will be a bit slow
     %
     disp('clearing vars')
-    clearvars -except yIp xIp zIp Ip interpolation_method Atransy Atransx Atransz destination_shape destination_voxel_size path_to_output
+    clearvars -except yIp xIp z
+    
+    
+    Ip Ip interpolation_method Atransy Atransx Atransz destination_shape destination_voxel_size path_to_output
     interp_slice = 0;
     F = griddedInterpolant({yIp,xIp,zIp},Ip,interpolation_method,'nearest');
     if interp_slice

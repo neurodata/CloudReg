@@ -107,7 +107,8 @@ def register(
     bias_correction,
     regularization,
     num_iterations,
-    registration_resolution
+    registration_resolution,
+    output_local_path = "~/"
 ):
     """Run EM-LDDMM registration on precomputed volume at input_s3_path
 
@@ -138,7 +139,7 @@ def register(
     exp = s3_url.key.split("/")[-2]
 
     # only after stitching autofluorescence channel
-    base_path = os.path.expanduser("~/")
+    base_path = os.path.expanduser(output_local_path)
     registration_prefix = f"{base_path}/{exp}_{channel}_registration/"
     atlas_prefix = f'{base_path}/CloudReg/cloudreg/registration/atlases/'
     target_name = f"{base_path}/autofluorescence_data.tif"
@@ -318,6 +319,12 @@ if __name__ == "__main__":
         type=int,
         default=100,
     )
+    parser.add_argument(
+        "--output_local_path",
+        help="Output directory where transformation and data intermediates are stored. Default is ~/.",
+        type=str,
+        default="~/",
+    )
 
     args = parser.parse_args()
 
@@ -337,5 +344,6 @@ if __name__ == "__main__":
         args.bias_correction,
         args.regularization,
         args.iterations,
-        args.registration_resolution
+        args.registration_resolution,
+        args.output_local_path
     )
