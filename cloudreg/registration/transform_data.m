@@ -171,11 +171,14 @@ function [] = transform_data(path_to_source,source_voxel_size,path_to_affine,pat
 
         
     else
+        disp('applying affine');
         B = inv(A);
         Xs = B(1,1)*XT + B(1,2)*YT + B(1,3)*ZT + B(1,4);
         Ys = B(2,1)*XT + B(2,2)*YT + B(2,3)*ZT + B(2,4);
         Zs = B(3,1)*XT + B(3,2)*YT + B(3,3)*ZT + B(3,4);
         
+        disp('applying non-affine');
+        clearvars -except yIp xIp zIp Ip interpolation_method Atransy Atransx Atransz destination_shape destination_voxel_size path_to_output transx transy transz XV YV ZV yV xV zV Xs Ys Zs
         % the resulting transformations are  the shape of the target
 		F = griddedInterpolant({yV,xV,zV},transx-XV,'linear','nearest');
 		Atransx = F(Ys,Xs,Zs) + Xs;
@@ -190,9 +193,24 @@ function [] = transform_data(path_to_source,source_voxel_size,path_to_affine,pat
     % first thing is to upsample Aphi to Aphi10
     % due to memory issues, I'm going to have to loop through slices,
     % so this will be a bit slow
-    %Idef = zeros(destination_shape);
+    %
+    disp('clearing vars')
+    clearvars -except yIp xIp zIp Ip interpolation_method Atransy Atransx Atransz destination_shape destination_voxel_size path_to_output
+    interp_slice = 0;
     F = griddedInterpolant({yIp,xIp,zIp},Ip,interpolation_method,'nearest');
-    Idef = F(Atransy,Atransx,Atransz);
+    if interp_slice
+        Idef = zeros(size(Atransy));
+        textprogressbar('interpolating by slice: ')
+        for i = 1:destination_shape(3)
+            textprogressbar((1/destination_shape(3))*100)
+            part_interp = F(Atransy(:,:,i),Atransx(:,:,i),Atransz(:,:,i));
+            Idef(:,:,i) = part_interp;
+        end
+        textprogressbar('-- done interpolating by slice')
+    else
+        Idef = F(Atransy,Atransx,Atransz);
+    end
+
     disp('done applying deformation to source image')
 
     %textprogressbar('applying deformation to source: ')
