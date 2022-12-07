@@ -139,8 +139,8 @@ def register(
     exp = s3_url.key.split("/")[-2]
 
     # only after stitching autofluorescence channel
-    base_path = os.path.expanduser(output_local_path)
-    registration_prefix = f"{base_path}/{exp}_{channel}_registration/"
+    base_path = os.path.expanduser("~/")
+    registration_prefix = f"{output_local_path}/{exp}_{channel}_registration/"
     atlas_prefix = f'{base_path}/CloudReg/cloudreg/registration/atlases/'
     target_name = f"{base_path}/autofluorescence_data.tif"
     atlas_name = f"{atlas_prefix}/atlas_data.nrrd"
