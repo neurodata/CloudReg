@@ -12,3 +12,4 @@ Reference
    stitching
    registration
    util
+   examples
