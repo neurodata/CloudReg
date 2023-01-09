@@ -265,7 +265,6 @@ def transform_points(
             base_path = pathlib.Path(__file__).parent.parent.absolute() / 'registration'
             # base_path = os.path.expanduser("~/CloudReg/registration")
             transformed_points_path = "./transformed_points.mat"
-
             matlab_path = 'matlab'
             matlab_command = f"""
                 {matlab_path} -nodisplay -nosplash -nodesktop -r \"addpath(\'{base_path}\');Aname=\'{affine_path}\';vname=\'{velocity_path}\';v_size=[{v_size}];points=[{points_string}];points_t = transform_points(points,Aname,vname,v_size,\'{transformation_direction}\');save(\'./transformed_points.mat\',\'points_t\');exit;\"
