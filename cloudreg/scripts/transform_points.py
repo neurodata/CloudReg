@@ -14,6 +14,7 @@ import uuid
 import argparse
 from scipy.io import loadmat
 import json
+import random
 
 
 def loadmat_v73(mat_path):
@@ -30,15 +31,16 @@ class NGLink:
         self.json_link = json_link
         self._set_json_from_link()
 
-    def get_annotations(self, points):
+    def get_annotations(self, points, desc=True):
         annotations = []
         for i, j in points.items():
             x = {
                 "point": j.tolist(),
                 "type": "point",
                 "id": f"{uuid.uuid1().hex}",
-                "description": i,
             }
+            if desc: # because I would get errors when this was a simple integer or string or something
+                x["description"] = i
             annotations.append(x)
         return annotations
 
@@ -74,7 +76,13 @@ class NGLink:
         return layer_data
 
     def _parse_image_layer(self, layer_data):
-        vol = CloudVolume(layer_data["source"]["url"].split("precomputed://")[-1])
+        if isinstance(layer_data["source"], str):
+            vol = CloudVolume(layer_data["source"])
+        else:
+            path = layer_data["source"]
+            if not isinstance(path, str):
+                path = path["url"]
+            vol = CloudVolume(path.split("precomputed://")[-1])
         self.image_shape = np.array(vol.scales[0]["size"])
         # converting from nm to um
         self.image_voxel_size = np.array(vol.scales[0]["resolution"]) / 1e3
@@ -242,26 +250,33 @@ def transform_points(
 
 
     # run matlab command to get transformed fiducials
+    # split into sets of 2000 because matlab can only process limited number of points at a time
     if affine_path != "" and velocity_path != "":
+        random.shuffle(fiducials)
         points = [i.point for i in fiducials]
-        points_string = [", ".join(map(str, i)) for i in points]
-        points_string = "; ".join(points_string)
-        # velocity field voxel size
-        v_size = ", ".join(str(i) for i in velocity_field_vsize)
-        # get current file path and set path to transform_points
-        base_path = pathlib.Path(__file__).parent.parent.absolute() / 'registration'
-        # base_path = os.path.expanduser("~/CloudReg/registration")
-        transformed_points_path = "./transformed_points.mat"
+        points_chunks = [points[i:i+2000] for i in range(0, len(points), 2000)]
+        points_total = []
+        for points in points_chunks[:5]:
+            points_string = [", ".join(map(str, i)) for i in points]
+            points_string = "; ".join(points_string)
+            # velocity field voxel size
+            v_size = ", ".join(str(i) for i in velocity_field_vsize)
+            # get current file path and set path to transform_points
+            base_path = pathlib.Path(__file__).parent.parent.absolute() / 'registration'
+            # base_path = os.path.expanduser("~/CloudReg/registration")
+            transformed_points_path = "./transformed_points.mat"
+            matlab_path = 'matlab'
+            matlab_command = f"""
+                {matlab_path} -nodisplay -nosplash -nodesktop -r \"addpath(\'{base_path}\');Aname=\'{affine_path}\';vname=\'{velocity_path}\';v_size=[{v_size}];points=[{points_string}];points_t = transform_points(points,Aname,vname,v_size,\'{transformation_direction}\');save(\'./transformed_points.mat\',\'points_t\');exit;\"
+            """
+            subprocess.run(shlex.split(matlab_command),)
 
-        matlab_path = 'matlab'
-        matlab_command = f"""
-            {matlab_path} -nodisplay -nosplash -nodesktop -r \"addpath(\'{base_path}\');Aname=\'{affine_path}\';vname=\'{velocity_path}\';v_size=[{v_size}];points=[{points_string}];points_t = transform_points(points,Aname,vname,v_size,\'{transformation_direction}\');save(\'./transformed_points.mat\',\'points_t\');exit;\"
-        """
-        subprocess.run(shlex.split(matlab_command),)
-
-        # transformed_points.m created now
-        points_t = loadmat(transformed_points_path)["points_t"]
+            # transformed_points.m created now
+            points_t = loadmat(transformed_points_path)["points_t"]
+            points_total.append(points_t)
+        points_t = np.concatenate(points_total, axis=0)
         points_ng = {i.description: (j + other_fid.physical_origin)/dest_vox_size for i, j in zip(fiducials, points_t)}
+        print(f"fiduc len: {len(fiducials)} points shape: {points_t.shape} points type: {type(points_t)}")
         points_ng_json = viz.get_annotations(points_ng)
         with open('./transformed_points.json', 'w') as fp:
             json.dump(points_ng_json, fp)
@@ -286,7 +301,7 @@ if __name__ == "__main__":
         "Transform points in Neuroglancer from one space to another given a transformation."
     )
     parser.add_argument(
-        "-target_viz_link", help="Neuroglancer viz link to target with fiducials labelled.", type=str
+        "--target_viz_link", help="Neuroglancer viz link to target with fiducials labelled.", type=str
     )
     parser.add_argument(
         "--atlas_viz_link", help="Neuroglancer viz link to atlas (optionally with fiducials labelled if transforming to input data space). Default is link to ARA.", 
@@ -317,6 +332,11 @@ if __name__ == "__main__":
         type=str,
         default='atlas'
     )
+    parser.add_argument(
+        "--soma_path", help="path to txt file containing soma coordinates in target space",
+        type=str,
+        default=None
+    )
     # parser.add_argument('-ssh_key_path', help='path to identity file used to ssh into given instance')
     # parser.add_argument('-instance_id', help='EC2 Instance ID of instance to run COLM pipeline on.')
     # parser.add_argument('--instance_type', help='EC2 instance type to run pipeline on. minimum r5d.16xlarge',  type=str, default='r5d.16xlarge')
@@ -332,8 +352,36 @@ if __name__ == "__main__":
         aws_cli(shlex.split(f"s3 cp {args.velocity_path} ./v.mat"))
         args.velocity_path = "./v.mat"
 
+    # read soma points text file then create target link with them
+    if args.soma_path is not None:
+        target_viz = NGLink(args.target_viz_link.split("json_url=")[-1])
+        ngl_json = target_viz._json
+
+        coords = {}
+        counter = 0
+        with open(args.soma_path) as f:
+            for line in f:
+                line = ' '.join(line.split())
+                parts = line.split(",")
+                coord = np.array([float(parts[0][1:]),float(parts[1]),float(parts[2][:-1])])
+                coords[str(counter)] = coord
+                counter += 1
+        annotations = target_viz.get_annotations(coords, desc=False)
+        ngl_json['layers'].append(
+            {
+                "type": "annotation",
+                "annotations": annotations,
+                "name": "original_points"
+            }   
+        )
+        target_viz_link = create_viz_link_from_json(ngl_json)
+        print(f"VIZ LINK WITH ORIGINAL POINTS: {target_viz_link}")
+    else:
+        target_viz_link = args.target_viz_link
+
+
     transform_points(
-        args.target_viz_link,
+        target_viz_link,
         args.atlas_viz_link,
         args.affine_path,
         args.velocity_path,

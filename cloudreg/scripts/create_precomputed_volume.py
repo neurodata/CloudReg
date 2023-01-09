@@ -13,6 +13,7 @@ from PIL import Image
 from psutil import virtual_memory
 from tqdm import tqdm
 import tinybrain
+from .downsample_iso import downsample_isotropically
 
 PIL.Image.MAX_IMAGE_PIXELS = None
 
@@ -26,6 +27,7 @@ def create_cloud_volume(
     parallel=False,
     layer_type="image",
     dtype="uint16",
+    compress=None,
 ):
     """Create Neuroglancer precomputed volume S3
 
@@ -54,8 +56,8 @@ def create_cloud_volume(
         chunk_size=chunk_size,  # units are voxels
         volume_size=img_size,  # e.g. a cubic millimeter dataset
     )
-    vol = CloudVolume(precomputed_path, info=info, parallel=parallel)
-    [vol.add_scale((2 ** i, 2 ** i, 1), chunk_size=chunk_size) for i in range(num_mips)]
+    vol = CloudVolume(precomputed_path, info=info, parallel=parallel, compress=compress)
+    [vol.add_scale((2**i, 2**i, 1), chunk_size=chunk_size) for i in range(num_mips)]
 
     vol.commit_info()
     return vol
@@ -65,7 +67,7 @@ def get_image_dims(files):
     """Get X,Y,Z dimensions of images based on list of files
 
     Args:
-        files (list of str): Path to 2D tif series 
+        files (list of str): Path to 2D tif series
 
     Returns:
         list of int: X,Y,Z size of image in files
@@ -78,7 +80,7 @@ def get_image_dims(files):
     return [x_size, y_size, z_size]
 
 
-def process(z, file_path, layer_path, num_mips):
+def process(z, file_path, layer_path, num_mips, compress):
     """Upload single slice to S3 as precomputed
 
     Args:
@@ -88,7 +90,9 @@ def process(z, file_path, layer_path, num_mips):
         num_mips (int): Number of 2x2 downsampling levels in X,Y
     """
     vols = [
-        CloudVolume(layer_path, mip=i, parallel=False, fill_missing=False)
+        CloudVolume(
+            layer_path, mip=i, parallel=False, fill_missing=False, compress=compress
+        )
         for i in range(num_mips)
     ]
     # array = load_image(file_path)[..., None]
@@ -102,7 +106,13 @@ def process(z, file_path, layer_path, num_mips):
 
 
 def create_precomputed_volume(
-    input_path, voxel_size, precomputed_path,num_procs=None, extension="tif"
+    input_path,
+    voxel_size,
+    precomputed_path,
+    num_procs=None,
+    compress=None,
+    resample_iso=False,
+    extension="tif",
 ):
     """Create precomputed volume on S3 from 2D TIF series
 
@@ -130,6 +140,7 @@ def create_precomputed_volume(
         num_mips,
         chunk_size,
         parallel=False,
+        compress=compress,
     )
 
     if num_procs == None:
@@ -144,15 +155,32 @@ def create_precomputed_volume(
             tqdm(desc="Creating precomputed volume", total=len(files))
         ) as progress_bar:
             Parallel(num_procs, timeout=3600, verbose=10)(
-                delayed(process)(z, f, vol.layer_cloudpath, num_mips,)
+                delayed(process)(z, f, vol.layer_cloudpath, num_mips, compress)
                 for z, f in zip(zs, files)
             )
     except Exception as e:
         print(e)
         print("timed out on a slice. moving on to the next step of pipeline")
 
+    if resample_iso:
+        if precomputed_path[-1] == "/":
+            precomputed_path_iso = precomputed_path[:-1] + "_iso"
+        else:
+            precomputed_path_iso = precomputed_path + "_iso"
+        downsample_isotropically(precomputed_path, precomputed_path_iso, compress)
+
 
 if __name__ == "__main__":
+    def str2bool(v):
+        if isinstance(v, bool):
+            return v
+        if v.lower() in ('yes', 'true', 't', 'y', '1'):
+            return True
+        elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+            return False
+        else:
+            raise argparse.ArgumentTypeError('Boolean value expected.')
+
     parser = argparse.ArgumentParser(
         description="Convert local volume into precomputed volume on S3."
     )
@@ -174,10 +202,27 @@ if __name__ == "__main__":
         "--num_procs",
         help="Number of processes to use in parallel. It is possible we may exceed the request rate so you may want to reduce the number of cores.",
         default=None,
-        type=int
+        type=int,
+    )
+    parser.add_argument(
+        "--compress",
+        help="Whether to use a compressed format for the precomputed volume.",
+        default=False,
+        type=str2bool,
+    )
+    parser.add_argument(
+        "--resample_iso",
+        help="Whether to immediately write another version of the volume that has isotropic chunks to be able to use several views on neuroglancer.",
+        default=False,
+        type=str2bool,
     )
     args = parser.parse_args()
 
     create_precomputed_volume(
-        args.input_path, np.array(args.voxel_size), args.precomputed_path, args.num_procs
+        args.input_path,
+        np.array(args.voxel_size),
+        args.precomputed_path,
+        num_procs=args.num_procs,
+        compress=args.compress,
+        resample_iso=args.resample_iso,
     )

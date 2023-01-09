@@ -1,9 +1,13 @@
 function [] = transform_data(path_to_source,source_voxel_size,path_to_affine,path_to_velocity,velocity_voxel_size,destination_voxel_size,destination_shape,transformation_direction,path_to_output,interpolation_method)
     
-    addpath ./Functions/avwQuiet/
-    addpath ./Functions/downsample/
-    addpath ./Functions/plotting/
-    addpath ./Functions/textprogressbar/
+    curr_path = mfilename('fullpath');
+    curr_path = strsplit(curr_path,'/');
+    curr_path(end) = [];
+    curr_path = strjoin(curr_path, '/');
+    addpath([curr_path,'/Functions/avwQuiet/'])
+    addpath([curr_path,'/Functions/downsample/'])
+    addpath([curr_path,'/Functions/plotting/'])
+    addpath([curr_path,'/Functions/textprogressbar/'])
 
     % typical use case 1
     % eg.  transform the allen atlas to the high resolution CLARITY space
@@ -167,11 +171,14 @@ function [] = transform_data(path_to_source,source_voxel_size,path_to_affine,pat
 
         
     else
+        disp('applying affine');
         B = inv(A);
         Xs = B(1,1)*XT + B(1,2)*YT + B(1,3)*ZT + B(1,4);
         Ys = B(2,1)*XT + B(2,2)*YT + B(2,3)*ZT + B(2,4);
         Zs = B(3,1)*XT + B(3,2)*YT + B(3,3)*ZT + B(3,4);
         
+        disp('applying non-affine');
+        clearvars -except yIp xIp zIp Ip interpolation_method Atransy Atransx Atransz destination_shape destination_voxel_size path_to_output transx transy transz XV YV ZV yV xV zV Xs Ys Zs
         % the resulting transformations are  the shape of the target
 		F = griddedInterpolant({yV,xV,zV},transx-XV,'linear','nearest');
 		Atransx = F(Ys,Xs,Zs) + Xs;
@@ -186,9 +193,24 @@ function [] = transform_data(path_to_source,source_voxel_size,path_to_affine,pat
     % first thing is to upsample Aphi to Aphi10
     % due to memory issues, I'm going to have to loop through slices,
     % so this will be a bit slow
-    %Idef = zeros(destination_shape);
+    %
+    disp('clearing vars')
+    clearvars -except yIp xIp zIp Ip interpolation_method Atransy Atransx Atransz destination_shape destination_voxel_size path_to_output
+    interp_slice = 0;
     F = griddedInterpolant({yIp,xIp,zIp},Ip,interpolation_method,'nearest');
-    Idef = F(Atransy,Atransx,Atransz);
+    if interp_slice
+        Idef = zeros(size(Atransy));
+        textprogressbar('interpolating by slice: ')
+        for i = 1:destination_shape(3)
+            textprogressbar((1/destination_shape(3))*100)
+            part_interp = F(Atransy(:,:,i),Atransx(:,:,i),Atransz(:,:,i));
+            Idef(:,:,i) = part_interp;
+        end
+        textprogressbar('-- done interpolating by slice')
+    else
+        Idef = F(Atransy,Atransx,Atransz);
+    end
+
     disp('done applying deformation to source image')
 
     %textprogressbar('applying deformation to source: ')
