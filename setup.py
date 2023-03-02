@@ -12,6 +12,17 @@ AUTHOR = (
 )
 URL = "https://github.com/neurodata/CloudReg"
 REQUIRED_PACKAGES = [
+    "paramiko",
+    "joblib",
+    "SimpleITK",
+    "boto3",
+    "numpy",
+    "tqdm",
+    "awscli",
+    "requests",
+    "cloud-volume",
+    "h5py",
+    "scipy"
 ]
 
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
