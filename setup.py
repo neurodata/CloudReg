@@ -14,7 +14,7 @@ URL = "https://github.com/neurodata/CloudReg"
 REQUIRED_PACKAGES = [
     "paramiko",
     "joblib",
-    "SimpleITK>2.0.0",
+    "SimpleITK>=2.0.0",
     "boto3",
     "tqdm",
     "awscli",
