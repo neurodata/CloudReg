@@ -23,8 +23,8 @@ REQUIRED_PACKAGES = [
     "scipy",
     "tinybrain",
     "tifffile",
-    "imagedocs",
-    "mpi4py"
+    "imagecodecs",
+    # "mpi4py"
 ]
 
 PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))
