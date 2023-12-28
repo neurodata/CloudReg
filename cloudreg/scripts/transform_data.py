@@ -24,10 +24,11 @@ def transform_data(
     path_to_velocity,
     # voxel size of velocity field
     velocity_voxel_size,
+    transformation_direction,
 ):
     # identify layer to downlooad
     for mip in range(5):
-        target_vol = CloudVolume(target_layer_source, mip=mip)
+        target_vol = CloudVolume(target_layer_source, mip=mip, fill_missing=True)
         if (target_vol.resolution > 5000).any():
             source_voxel_size = list(np.array(target_vol.resolution) / 1000)
             break
@@ -53,9 +54,9 @@ def transform_data(
         print(base_path)
         # base_path = os.path.expanduser("~/CloudReg/registration")
 
-        matlab_path = 'matlab'
+        matlab_path = 'matlab' # '/Applications/MATLAB_R2020b.app/bin/matlab'
         matlab_command = f"""
-            {matlab_path} -nodisplay -nosplash -nodesktop -r \"addpath(\'{base_path}\');path_to_source=\'{path_to_source}\';source_voxel_size=[{source_voxel_size}];path_to_affine=\'{path_to_affine}\';path_to_velocity=\'{path_to_velocity}\';velocity_voxel_size=[{velocity_voxel_size}];destination_voxel_size=[10,10,10];destination_shape=[1320,800,1140];transformation_direction=\'atlas\';path_to_output=\'{transformed_file}\';interpolation_method=\'linear\';transform_data(path_to_source,source_voxel_size,path_to_affine,path_to_velocity,velocity_voxel_size,destination_voxel_size,destination_shape,transformation_direction,path_to_output,interpolation_method);exit;\"
+            {matlab_path} -nodisplay -nosplash -nodesktop -r \"addpath(\'{base_path}\');path_to_source=\'{path_to_source}\';source_voxel_size=[{source_voxel_size}];path_to_affine=\'{path_to_affine}\';path_to_velocity=\'{path_to_velocity}\';velocity_voxel_size=[{velocity_voxel_size}];destination_voxel_size=[10,10,10];destination_shape=[1320,800,1140];transformation_direction=\'{transformation_direction}\';path_to_output=\'{transformed_file}\';interpolation_method=\'linear\';transform_data(path_to_source,source_voxel_size,path_to_affine,path_to_velocity,velocity_voxel_size,destination_voxel_size,destination_shape,transformation_direction,path_to_output,interpolation_method);exit;\"
         """
         subprocess.run(shlex.split(matlab_command),)
         print(f"Transformed image saved at: {transformed_file}")
@@ -99,6 +100,11 @@ if __name__ == "__main__":
         type=float,
         default=[100.0] * 3,
     )
+    parser.add_argument(
+        "--transformation_direction", help="target to atlas (atlas) or atlas to target (target)",
+        type=str,
+        default='atlas'
+    )
 
     args = parser.parse_args()
 
@@ -118,4 +124,5 @@ if __name__ == "__main__":
         args.affine_path,
         args.velocity_path,
         args.velocity_voxel_size,
+        args.transformation_direction,
     )

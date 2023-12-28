@@ -15,6 +15,8 @@ import argparse
 from scipy.io import loadmat
 import json
 import random
+import os
+from pathlib import Path
 
 
 def loadmat_v73(mat_path):
@@ -51,7 +53,11 @@ class NGLink:
             return {i[0]: (i[1] * self.points_voxel_size) for i in self.points.items()}
 
     def _set_json_from_link(self):
-        self._json = r.get(self.json_link).json()
+        if os.path.isfile(self.json_link):
+            with open(self.json_link) as f:
+                self._json = json.load(f)
+        else:
+            self._json = r.get(self.json_link).json()
         self._parse_voxel_size()
         self.output_dim = [self._json["dimensions"][i] for i in self._json["dimensions"].keys()]
         self.layers = [self._parse_layer(i) for i in self._json["layers"]]
@@ -211,8 +217,17 @@ def transform_points(
     transformation_direction,
 ):
     # get json link from viz link
-    target_viz = NGLink(target_viz_link.split("json_url=")[-1])
-    atlas_viz = NGLink(atlas_viz_link.split("json_url=")[-1])
+    if os.path.isfile(target_viz_link):
+        target_viz = NGLink(target_viz_link)
+        json_fname = os.path.splitext(target_viz_link)[0] + "-somas-transformed.json"
+    else:
+        target_viz = NGLink(target_viz_link.split("json_url=")[-1])
+        json_fname = "server"
+
+    if os.path.isfile(target_viz_link):
+        atlas_viz = NGLink(atlas_viz_link)
+    else:
+        atlas_viz = NGLink(atlas_viz_link.split("json_url=")[-1])
 
     # get origin-centered fiducials from viz link
     atlas_fiducials = [
@@ -265,7 +280,7 @@ def transform_points(
             base_path = pathlib.Path(__file__).parent.parent.absolute() / 'registration'
             # base_path = os.path.expanduser("~/CloudReg/registration")
             transformed_points_path = "./transformed_points.mat"
-            matlab_path = 'matlab'
+            matlab_path = '/Applications/MATLAB_R2020b.app/bin/matlab'
             matlab_command = f"""
                 {matlab_path} -nodisplay -nosplash -nodesktop -r \"addpath(\'{base_path}\');Aname=\'{affine_path}\';vname=\'{velocity_path}\';v_size=[{v_size}];points=[{points_string}];points_t = transform_points(points,Aname,vname,v_size,\'{transformation_direction}\');save(\'./transformed_points.mat\',\'points_t\');exit;\"
             """
@@ -289,7 +304,7 @@ def transform_points(
                 "name": "transformed_points"
             }   
         )
-        viz_link = create_viz_link_from_json(ngl_json)
+        viz_link = create_viz_link_from_json(ngl_json, json_fname=json_fname)
         print(f"VIZ LINK WITH TRANSFORMED POINTS: {viz_link}")
 
     else:
@@ -301,10 +316,10 @@ if __name__ == "__main__":
         "Transform points in Neuroglancer from one space to another given a transformation."
     )
     parser.add_argument(
-        "--target_viz_link", help="Neuroglancer viz link to target with fiducials labelled.", type=str
+        "--target_viz_link", help="Neuroglancer viz link to target with fiducials labelled or path to associated JSON.", type=str
     )
     parser.add_argument(
-        "--atlas_viz_link", help="Neuroglancer viz link to atlas (optionally with fiducials labelled if transforming to input data space). Default is link to ARA.", 
+        "--atlas_viz_link", help="Neuroglancer viz link to atlas (optionally with fiducials labelled if transforming to input data space) or associated JSON. Default is link to ARA.", 
         type=str,
         default="https://ara.viz.neurodata.io/?json_url=https://json.neurodata.io/v1?NGStateID=ifm4oFKOl10eiA"
     )
@@ -316,7 +331,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--velocity_path",
-        help="S3 path ot local matlab transformation files. These will be downloaded to compute the fiducial accuracy",
+        help="S3 path or local matlab transformation files. These will be downloaded to compute the fiducial accuracy",
         type=str,
         default="",
     )
@@ -354,7 +369,12 @@ if __name__ == "__main__":
 
     # read soma points text file then create target link with them
     if args.soma_path is not None:
-        target_viz = NGLink(args.target_viz_link.split("json_url=")[-1])
+        if os.path.isfile(args.target_viz_link):
+            target_viz = NGLink(args.target_viz_link)
+            json_fname = os.path.splitext(args.target_viz_link)[0] + "-somas.json"
+        else:
+            target_viz = NGLink(args.target_viz_link.split("json_url=")[-1])
+            json_fname = "server"
         ngl_json = target_viz._json
 
         coords = {}
@@ -374,7 +394,7 @@ if __name__ == "__main__":
                 "name": "original_points"
             }   
         )
-        target_viz_link = create_viz_link_from_json(ngl_json)
+        target_viz_link = create_viz_link_from_json(ngl_json, json_fname=json_fname)
         print(f"VIZ LINK WITH ORIGINAL POINTS: {target_viz_link}")
     else:
         target_viz_link = args.target_viz_link

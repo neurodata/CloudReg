@@ -6,6 +6,7 @@ import requests
 from cloudvolume import CloudVolume
 import numpy as np
 import copy
+import json
 
 # 100 um
 output_dimensions = [1e-4, 1e-4, 1e-4]
@@ -84,13 +85,20 @@ def create_viz_link(
 
 def create_viz_link_from_json(
     ngl_json,
+    json_fname="server",
     url="https://json.neurodata.io/v1",
     neuroglancer_link="https://ara.viz.neurodata.io/?json_url=",
 ):
-    r = requests.post(url, json=ngl_json)
-    json_url = r.json()["uri"]
-    viz_link = f"{neuroglancer_link}{json_url}"
-    return viz_link
+    if json_fname == "server":
+        r = requests.post(url, json=ngl_json)
+        json_url = r.json()["uri"]
+        viz_link = f"{neuroglancer_link}{json_url}"
+        return viz_link
+    else:
+        with open(json_fname, "w") as f:
+            json.dump(ngl_json, f)
+        return json_fname
+
 
 def get_neuroglancer_json(s3_layer_paths, affine_matrices, output_resolution):
     """Generate Neuroglancer state json.
